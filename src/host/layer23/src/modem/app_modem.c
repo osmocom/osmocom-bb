@@ -194,7 +194,6 @@ static int global_signal_cb(unsigned int subsys, unsigned int signal,
 			    void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
-	struct gsm_settings *set;
 
 	if (subsys != SS_L1CTL)
 		return 0;
@@ -206,24 +205,14 @@ static int global_signal_cb(unsigned int subsys, unsigned int signal,
 		app_data.ms = ms;
 
 		/* insert test card, if enabled */
-		set = &ms->settings;
-		switch (set->sim_type) {
-		case GSM_SIM_TYPE_L1PHY:
-			/* trigger sim card reader process */
-			gsm_subscr_simcard(ms);
-			break;
-		case GSM_SIM_TYPE_TEST:
-			gsm_subscr_testcard(ms);
-			break;
-		case GSM_SIM_TYPE_SAP:
-			gsm_subscr_sapcard(ms);
-			break;
-		default:
+		if (ms->settings.sim_type != GSM_SIM_TYPE_NONE) {
+			/* insert sim card */
+			gsm_subscr_insert(ms);
+		} else {
 			/* No SIM, trigger PLMN selection process.
 			 * FIXME: not implemented. Code in mobile needs to be
 			 * moved to common/ and reuse it here.
 			 */
-			break;
 		}
 
 		ms->started = true;

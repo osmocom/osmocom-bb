@@ -90,7 +90,8 @@ struct gsm_settings {
 	int			plmn_mode; /* PLMN_MODE_* */
 
 	/* SIM */
-	int			sim_type; /* selects card on power on */
+	int			sim_type; /* enum gsm_subscriber_sim_type,
+					   * selects card on power on */
 	char			emergency_imsi[OSMO_IMSI_BUF_SIZE];
 
 	/* SMS */

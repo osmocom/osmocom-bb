@@ -45,6 +45,10 @@ const struct value_string gsm_sub_sim_ustate_names[] = {
 	{ 0, NULL }
 };
 
+static int gsm_subscr_insert_simcard(struct osmocom_ms *ms);
+static int gsm_subscr_insert_testcard(struct osmocom_ms *ms);
+static int gsm_subscr_insert_sapcard(struct osmocom_ms *ms);
+
 static int gsm_subscr_remove_sapcard(struct osmocom_ms *ms);
 
 static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg);
@@ -141,6 +145,46 @@ int gsm_subscr_exit(struct osmocom_ms *ms)
 	return 0;
 }
 
+/* Insert card */
+int gsm_subscr_insert(struct osmocom_ms *ms)
+{
+	struct gsm_settings *set = &ms->settings;
+	struct gsm_subscriber *subscr = &ms->subscr;
+	int rc;
+
+	if (subscr->sim_valid) {
+		LOGP(DMM, LOGL_ERROR, "Cannot insert card, until current card is removed.\n");
+		return -EBUSY;
+	}
+
+	/* reset subscriber */
+	gsm_subscr_exit(ms);
+	gsm_subscr_init(ms);
+
+	subscr->sim_valid = true;
+
+	switch (set->sim_type) {
+	case GSM_SIM_TYPE_L1PHY:
+		/* trigger sim card reader process */
+		rc = gsm_subscr_insert_simcard(ms);
+		break;
+	case GSM_SIM_TYPE_TEST:
+		rc = gsm_subscr_insert_testcard(ms);
+		break;
+	case GSM_SIM_TYPE_SAP:
+		rc = gsm_subscr_insert_sapcard(ms);
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	if (rc < 0) {
+		subscr->sim_valid = false;
+		return rc;
+	}
+	return rc;
+}
+
 /* Detach card */
 int gsm_subscr_remove(struct osmocom_ms *ms)
 {
@@ -175,29 +219,18 @@ void new_sim_ustate(struct gsm_subscriber *subscr, int state)
  */
 
 /* Attach test card, no SIM must be currently attached */
-int gsm_subscr_testcard(struct osmocom_ms *ms)
+int gsm_subscr_insert_testcard(struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
-
-	if (subscr->sim_valid) {
-		LOGP(DMM, LOGL_ERROR, "Cannot insert card, until current card "
-			"is detached.\n");
-		return -EBUSY;
-	}
 
 	if (!osmo_imsi_str_valid(set->test_sim.imsi)) {
 		LOGP(DMM, LOGL_ERROR, "Wrong IMSI format\n");
 		return -EINVAL;
 	}
 
-	/* reset subscriber */
-	gsm_subscr_exit(ms);
-	gsm_subscr_init(ms);
-
 	subscr->sim_type = GSM_SIM_TYPE_TEST;
 	sprintf(subscr->sim_name, "test");
-	subscr->sim_valid = 1;
 	subscr->imsi_attached = set->test_sim.imsi_attached;
 	subscr->acc_barr = set->test_sim.barr; /* we may access barred cell */
 	subscr->acc_class = 0xffff; /* we have any access class */
@@ -762,23 +795,12 @@ void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
 }
 
 /* Attach SIM reader, no SIM must be currently attached */
-int gsm_subscr_simcard(struct osmocom_ms *ms)
+int gsm_subscr_insert_simcard(struct osmocom_ms *ms)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 
-	if (subscr->sim_valid) {
-		LOGP(DMM, LOGL_ERROR, "Cannot attach card, until current card "
-			"is detached.\n");
-		return -EBUSY;
-	}
-
-	/* reset subscriber */
-	gsm_subscr_exit(ms);
-	gsm_subscr_init(ms);
-
 	subscr->sim_type = GSM_SIM_TYPE_L1PHY;
 	sprintf(subscr->sim_name, "sim");
-	subscr->sim_valid = 1;
 	subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
 
 	/* start with first index */
@@ -1215,24 +1237,13 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
  */
 
 /* Attach SIM card over SAP */
-int gsm_subscr_sapcard(struct osmocom_ms *ms)
+int gsm_subscr_insert_sapcard(struct osmocom_ms *ms)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	int rc;
 
-	if (subscr->sim_valid) {
-		LOGP(DMM, LOGL_ERROR, "Cannot insert card, until current card "
-			"is detached.\n");
-		return -EBUSY;
-	}
-
-	/* reset subscriber */
-	gsm_subscr_exit(ms);
-	gsm_subscr_init(ms);
-
 	subscr->sim_type = GSM_SIM_TYPE_SAP;
 	sprintf(subscr->sim_name, "sap");
-	subscr->sim_valid = 1;
 
 	/* Try to connect to the SAP interface */
 	l23_vty_ms_notify(ms, NULL);

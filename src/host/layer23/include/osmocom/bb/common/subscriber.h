@@ -32,7 +32,7 @@ struct gsm_sub_plmn_na {
 #define GSM_SIM_IS_READER(type) \
 	(type == GSM_SIM_TYPE_L1PHY || type == GSM_SIM_TYPE_SAP)
 
-enum {
+enum gsm_subscriber_sim_type {
 	GSM_SIM_TYPE_NONE = 0,
 	GSM_SIM_TYPE_L1PHY,
 	GSM_SIM_TYPE_TEST,
@@ -43,8 +43,8 @@ struct gsm_subscriber {
 	struct osmocom_ms	*ms;
 
 	/* status */
-	uint8_t			sim_type; /* type of sim */
-	uint8_t			sim_valid; /* sim inserted and valid */
+	enum gsm_subscriber_sim_type sim_type; /* type of sim */
+	bool			sim_valid; /* sim inserted and valid */
 	enum gsm_sub_sim_ustate	ustate; /* update status */
 	uint8_t			imsi_attached; /* attached state */
 
@@ -98,17 +98,16 @@ struct gsm_subscriber {
 
 int gsm_subscr_init(struct osmocom_ms *ms);
 int gsm_subscr_exit(struct osmocom_ms *ms);
-int gsm_subscr_testcard(struct osmocom_ms *ms);
+int gsm_subscr_insert(struct osmocom_ms *ms);
+int gsm_subscr_remove(struct osmocom_ms *ms);
+
 int gsm_subscr_sap_rsp_cb(struct osmocom_ms *ms, int res_code,
 	uint8_t res_type, uint16_t param_len, const uint8_t *param_val);
-int gsm_subscr_sapcard(struct osmocom_ms *ms);
-int gsm_subscr_simcard(struct osmocom_ms *ms);
 void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
 	int8_t mode);
 int gsm_subscr_write_loci(struct osmocom_ms *ms);
 int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 	uint8_t *rand, uint8_t no_sim);
-int gsm_subscr_remove(struct osmocom_ms *ms);
 void new_sim_ustate(struct gsm_subscriber *subscr, int state);
 int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 	uint16_t mnc);

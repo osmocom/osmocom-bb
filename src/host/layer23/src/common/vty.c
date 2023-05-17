@@ -496,6 +496,7 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 	}
 
 	set = &ms->settings;
+	set->sim_type = GSM_SIM_TYPE_TEST;
 
 	if (argc == 2) {
 		vty_out(vty, "Give MNC together with MCC%s", VTY_NEWLINE);
@@ -527,7 +528,7 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 
 	set->test_sim.imsi_attached = attached;
 
-	rc = gsm_subscr_testcard(ms);
+	rc = gsm_subscr_insert(ms);
 	if (rc < 0) {
 		vty_out(vty, "Attach test SIM card failed: %d%s", rc, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -562,6 +563,7 @@ DEFUN(sim_sap, sim_sap_cmd, "sim sap MS_NAME",
 	"Name of MS (see \"show ms\")\n")
 {
 	struct osmocom_ms *ms;
+	struct gsm_settings *set;
 
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
@@ -573,7 +575,9 @@ DEFUN(sim_sap, sim_sap_cmd, "sim sap MS_NAME",
 		return CMD_WARNING;
 	}
 
-	if (gsm_subscr_sapcard(ms) != 0)
+	set = &ms->settings;
+	set->sim_type = GSM_SIM_TYPE_SAP;
+	if (gsm_subscr_insert(ms) != 0)
 		return CMD_WARNING;
 
 	return CMD_SUCCESS;
@@ -583,6 +587,7 @@ DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
 	"SIM actions\nAttach SIM from reader\nName of MS (see \"show ms\")")
 {
 	struct osmocom_ms *ms;
+	struct gsm_settings *set;
 
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
@@ -594,7 +599,9 @@ DEFUN(sim_reader, sim_reader_cmd, "sim reader MS_NAME",
 		return CMD_WARNING;
 	}
 
-	gsm_subscr_simcard(ms);
+	set = &ms->settings;
+	set->sim_type = GSM_SIM_TYPE_L1PHY;
+	gsm_subscr_insert(ms);
 
 	return CMD_SUCCESS;
 }
