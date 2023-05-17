@@ -37,6 +37,14 @@
  * if list is changed, the result is not written back to SIM */
 //#define TEST_EMPTY_FPLMN
 
+const struct value_string gsm_sub_sim_ustate_names[] = {
+	{ GSM_SIM_U0_NULL, "U0_NULL" },
+	{ GSM_SIM_U1_UPDATED, "U1_UPDATED" },
+	{ GSM_SIM_U2_NOT_UPDATED, "U2_NOT_UPDATED" },
+	{ GSM_SIM_U3_ROAMING_NA, "U3_ROAMING_NA" },
+	{ 0, NULL }
+};
+
 static int gsm_subscr_remove_sapcard(struct osmocom_ms *ms);
 
 static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg);
@@ -131,6 +139,35 @@ int gsm_subscr_exit(struct osmocom_ms *ms)
 	}
 
 	return 0;
+}
+
+/* Detach card */
+int gsm_subscr_remove(struct osmocom_ms *ms)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+
+	if (!subscr->sim_valid) {
+		LOGP(DMM, LOGL_ERROR, "Cannot remove card, no card present\n");
+		return -EINVAL;
+	}
+
+	if (subscr->sim_type == GSM_SIM_TYPE_SAP)
+		gsm_subscr_remove_sapcard(ms);
+
+	/* remove card */
+	osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_DETACHED, ms);
+
+	return 0;
+}
+
+/* change to new U state */
+void new_sim_ustate(struct gsm_subscriber *subscr, int state)
+{
+	LOGP(DMM, LOGL_INFO, "(ms %s) new state %s -> %s\n", subscr->ms->name,
+		gsm_sub_sim_ustate_name(subscr->ustate),
+		gsm_sub_sim_ustate_name(state));
+
+	subscr->ustate = state;
 }
 
 /*
@@ -992,51 +1029,6 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg)
 	memcpy(sd.sres, payload, 4);
 	osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_AUTH_RESP, &sd);
 	msgb_free(msg);
-}
-
-/*
- * detach
- */
-
-/* Detach card */
-int gsm_subscr_remove(struct osmocom_ms *ms)
-{
-	struct gsm_subscriber *subscr = &ms->subscr;
-
-	if (!subscr->sim_valid) {
-		LOGP(DMM, LOGL_ERROR, "Cannot remove card, no card present\n");
-		return -EINVAL;
-	}
-
-	if (subscr->sim_type == GSM_SIM_TYPE_SAP)
-		gsm_subscr_remove_sapcard(ms);
-
-	/* remove card */
-	osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_DETACHED, ms);
-
-	return 0;
-}
-
-/*
- * state and lists
- */
-
-const struct value_string gsm_sub_sim_ustate_names[] = {
-	{ GSM_SIM_U0_NULL, "U0_NULL" },
-	{ GSM_SIM_U1_UPDATED, "U1_UPDATED" },
-	{ GSM_SIM_U2_NOT_UPDATED, "U2_NOT_UPDATED" },
-	{ GSM_SIM_U3_ROAMING_NA, "U3_ROAMING_NA" },
-	{ 0, NULL }
-};
-
-/* change to new U state */
-void new_sim_ustate(struct gsm_subscriber *subscr, int state)
-{
-	LOGP(DMM, LOGL_INFO, "(ms %s) new state %s -> %s\n", subscr->ms->name,
-		gsm_sub_sim_ustate_name(subscr->ustate),
-		gsm_sub_sim_ustate_name(state));
-
-	subscr->ustate = state;
 }
 
 /* del forbidden PLMN. if MCC==0, flush complete list */
