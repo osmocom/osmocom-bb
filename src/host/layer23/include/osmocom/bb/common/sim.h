@@ -287,8 +287,16 @@ struct gsm1111_ef_loci {
 	uint32_t tmsi;
 	struct gsm48_loc_area_id lai;
 	uint8_t tmsi_time;
-	uint8_t lupd_status;
+	uint8_t lupd_status; /* enum gsm1111_ef_loci_lupd_status */
 } __attribute__ ((packed));
+
+enum gsm1111_ef_loci_lupd_status {
+	GSM1111_EF_LOCI_LUPD_ST_UPDATED = 0,
+	GSM1111_EF_LOCI_LUPD_ST_NOT_UPDATED = 1,
+	GSM1111_EF_LOCI_LUPD_ST_PLMN_NOT_ALLOWED = 2,
+	GSM1111_EF_LOCI_LUPD_ST_LA_NOT_ALLOWED = 3,
+	GSM1111_EF_LOCI_LUPD_ST_RESERVED = 7,
+};
 
 /* Section 10.5.1 */
 struct gsm1111_ef_adn {

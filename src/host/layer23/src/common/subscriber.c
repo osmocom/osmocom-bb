@@ -263,11 +263,11 @@ static int subscr_sim_loci(struct osmocom_ms *ms, uint8_t *data,
 
 	/* location update status */
 	switch (loci->lupd_status & 0x07) {
-	case 0x00:
+	case GSM1111_EF_LOCI_LUPD_ST_UPDATED:
 		subscr->ustate = GSM_SIM_U1_UPDATED;
 		break;
-	case 0x02:
-	case 0x03:
+	case GSM1111_EF_LOCI_LUPD_ST_PLMN_NOT_ALLOWED:
+	case GSM1111_EF_LOCI_LUPD_ST_LA_NOT_ALLOWED:
 		subscr->ustate = GSM_SIM_U3_ROAMING_NA;
 		break;
 	default:
@@ -845,13 +845,13 @@ int gsm_subscr_write_loci(struct osmocom_ms *ms)
 	/* location update status */
 	switch (subscr->ustate) {
 	case GSM_SIM_U1_UPDATED:
-		loci->lupd_status = 0x00;
+		loci->lupd_status = GSM1111_EF_LOCI_LUPD_ST_UPDATED;
 		break;
 	case GSM_SIM_U3_ROAMING_NA:
-		loci->lupd_status = 0x03;
+		loci->lupd_status = GSM1111_EF_LOCI_LUPD_ST_LA_NOT_ALLOWED;
 		break;
 	default:
-		loci->lupd_status = 0x01;
+		loci->lupd_status = GSM1111_EF_LOCI_LUPD_ST_NOT_UPDATED;
 	}
 
 	sim_job(ms, nmsg);
