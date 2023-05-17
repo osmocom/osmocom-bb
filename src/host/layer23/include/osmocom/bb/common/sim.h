@@ -298,6 +298,23 @@ enum gsm1111_ef_loci_lupd_status {
 	GSM1111_EF_LOCI_LUPD_ST_RESERVED = 7,
 };
 
+/* Section 10.3.33 */
+struct gsm1111_ef_locigprs {
+	uint32_t ptmsi;
+	uint16_t ptmsi_sig_hi;
+	uint8_t ptmsi_sig_lo;
+	struct gsm48_ra_id rai;
+	uint8_t rau_status; /* enum gsm1111_ef_locigprs_rau_status */
+} __attribute__ ((packed));
+
+enum gsm1111_ef_locigprs_rau_status {
+	GSM1111_EF_LOCIGPRS_RAU_ST_UPDATED = 0,
+	GSM1111_EF_LOCIGPRS_RAU_ST_NOT_UPDATED = 1,
+	GSM1111_EF_LOCIGPRS_RAU_ST_PLMN_NOT_ALLOWED = 2,
+	GSM1111_EF_LOCIGPRS_RAU_ST_RA_NOT_ALLOWED = 3,
+	GSM1111_EF_LOCIGPRS_RAU_ST_RESERVED = 7,
+};
+
 /* Section 10.5.1 */
 struct gsm1111_ef_adn {
 	uint8_t len_bcd;
