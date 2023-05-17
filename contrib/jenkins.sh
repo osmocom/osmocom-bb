@@ -17,8 +17,9 @@ osmo-clean-workspace.sh
 
 mkdir "$deps" || true
 
-# TODO: ask whether fail is expected, because osmocom-bb build succeeds?
-#"$deps"/libosmocore/contrib/verify_value_string_arrays_are_terminated.py $(find . -name "*.[hc]")
+# exclude ancient local copy of libosmocore.git
+verify_value_string_arrays_are_terminated.py \
+	$(find . -path ./src/shared/libosmocore -prune -o -name '*.[hc]' -print)
 
 export PKG_CONFIG_PATH="$inst/lib/pkgconfig:$PKG_CONFIG_PATH"
 export LD_LIBRARY_PATH="$inst/lib"
