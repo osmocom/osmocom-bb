@@ -57,6 +57,19 @@ struct audio_settings {
 	char alsa_input_dev[128];
 };
 
+struct test_sim_settings {
+	char			imsi[OSMO_IMSI_BUF_SIZE];
+	uint32_t		tmsi;
+	uint8_t			ki_type;
+	uint8_t			ki[16]; /* 128 bit max */
+	uint8_t			barr;
+	uint8_t			rplmn_valid;
+	uint16_t		rplmn_mcc, rplmn_mnc;
+	uint16_t		lac;
+	uint8_t			imsi_attached;
+	uint8_t			always; /* ...search hplmn... */
+};
+
 struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];
@@ -85,16 +98,7 @@ struct gsm_settings {
 	bool			store_sms;
 
 	/* test card simulator settings */
-	char			test_imsi[OSMO_IMSI_BUF_SIZE];
-	uint32_t		test_tmsi;
-	uint8_t			test_ki_type;
-	uint8_t			test_ki[16]; /* 128 bit max */
-	uint8_t			test_barr;
-	uint8_t			test_rplmn_valid;
-	uint16_t		test_rplmn_mcc, test_rplmn_mnc;
-	uint16_t		test_lac;
-	uint8_t			test_imsi_attached;
-	uint8_t			test_always; /* ...search hplmn... */
+	struct test_sim_settings test_sim;
 
 	/* call related settings */
 	uint8_t			cw; /* set if call-waiting is allowed */

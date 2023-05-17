@@ -167,9 +167,9 @@ static int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 			gsm_subscr_simcard(ms);
 			break;
 		case GSM_SIM_TYPE_TEST:
-			gsm_subscr_testcard(ms, set->test_rplmn_mcc,
-				set->test_rplmn_mnc, set->test_lac,
-				set->test_tmsi, set->test_imsi_attached);
+			gsm_subscr_testcard(ms, set->test_sim.rplmn_mcc,
+				set->test_sim.rplmn_mnc, set->test_sim.lac,
+				set->test_sim.tmsi, set->test_sim.imsi_attached);
 			break;
 		case GSM_SIM_TYPE_SAP:
 			gsm_subscr_sapcard(ms);

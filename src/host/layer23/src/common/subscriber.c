@@ -148,7 +148,7 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 		return -EBUSY;
 	}
 
-	if (!osmo_imsi_str_valid(set->test_imsi)) {
+	if (!osmo_imsi_str_valid(set->test_sim.imsi)) {
 		LOGP(DMM, LOGL_ERROR, "Wrong IMSI format\n");
 		return -EINVAL;
 	}
@@ -160,14 +160,14 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	subscr->sim_type = GSM_SIM_TYPE_TEST;
 	sprintf(subscr->sim_name, "test");
 	subscr->sim_valid = 1;
-	if (imsi_attached && set->test_rplmn_valid) {
+	if (imsi_attached && set->test_sim.rplmn_valid) {
 		subscr->imsi_attached = imsi_attached;
 		subscr->ustate = GSM_SIM_U1_UPDATED;
 	} else
 		subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
-	subscr->acc_barr = set->test_barr; /* we may access barred cell */
+	subscr->acc_barr = set->test_sim.barr; /* we may access barred cell */
 	subscr->acc_class = 0xffff; /* we have any access class */
-	subscr->plmn_valid = set->test_rplmn_valid;
+	subscr->plmn_valid = set->test_sim.rplmn_valid;
 	subscr->plmn_mcc = mcc;
 	subscr->plmn_mnc = mnc;
 	subscr->mcc = mcc;
@@ -175,9 +175,9 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	subscr->lac = lac;
 	subscr->tmsi = tmsi;
 	subscr->ptmsi = GSM_RESERVED_TMSI;
-	subscr->always_search_hplmn = set->test_always;
+	subscr->always_search_hplmn = set->test_sim.always;
 	subscr->t6m_hplmn = 1; /* try to find home network every 6 min */
-	OSMO_STRLCPY_ARRAY(subscr->imsi, set->test_imsi);
+	OSMO_STRLCPY_ARRAY(subscr->imsi, set->test_sim.imsi);
 
 	LOGP(DMM, LOGL_INFO, "(ms %s) Inserting test card (IMSI=%s %s, %s)\n",
 		ms->name, subscr->imsi, gsm_imsi_mcc(subscr->imsi),
@@ -902,8 +902,8 @@ int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq,
 		struct osmo_auth_vector _vec;
 		struct osmo_auth_vector *vec = &_vec;
 
-		auth.algo = set->test_ki_type;
-		memcpy(auth.u.gsm.ki, set->test_ki, sizeof(auth.u.gsm.ki));
+		auth.algo = set->test_sim.ki_type;
+		memcpy(auth.u.gsm.ki, set->test_sim.ki, sizeof(auth.u.gsm.ki));
 		int ret = osmo_auth_gen_vec(vec, &auth, rand);
 		if (ret < 0)
 			return ret;
