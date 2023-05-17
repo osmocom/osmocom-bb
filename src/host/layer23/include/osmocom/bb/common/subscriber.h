@@ -102,7 +102,6 @@ int gsm_subscr_testcard(struct osmocom_ms *ms);
 int gsm_subscr_sap_rsp_cb(struct osmocom_ms *ms, int res_code,
 	uint8_t res_type, uint16_t param_len, const uint8_t *param_val);
 int gsm_subscr_sapcard(struct osmocom_ms *ms);
-int gsm_subscr_remove_sapcard(struct osmocom_ms *ms);
 int gsm_subscr_simcard(struct osmocom_ms *ms);
 void gsm_subscr_sim_pin(struct osmocom_ms *ms, char *pin1, char *pin2,
 	int8_t mode);

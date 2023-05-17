@@ -613,9 +613,6 @@ DEFUN(sim_remove, sim_remove_cmd, "sim remove MS_NAME",
 		return CMD_WARNING;
 	}
 
-	if (ms->subscr.sim_type == GSM_SIM_TYPE_SAP)
-		gsm_subscr_remove_sapcard(ms);
-
 	gsm_subscr_remove(ms);
 	return CMD_SUCCESS;
 }

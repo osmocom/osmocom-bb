@@ -37,6 +37,8 @@
  * if list is changed, the result is not written back to SIM */
 //#define TEST_EMPTY_FPLMN
 
+static int gsm_subscr_remove_sapcard(struct osmocom_ms *ms);
+
 static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_update_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg);
@@ -1006,6 +1008,9 @@ int gsm_subscr_remove(struct osmocom_ms *ms)
 		return -EINVAL;
 	}
 
+	if (subscr->sim_type == GSM_SIM_TYPE_SAP)
+		gsm_subscr_remove_sapcard(ms);
+
 	/* remove card */
 	osmo_signal_dispatch(SS_L23_SUBSCR, S_L23_SUBSCR_SIM_DETACHED, ms);
 
@@ -1257,7 +1262,7 @@ int gsm_subscr_sapcard(struct osmocom_ms *ms)
 }
 
 /* Deattach sapcard */
-int gsm_subscr_remove_sapcard(struct osmocom_ms *ms)
+static int gsm_subscr_remove_sapcard(struct osmocom_ms *ms)
 {
 	return sap_close(ms);
 }
