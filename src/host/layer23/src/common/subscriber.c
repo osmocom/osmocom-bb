@@ -92,9 +92,9 @@ static char *sim_decode_bcd(uint8_t *data, uint8_t length)
 	return result;
 }
 
-/*
- * init/exit
- */
+/**************************************
+ * Generic backend-agnostic API
+ **************************************/
 
 int gsm_subscr_init(struct osmocom_ms *ms)
 {
@@ -328,9 +328,188 @@ static int subscr_write_plmn_na(struct osmocom_ms *ms)
 	}
 }
 
-/*
- * test card
- */
+/* del forbidden PLMN. if MCC==0, flush complete list */
+int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
+	uint16_t mnc)
+{
+	struct gsm_sub_plmn_na *na, *na2;
+	int deleted = 0;
+
+	llist_for_each_entry_safe(na, na2, &subscr->plmn_na, entry) {
+		if (!mcc || (na->mcc == mcc && na->mnc == mnc)) {
+			LOGP(DPLMN, LOGL_INFO, "Delete from list of forbidden "
+				"PLMNs (mcc=%s, mnc=%s)\n",
+				gsm_print_mcc(mcc), gsm_print_mnc(mnc));
+			llist_del(&na->entry);
+			talloc_free(na);
+			deleted = 1;
+			if (mcc)
+				break;
+		}
+	}
+
+	if (deleted) {
+		/* update plmn not allowed list on SIM */
+		subscr_write_plmn_na(subscr->ms);
+	}
+
+	return -EINVAL;
+}
+
+/* add forbidden PLMN */
+int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
+					uint16_t mnc, uint8_t cause)
+{
+	struct gsm_sub_plmn_na *na;
+
+	/* if already in the list, remove and add to tail */
+	gsm_subscr_del_forbidden_plmn(subscr, mcc, mnc);
+
+	LOGP(DPLMN, LOGL_INFO, "Add to list of forbidden PLMNs "
+		"(mcc=%s, mnc=%s)\n", gsm_print_mcc(mcc), gsm_print_mnc(mnc));
+	na = talloc_zero(subscr->ms, struct gsm_sub_plmn_na);
+	if (!na)
+		return -ENOMEM;
+	na->mcc = mcc;
+	na->mnc = mnc;
+	na->cause = cause ? : -1; /* cause 0 is not allowed */
+	llist_add_tail(&na->entry, &subscr->plmn_na);
+
+	/* don't add Home PLMN to SIM */
+	if (subscr->sim_valid && gsm_match_mnc(mcc, mnc, subscr->imsi))
+		return -EINVAL;
+
+	/* update plmn not allowed list on SIM */
+	subscr_write_plmn_na(subscr->ms);
+
+	return 0;
+}
+
+/* search forbidden PLMN */
+int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
+					uint16_t mnc)
+{
+	struct gsm_sub_plmn_na *na;
+
+	llist_for_each_entry(na, &subscr->plmn_na, entry) {
+		if (na->mcc == mcc && na->mnc == mnc)
+			return 1;
+	}
+
+	return 0;
+}
+
+int gsm_subscr_get_key_seq(struct osmocom_ms *ms, struct gsm_subscriber *subscr)
+{
+	if (ms->settings.force_rekey)
+		return 7;
+	else
+		return subscr->key_seq;
+}
+
+int gsm_subscr_dump_forbidden_plmn(struct osmocom_ms *ms,
+			void (*print)(void *, const char *, ...), void *priv)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm_sub_plmn_na *temp;
+
+	print(priv, "MCC    |MNC    |cause\n");
+	print(priv, "-------+-------+-------\n");
+	llist_for_each_entry(temp, &subscr->plmn_na, entry)
+		print(priv, "%s    |%s%s    |#%d\n",
+			gsm_print_mcc(temp->mcc), gsm_print_mnc(temp->mnc),
+			((temp->mnc & 0x00f) == 0x00f) ? " ":"", temp->cause);
+
+	return 0;
+}
+
+/* dump subscriber */
+void gsm_subscr_dump(struct gsm_subscriber *subscr,
+			void (*print)(void *, const char *, ...), void *priv)
+{
+	int i;
+	struct gsm_sub_plmn_list *plmn_list;
+	struct gsm_sub_plmn_na *plmn_na;
+
+	print(priv, "Mobile Subscriber of MS '%s':\n", subscr->ms->name);
+
+	if (!subscr->sim_valid) {
+		print(priv, " No SIM present.\n");
+		return;
+	}
+
+	print(priv, " IMSI: %s\n", subscr->imsi);
+	if (subscr->iccid[0])
+		print(priv, " ICCID: %s\n", subscr->iccid);
+	if (subscr->sim_spn[0])
+		print(priv, " Service Provider Name: %s\n", subscr->sim_spn);
+	if (subscr->msisdn[0])
+		print(priv, " MSISDN: %s\n", subscr->msisdn);
+	if (subscr->sms_sca[0])
+		print(priv, " SMS Service Center Address: %s\n",
+			subscr->sms_sca);
+	print(priv, " Status: %s  IMSI %s", gsm_sub_sim_ustate_name(subscr->ustate),
+		(subscr->imsi_attached) ? "attached" : "detached");
+	if (subscr->tmsi != GSM_RESERVED_TMSI)
+		print(priv, "  TMSI 0x%08x", subscr->tmsi);
+	if (subscr->ptmsi != GSM_RESERVED_TMSI)
+		print(priv, "  P-TMSI 0x%08x", subscr->ptmsi);
+	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
+		print(priv, "\n");
+		print(priv, "         LAI: MCC %s  MNC %s  LAC 0x%04x  "
+			"(%s, %s)\n", gsm_print_mcc(subscr->mcc),
+			gsm_print_mnc(subscr->mnc), subscr->lac,
+			gsm_get_mcc(subscr->mcc),
+			gsm_get_mnc(subscr->mcc, subscr->mnc));
+	} else
+		print(priv, "  LAI: invalid\n");
+	if (subscr->key_seq != 7) {
+		print(priv, " Key: sequence %d ", subscr->key_seq);
+		for (i = 0; i < sizeof(subscr->key); i++)
+			print(priv, " %02x", subscr->key[i]);
+		print(priv, "\n");
+	}
+	if (subscr->plmn_valid)
+		print(priv, " Registered PLMN: MCC %s  MNC %s  (%s, %s)\n",
+			gsm_print_mcc(subscr->plmn_mcc),
+			gsm_print_mnc(subscr->plmn_mnc),
+			gsm_get_mcc(subscr->plmn_mcc),
+			gsm_get_mnc(subscr->plmn_mcc, subscr->plmn_mnc));
+	print(priv, " Access barred cells: %s\n",
+		(subscr->acc_barr) ? "yes" : "no");
+	print(priv, " Access classes:");
+	for (i = 0; i < 16; i++)
+		if ((subscr->acc_class & (1 << i)))
+			print(priv, " C%d", i);
+	print(priv, "\n");
+	if (!llist_empty(&subscr->plmn_list)) {
+		print(priv, " List of preferred PLMNs:\n");
+		print(priv, "        MCC    |MNC\n");
+		print(priv, "        -------+-------\n");
+		llist_for_each_entry(plmn_list, &subscr->plmn_list, entry)
+			print(priv, "        %s    |%s        (%s, %s)\n",
+			gsm_print_mcc(plmn_list->mcc),
+			gsm_print_mnc(plmn_list->mnc),
+			gsm_get_mcc(plmn_list->mcc),
+			gsm_get_mnc(plmn_list->mcc, plmn_list->mnc));
+	}
+	if (!llist_empty(&subscr->plmn_na)) {
+		print(priv, " List of forbidden PLMNs:\n");
+		print(priv, "        MCC    |MNC    |cause\n");
+		print(priv, "        -------+-------+-------\n");
+		llist_for_each_entry(plmn_na, &subscr->plmn_na, entry)
+			print(priv, "        %s    |%s%s    |#%d        "
+				"(%s, %s)\n", gsm_print_mcc(plmn_na->mcc),
+				gsm_print_mnc(plmn_na->mnc),
+				((plmn_na->mnc & 0x00f) == 0x00f) ? " ":"",
+				plmn_na->cause, gsm_get_mcc(plmn_na->mcc),
+				gsm_get_mnc(plmn_na->mcc, plmn_na->mnc));
+	}
+}
+
+/*******************
+ * testcard backend
+ *******************/
 
 /* Attach test card, no SIM must be currently attached */
 int gsm_subscr_insert_testcard(struct osmocom_ms *ms)
@@ -415,9 +594,9 @@ static int gsm_subscr_generate_kc_testcard(struct osmocom_ms *ms, uint8_t key_se
 	return 0;
 }
 
-/*
- * sim card
- */
+/********************
+ * simcard backend
+ ********************/
 
 static int subscr_sim_iccid(struct osmocom_ms *ms, uint8_t *data,
 	uint8_t length)
@@ -1144,188 +1323,10 @@ static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg)
 	msgb_free(msg);
 }
 
-/* del forbidden PLMN. if MCC==0, flush complete list */
-int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
-	uint16_t mnc)
-{
-	struct gsm_sub_plmn_na *na, *na2;
-	int deleted = 0;
-
-	llist_for_each_entry_safe(na, na2, &subscr->plmn_na, entry) {
-		if (!mcc || (na->mcc == mcc && na->mnc == mnc)) {
-			LOGP(DPLMN, LOGL_INFO, "Delete from list of forbidden "
-				"PLMNs (mcc=%s, mnc=%s)\n",
-				gsm_print_mcc(mcc), gsm_print_mnc(mnc));
-			llist_del(&na->entry);
-			talloc_free(na);
-			deleted = 1;
-			if (mcc)
-				break;
-		}
-	}
-
-	if (deleted) {
-		/* update plmn not allowed list on SIM */
-		subscr_write_plmn_na(subscr->ms);
-	}
-
-	return -EINVAL;
-}
-
-/* add forbidden PLMN */
-int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
-					uint16_t mnc, uint8_t cause)
-{
-	struct gsm_sub_plmn_na *na;
-
-	/* if already in the list, remove and add to tail */
-	gsm_subscr_del_forbidden_plmn(subscr, mcc, mnc);
-
-	LOGP(DPLMN, LOGL_INFO, "Add to list of forbidden PLMNs "
-		"(mcc=%s, mnc=%s)\n", gsm_print_mcc(mcc), gsm_print_mnc(mnc));
-	na = talloc_zero(subscr->ms, struct gsm_sub_plmn_na);
-	if (!na)
-		return -ENOMEM;
-	na->mcc = mcc;
-	na->mnc = mnc;
-	na->cause = cause ? : -1; /* cause 0 is not allowed */
-	llist_add_tail(&na->entry, &subscr->plmn_na);
-
-	/* don't add Home PLMN to SIM */
-	if (subscr->sim_valid && gsm_match_mnc(mcc, mnc, subscr->imsi))
-		return -EINVAL;
-
-	/* update plmn not allowed list on SIM */
-	subscr_write_plmn_na(subscr->ms);
-
-	return 0;
-}
-
-/* search forbidden PLMN */
-int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
-					uint16_t mnc)
-{
-	struct gsm_sub_plmn_na *na;
-
-	llist_for_each_entry(na, &subscr->plmn_na, entry) {
-		if (na->mcc == mcc && na->mnc == mnc)
-			return 1;
-	}
-
-	return 0;
-}
-
-int gsm_subscr_get_key_seq(struct osmocom_ms *ms, struct gsm_subscriber *subscr)
-{
-	if (ms->settings.force_rekey)
-		return 7;
-	else
-		return subscr->key_seq;
-}
-
-int gsm_subscr_dump_forbidden_plmn(struct osmocom_ms *ms,
-			void (*print)(void *, const char *, ...), void *priv)
-{
-	struct gsm_subscriber *subscr = &ms->subscr;
-	struct gsm_sub_plmn_na *temp;
-
-	print(priv, "MCC    |MNC    |cause\n");
-	print(priv, "-------+-------+-------\n");
-	llist_for_each_entry(temp, &subscr->plmn_na, entry)
-		print(priv, "%s    |%s%s    |#%d\n",
-			gsm_print_mcc(temp->mcc), gsm_print_mnc(temp->mnc),
-			((temp->mnc & 0x00f) == 0x00f) ? " ":"", temp->cause);
-
-	return 0;
-}
-
-/* dump subscriber */
-void gsm_subscr_dump(struct gsm_subscriber *subscr,
-			void (*print)(void *, const char *, ...), void *priv)
-{
-	int i;
-	struct gsm_sub_plmn_list *plmn_list;
-	struct gsm_sub_plmn_na *plmn_na;
-
-	print(priv, "Mobile Subscriber of MS '%s':\n", subscr->ms->name);
-
-	if (!subscr->sim_valid) {
-		print(priv, " No SIM present.\n");
-		return;
-	}
-
-	print(priv, " IMSI: %s\n", subscr->imsi);
-	if (subscr->iccid[0])
-		print(priv, " ICCID: %s\n", subscr->iccid);
-	if (subscr->sim_spn[0])
-		print(priv, " Service Provider Name: %s\n", subscr->sim_spn);
-	if (subscr->msisdn[0])
-		print(priv, " MSISDN: %s\n", subscr->msisdn);
-	if (subscr->sms_sca[0])
-		print(priv, " SMS Service Center Address: %s\n",
-			subscr->sms_sca);
-	print(priv, " Status: %s  IMSI %s", gsm_sub_sim_ustate_name(subscr->ustate),
-		(subscr->imsi_attached) ? "attached" : "detached");
-	if (subscr->tmsi != GSM_RESERVED_TMSI)
-		print(priv, "  TMSI 0x%08x", subscr->tmsi);
-	if (subscr->ptmsi != GSM_RESERVED_TMSI)
-		print(priv, "  P-TMSI 0x%08x", subscr->ptmsi);
-	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
-		print(priv, "\n");
-		print(priv, "         LAI: MCC %s  MNC %s  LAC 0x%04x  "
-			"(%s, %s)\n", gsm_print_mcc(subscr->mcc),
-			gsm_print_mnc(subscr->mnc), subscr->lac,
-			gsm_get_mcc(subscr->mcc),
-			gsm_get_mnc(subscr->mcc, subscr->mnc));
-	} else
-		print(priv, "  LAI: invalid\n");
-	if (subscr->key_seq != 7) {
-		print(priv, " Key: sequence %d ", subscr->key_seq);
-		for (i = 0; i < sizeof(subscr->key); i++)
-			print(priv, " %02x", subscr->key[i]);
-		print(priv, "\n");
-	}
-	if (subscr->plmn_valid)
-		print(priv, " Registered PLMN: MCC %s  MNC %s  (%s, %s)\n",
-			gsm_print_mcc(subscr->plmn_mcc),
-			gsm_print_mnc(subscr->plmn_mnc),
-			gsm_get_mcc(subscr->plmn_mcc),
-			gsm_get_mnc(subscr->plmn_mcc, subscr->plmn_mnc));
-	print(priv, " Access barred cells: %s\n",
-		(subscr->acc_barr) ? "yes" : "no");
-	print(priv, " Access classes:");
-	for (i = 0; i < 16; i++)
-		if ((subscr->acc_class & (1 << i)))
-			print(priv, " C%d", i);
-	print(priv, "\n");
-	if (!llist_empty(&subscr->plmn_list)) {
-		print(priv, " List of preferred PLMNs:\n");
-		print(priv, "        MCC    |MNC\n");
-		print(priv, "        -------+-------\n");
-		llist_for_each_entry(plmn_list, &subscr->plmn_list, entry)
-			print(priv, "        %s    |%s        (%s, %s)\n",
-			gsm_print_mcc(plmn_list->mcc),
-			gsm_print_mnc(plmn_list->mnc),
-			gsm_get_mcc(plmn_list->mcc),
-			gsm_get_mnc(plmn_list->mcc, plmn_list->mnc));
-	}
-	if (!llist_empty(&subscr->plmn_na)) {
-		print(priv, " List of forbidden PLMNs:\n");
-		print(priv, "        MCC    |MNC    |cause\n");
-		print(priv, "        -------+-------+-------\n");
-		llist_for_each_entry(plmn_na, &subscr->plmn_na, entry)
-			print(priv, "        %s    |%s%s    |#%d        "
-				"(%s, %s)\n", gsm_print_mcc(plmn_na->mcc),
-				gsm_print_mnc(plmn_na->mnc),
-				((plmn_na->mnc & 0x00f) == 0x00f) ? " ":"",
-				plmn_na->cause, gsm_get_mcc(plmn_na->mcc),
-				gsm_get_mnc(plmn_na->mcc, plmn_na->mnc));
-	}
-}
-
-/*
- * SAP interface integration
- */
+/***********************************************
+ * sapcard backend
+ * (SAP interface integration, reuses some parts of simcard backend)
+ ***********************************************/
 
 /* Attach SIM card over SAP */
 int gsm_subscr_insert_sapcard(struct osmocom_ms *ms)
