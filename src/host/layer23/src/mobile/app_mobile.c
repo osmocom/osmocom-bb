@@ -260,12 +260,6 @@ static int mobile_init(struct osmocom_ms *ms)
 			    GSM_LCHAN_SDCCH, NULL);
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
-	/* init SAP client before SIM card starts up */
-	sap_init(ms);
-
-	/* SAP response call-back */
-	ms->sap_entity.sap_rsp_cb = &gsm_subscr_sap_rsp_cb;
-
 	gsm_sim_init(ms);
 	gsm48_cc_init(ms);
 	gsm480_ss_init(ms);
@@ -448,12 +442,6 @@ static int _mobile_app_work(void)
 				layer2_close(ms);
 				ms->l2_wq.bfd.fd = -1;
 			}
-
-			if (ms->sap_wq.bfd.fd > -1) {
-				sap_close(ms);
-				ms->sap_wq.bfd.fd = -1;
-			}
-
 			if (ms->deleting) {
 				gsm_settings_exit(ms);
 				script_lua_close(ms);

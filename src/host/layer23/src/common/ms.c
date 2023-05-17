@@ -27,6 +27,12 @@ uint16_t cfg_test_arfcn = 871;
 
 static int osmocom_ms_talloc_destructor(struct osmocom_ms *ms)
 {
+
+	if (ms->sap_wq.bfd.fd > -1) {
+		sap_close(ms);
+		ms->sap_wq.bfd.fd = -1;
+	}
+
 	gprs_settings_fi(ms);
 	gsm_subscr_exit(ms);
 	gsm_sim_exit(ms);
@@ -63,6 +69,10 @@ struct osmocom_ms *osmocom_ms_alloc(void *ctx, const char *name)
 	gsm_support_init(ms);
 	gsm_settings_init(ms);
 	gprs_settings_init(ms);
+	/* init SAP client before SIM card starts up */
+	sap_init(ms);
+	/* SAP response call-back */
+	ms->sap_entity.sap_rsp_cb = &gsm_subscr_sap_rsp_cb;
 	gsm_sim_init(ms);
 	gsm_subscr_init(ms);
 
