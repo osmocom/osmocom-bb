@@ -6,6 +6,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
 #include <osmocom/gsm/gsm23003.h>
+#include <osmocom/gsm/gsm48.h>
 
 /* GSM 04.08 4.1.2.2 SIM update status */
 enum gsm_sub_sim_ustate {
@@ -20,6 +21,18 @@ static inline const char *gsm_sub_sim_ustate_name(enum gsm_sub_sim_ustate val)
 	return get_value_string(gsm_sub_sim_ustate_names, val);
 }
 
+/* 3GPP TS 24.008 4.1.3.2 GPRS update status */
+enum gsm_sub_sim_gustate {
+	GSM_SIM_GU0_NULL,
+	GSM_SIM_GU1_UPDATED,
+	GSM_SIM_GU2_NOT_UPDATED,
+	GSM_SIM_GU3_ROAMING_NA,
+};
+extern const struct value_string gsm_sub_sim_gustate_names[];
+static inline const char *gsm_sub_sim_gustate_name(enum gsm_sub_sim_gustate val)
+{
+	return get_value_string(gsm_sub_sim_gustate_names, val);
+}
 
 struct gsm_sub_plmn_list {
 	struct llist_head	entry;
@@ -58,7 +71,6 @@ struct gsm_subscriber {
 
 	/* TMSI / LAI */
 	uint32_t		tmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
-	uint32_t		ptmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
 	struct osmo_location_area_id lai; /* invalid lac: 0x0000 */
 
 
@@ -97,6 +109,14 @@ struct gsm_subscriber {
 
 	/* SMS */
 	char			sms_sca[22];
+
+	struct {
+		uint8_t			gu_state; /* GU, TS 24.008 */
+		struct gprs_ra_id	rai;
+		uint32_t		ptmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
+		uint32_t		ptmsi_sig; /* P-TMSI signature, 3 bytes */
+		bool			imsi_attached;
+	} gprs;
 };
 
 int gsm_subscr_init(struct osmocom_ms *ms);
@@ -109,6 +129,7 @@ int gsm_subscr_sap_rsp_cb(struct osmocom_ms *ms, int res_code,
 int gsm_subscr_sim_pin(struct osmocom_ms *ms, const char *pin1, const char *pin2,
 		       int8_t mode);
 int gsm_subscr_write_loci(struct osmocom_ms *ms);
+int gsm_subscr_write_locigprs(struct osmocom_ms *ms);
 int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq, const uint8_t *rand,
 			   bool no_sim);
 void new_sim_ustate(struct gsm_subscriber *subscr, int state);

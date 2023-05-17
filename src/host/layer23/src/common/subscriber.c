@@ -45,6 +45,14 @@ const struct value_string gsm_sub_sim_ustate_names[] = {
 	{ 0, NULL }
 };
 
+const struct value_string gsm_sub_sim_gustate_names[] = {
+	{ GSM_SIM_GU0_NULL, "GU0_NULL" },
+	{ GSM_SIM_GU1_UPDATED, "GU1_UPDATED" },
+	{ GSM_SIM_GU2_NOT_UPDATED, "GU2_NOT_UPDATED" },
+	{ GSM_SIM_GU3_ROAMING_NA, "GU3_ROAMING_NA" },
+	{ 0, NULL }
+};
+
 static int gsm_subscr_insert_simcard(struct osmocom_ms *ms);
 static int gsm_subscr_insert_testcard(struct osmocom_ms *ms);
 static int gsm_subscr_insert_sapcard(struct osmocom_ms *ms);
@@ -57,6 +65,8 @@ static int gsm_subscr_generate_kc_testcard(struct osmocom_ms *ms, uint8_t key_se
 					   const uint8_t *rand, uint8_t no_sim);
 
 static int gsm_subscr_write_loci_simcard(struct osmocom_ms *ms);
+
+static int gsm_subscr_write_locigprs_simcard(struct osmocom_ms *ms);
 
 static int gsm_subscr_sim_pin_simcard(struct osmocom_ms *ms, const char *pin1, const char *pin2,
 				      int8_t mode);
@@ -105,7 +115,7 @@ int gsm_subscr_init(struct osmocom_ms *ms)
 
 	/* set TMSI / LAC invalid */
 	subscr->tmsi = GSM_RESERVED_TMSI;
-	subscr->ptmsi = GSM_RESERVED_TMSI;
+	subscr->gprs.ptmsi = GSM_RESERVED_TMSI;
 	subscr->lai.lac = 0x0000;
 
 	/* set key invalid */
@@ -305,6 +315,29 @@ int gsm_subscr_write_loci(struct osmocom_ms *ms)
 	}
 }
 
+/* update LOCIGPRS on SIM */
+int gsm_subscr_write_locigprs(struct osmocom_ms *ms)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+
+	/* skip, if no real valid SIM */
+	if (subscr->sim_type == GSM_SIM_TYPE_NONE || !subscr->sim_valid)
+		return 0;
+
+	LOGP(DMM, LOGL_INFO, "Updating LOCIGPRS on SIM\n");
+
+	switch (subscr->sim_type) {
+	case GSM_SIM_TYPE_L1PHY:
+	case GSM_SIM_TYPE_SAP:
+		return gsm_subscr_write_locigprs_simcard(ms);
+	case GSM_SIM_TYPE_TEST:
+		LOGP(DMM, LOGL_NOTICE, "Updating LOCIGPRS on test SIM: not implemented!\n");
+		return 0; /* TODO */
+	default:
+		OSMO_ASSERT(0);
+	}
+}
+
 /* update plmn not allowed list on SIM */
 static int subscr_write_plmn_na(struct osmocom_ms *ms)
 {
@@ -444,20 +477,44 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 	if (subscr->sms_sca[0])
 		print(priv, " SMS Service Center Address: %s\n",
 			subscr->sms_sca);
+
 	print(priv, " Status: %s  IMSI %s", gsm_sub_sim_ustate_name(subscr->ustate),
 		(subscr->imsi_attached) ? "attached" : "detached");
 	if (subscr->tmsi != GSM_RESERVED_TMSI)
 		print(priv, "  TMSI 0x%08x", subscr->tmsi);
-	if (subscr->ptmsi != GSM_RESERVED_TMSI)
-		print(priv, "  P-TMSI 0x%08x", subscr->ptmsi);
 	if (subscr->lai.lac > 0x0000 && subscr->lai.lac < 0xfffe) {
 		print(priv, "\n");
 		print(priv, "         LAI: %s  (%s, %s)\n",
 			osmo_lai_name(&subscr->lai),
 			gsm_get_mcc(subscr->lai.plmn.mcc),
 			gsm_get_mnc(&subscr->lai.plmn));
-	} else
+	} else {
 		print(priv, "  LAI: invalid\n");
+	}
+
+	print(priv, " GPRS Status: %s IMSI %s", gsm_sub_sim_gustate_name(subscr->gprs.gu_state),
+		(subscr->gprs.imsi_attached) ? "attached" : "detached");
+	if (subscr->gprs.ptmsi != GSM_RESERVED_TMSI)
+		print(priv, "  PTMSI 0x%08x", subscr->tmsi);
+	if (subscr->gprs.ptmsi != GSM_RESERVED_TMSI)
+		print(priv, "  PTMSI-sig 0x%06x", subscr->gprs.ptmsi_sig);
+	if (subscr->gprs.rai.lac > 0x0000 && subscr->gprs.rai.lac < 0xfffe) {
+		struct osmo_plmn_id plmn = {
+			.mcc = subscr->gprs.rai.mcc,
+			.mnc = subscr->gprs.rai.mnc,
+			.mnc_3_digits = subscr->gprs.rai.mnc_3_digits,
+		};
+		print(priv, "\n");
+		print(priv, "         RAI: %s  (%s, %s)\n",
+			osmo_rai_name(&subscr->gprs.rai),
+			gsm_get_mcc(plmn.mcc),
+			gsm_get_mnc(&plmn));
+	} else {
+		print(priv, "  RAI: invalid\n");
+	}
+
+	if (subscr->gprs.ptmsi != GSM_RESERVED_TMSI)
+		print(priv, "  P-TMSI 0x%08x", subscr->gprs.ptmsi);
 	if (subscr->key_seq != 7) {
 		print(priv, " Key: sequence %d ", subscr->key_seq);
 		for (i = 0; i < sizeof(subscr->key); i++)
@@ -525,7 +582,7 @@ int gsm_subscr_insert_testcard(struct osmocom_ms *ms)
 	memcpy(&subscr->lai.plmn, &set->test_sim.rplmn, sizeof(struct osmo_plmn_id));
 	subscr->lai.lac = set->test_sim.lac;
 	subscr->tmsi = set->test_sim.tmsi;
-	subscr->ptmsi = GSM_RESERVED_TMSI;
+	subscr->gprs.ptmsi = GSM_RESERVED_TMSI;
 	subscr->always_search_hplmn = set->test_sim.always_search_hplmn;
 	subscr->t6m_hplmn = 1; /* try to find home network every 6 min */
 	OSMO_STRLCPY_ARRAY(subscr->imsi, set->test_sim.imsi);
@@ -662,6 +719,42 @@ static int subscr_sim_loci(struct osmocom_ms *ms, uint8_t *data,
 
 	LOGP(DMM, LOGL_INFO, "received LOCI from SIM (lai=%s U%d)\n",
 		osmo_lai_name(&subscr->lai), subscr->ustate);
+
+	return 0;
+}
+
+static int subscr_sim_locigprs(struct osmocom_ms *ms, uint8_t *data,
+	uint8_t length)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm1111_ef_locigprs *locigprs;
+
+	if (length < 11)
+		return -EINVAL;
+	locigprs = (struct gsm1111_ef_locigprs *) data;
+
+	/* P-TMSI, P-TMSI signature */
+	subscr->gprs.ptmsi = ntohl(locigprs->ptmsi);
+	subscr->gprs.ptmsi_sig = (((uint32_t)locigprs->ptmsi_sig_hi) << 8) | locigprs->ptmsi_sig_lo;
+
+	/* RAI */
+	gsm48_parse_ra(&subscr->gprs.rai, (uint8_t *)&locigprs->rai);
+
+	/* routing area update status */
+	switch (locigprs->rau_status & 0x07) {
+	case GSM1111_EF_LOCIGPRS_RAU_ST_UPDATED:
+		subscr->gprs.gu_state = GSM_SIM_GU1_UPDATED; /* TODO: use proper enums here */
+		break;
+	case GSM1111_EF_LOCIGPRS_RAU_ST_PLMN_NOT_ALLOWED:
+	case GSM1111_EF_LOCIGPRS_RAU_ST_RA_NOT_ALLOWED:
+		subscr->gprs.gu_state = GSM_SIM_GU3_ROAMING_NA;
+		break;
+	default:
+		subscr->gprs.gu_state = GSM_SIM_GU2_NOT_UPDATED;
+	}
+
+	LOGP(DMM, LOGL_INFO, "received LOCIGPRS from SIM (RAI=%s %s)\n",
+	     osmo_rai_name(&subscr->gprs.rai), gsm_sub_sim_gustate_name(subscr->gprs.gu_state));
 
 	return 0;
 }
@@ -885,6 +978,7 @@ static struct subscr_sim_file {
 	{ 1, { 0 },         0x2fe2, SIM_JOB_READ_BINARY, subscr_sim_iccid },
 	{ 1, { 0x7f20, 0 }, 0x6f07, SIM_JOB_READ_BINARY, subscr_sim_imsi },
 	{ 1, { 0x7f20, 0 }, 0x6f7e, SIM_JOB_READ_BINARY, subscr_sim_loci },
+	{ 1, { 0x7f20, 0 }, 0x6f53, SIM_JOB_READ_BINARY, subscr_sim_locigprs },
 	{ 0, { 0x7f20, 0 }, 0x6f20, SIM_JOB_READ_BINARY, subscr_sim_kc },
 	{ 0, { 0x7f20, 0 }, 0x6f30, SIM_JOB_READ_BINARY, subscr_sim_plmnsel },
 	{ 0, { 0x7f20, 0 }, 0x6f31, SIM_JOB_READ_BINARY, subscr_sim_hpplmn },
@@ -1193,6 +1287,52 @@ static int gsm_subscr_write_loci_simcard(struct osmocom_ms *ms)
 		break;
 	default:
 		loci->lupd_status = GSM1111_EF_LOCI_LUPD_ST_NOT_UPDATED;
+	}
+
+	sim_job(ms, nmsg);
+
+	return 0;
+}
+
+/* update LOCIGPRS on SIM */
+int gsm_subscr_write_locigprs_simcard(struct osmocom_ms *ms)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct msgb *nmsg;
+	struct sim_hdr *nsh;
+	struct gsm1111_ef_locigprs *locigprs;
+
+	LOGP(DMM, LOGL_INFO, "Updating LOCI on SIM\n");
+
+	/* write to SIM */
+	nmsg = gsm_sim_msgb_alloc(subscr->sim_handle_update,
+		SIM_JOB_UPDATE_BINARY);
+	if (!nmsg)
+		return -ENOMEM;
+	nsh = (struct sim_hdr *) nmsg->data;
+	nsh->path[0] = 0x7f20;
+	nsh->path[1] = 0;
+	nsh->file = 0x6f53;
+	locigprs = (struct gsm1111_ef_locigprs *)msgb_put(nmsg, sizeof(*locigprs));
+
+	/* P-TMSI, P-TMSI signature */
+	locigprs->ptmsi = htonl(subscr->gprs.ptmsi);
+	locigprs->ptmsi_sig_hi = htonl(subscr->gprs.ptmsi) >> 8;
+	locigprs->ptmsi_sig_lo = htonl(subscr->gprs.ptmsi) & 0xff;
+
+	/* RAI */
+	gsm48_encode_ra(&locigprs->rai, &subscr->gprs.rai);
+
+	/* location update status */
+	switch (subscr->gprs.gu_state) {
+	case GSM_SIM_GU1_UPDATED:
+		locigprs->rau_status = GSM1111_EF_LOCIGPRS_RAU_ST_UPDATED;
+		break;
+	case GSM_SIM_GU3_ROAMING_NA:
+		locigprs->rau_status = GSM1111_EF_LOCIGPRS_RAU_ST_RA_NOT_ALLOWED;
+		break;
+	default:
+		locigprs->rau_status = GSM1111_EF_LOCIGPRS_RAU_ST_NOT_UPDATED;
 	}
 
 	sim_job(ms, nmsg);

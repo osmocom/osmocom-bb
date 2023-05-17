@@ -76,7 +76,7 @@ static int modem_sm_handle_pdp_act_cnf(struct osmocom_ms *ms, struct osmo_gprs_s
 		return 0;
 	}
 
-	ms->subscr.ptmsi = sm_prim->smreg.pdp_act_cnf.acc.gmm.allocated_ptmsi;
+	ms->subscr.gprs.ptmsi = sm_prim->smreg.pdp_act_cnf.acc.gmm.allocated_ptmsi;
 	ms->gmmlayer.tlli = sm_prim->smreg.pdp_act_cnf.acc.gmm.allocated_tlli;
 
 	netdev = osmo_tundev_get_netdev(apn->tun);
@@ -257,7 +257,7 @@ int modem_sm_smreg_pdp_act_req(const struct osmocom_ms *ms, const struct osmobb_
 	memcpy(sm_prim->smreg.pdp_act_req.pco, apn->pdp.pco, apn->pdp.pco_len);
 	sm_prim->smreg.pdp_act_req.pco_len = apn->pdp.pco_len;
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.apn, apn->cfg.name);
-	sm_prim->smreg.pdp_act_req.gmm.ptmsi = subscr->ptmsi;
+	sm_prim->smreg.pdp_act_req.gmm.ptmsi = subscr->gprs.ptmsi;
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imsi, subscr->imsi);
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imei, ms->settings.imei);
 	OSMO_STRLCPY_ARRAY(sm_prim->smreg.pdp_act_req.gmm.imeisv, ms->settings.imeisv);
