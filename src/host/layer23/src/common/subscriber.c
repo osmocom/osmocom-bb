@@ -136,8 +136,7 @@ int gsm_subscr_exit(struct osmocom_ms *ms)
  */
 
 /* Attach test card, no SIM must be currently attached */
-int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
-	uint16_t lac, uint32_t tmsi, uint8_t imsi_attached)
+int gsm_subscr_testcard(struct osmocom_ms *ms)
 {
 	struct gsm_settings *set = &ms->settings;
 	struct gsm_subscriber *subscr = &ms->subscr;
@@ -160,24 +159,25 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 	subscr->sim_type = GSM_SIM_TYPE_TEST;
 	sprintf(subscr->sim_name, "test");
 	subscr->sim_valid = 1;
-	if (imsi_attached && set->test_sim.rplmn_valid) {
-		subscr->imsi_attached = imsi_attached;
-		subscr->ustate = GSM_SIM_U1_UPDATED;
-	} else
-		subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
+	subscr->imsi_attached = set->test_sim.imsi_attached;
 	subscr->acc_barr = set->test_sim.barr; /* we may access barred cell */
 	subscr->acc_class = 0xffff; /* we have any access class */
 	subscr->plmn_valid = set->test_sim.rplmn_valid;
-	subscr->plmn_mcc = mcc;
-	subscr->plmn_mnc = mnc;
-	subscr->mcc = mcc;
-	subscr->mnc = mnc;
-	subscr->lac = lac;
-	subscr->tmsi = tmsi;
+	subscr->plmn_mcc = set->test_sim.rplmn_mcc;
+	subscr->plmn_mnc = set->test_sim.rplmn_mnc;
+	subscr->mcc = set->test_sim.rplmn_mcc;
+	subscr->mnc = set->test_sim.rplmn_mnc;
+	subscr->lac = set->test_sim.lac;
+	subscr->tmsi = set->test_sim.tmsi;
 	subscr->ptmsi = GSM_RESERVED_TMSI;
 	subscr->always_search_hplmn = set->test_sim.always;
 	subscr->t6m_hplmn = 1; /* try to find home network every 6 min */
 	OSMO_STRLCPY_ARRAY(subscr->imsi, set->test_sim.imsi);
+
+	if (subscr->imsi_attached && subscr->plmn_valid)
+		subscr->ustate = GSM_SIM_U1_UPDATED;
+	else
+		subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
 
 	LOGP(DMM, LOGL_INFO, "(ms %s) Inserting test card (IMSI=%s %s, %s)\n",
 		ms->name, subscr->imsi, gsm_imsi_mcc(subscr->imsi),
@@ -185,9 +185,9 @@ int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
 
 	if (subscr->plmn_valid)
 		LOGP(DMM, LOGL_INFO, "-> Test card registered to %s %s 0x%04x"
-			"(%s, %s)\n", gsm_print_mcc(mcc),
-			gsm_print_mnc(mnc), lac, gsm_get_mcc(mcc),
-			gsm_get_mnc(mcc, mnc));
+			"(%s, %s)\n", gsm_print_mcc(subscr->mcc),
+			gsm_print_mnc(subscr->mnc), subscr->lac, gsm_get_mcc(subscr->mcc),
+			gsm_get_mnc(subscr->mcc, subscr->mnc));
 	else
 		LOGP(DMM, LOGL_INFO, "-> Test card not registered\n");
 	if (subscr->imsi_attached)

@@ -98,8 +98,7 @@ struct gsm_subscriber {
 
 int gsm_subscr_init(struct osmocom_ms *ms);
 int gsm_subscr_exit(struct osmocom_ms *ms);
-int gsm_subscr_testcard(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
-	uint16_t lac, uint32_t tmsi, uint8_t imsi_attached);
+int gsm_subscr_testcard(struct osmocom_ms *ms);
 int gsm_subscr_sap_rsp_cb(struct osmocom_ms *ms, int res_code,
 	uint8_t res_type, uint16_t param_len, const uint8_t *param_val);
 int gsm_subscr_sapcard(struct osmocom_ms *ms);

@@ -485,10 +485,6 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 	struct gsm_settings *set;
 	int rc;
 
-	/* Initial testcard settings */
-	uint16_t mcc = 0x001, mnc = 0x01f, lac = 0x0000;
-	uint32_t tmsi = GSM_RESERVED_TMSI;
-
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
@@ -500,24 +496,14 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 	}
 
 	set = &ms->settings;
-	if (set->test_sim.rplmn_valid) {
-		mcc = set->test_sim.rplmn_mcc;
-		mnc = set->test_sim.rplmn_mnc;
-
-		if (set->test_sim.lac > 0x0000 && set->test_sim.lac < 0xfffe)
-			lac = set->test_sim.lac;
-
-		if (set->test_sim.tmsi != GSM_RESERVED_TMSI)
-			tmsi = set->test_sim.tmsi;
-	}
 
 	if (argc == 2) {
 		vty_out(vty, "Give MNC together with MCC%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 	if (argc >= 3) {
-		mcc = gsm_input_mcc((char *)argv[1]);
-		mnc = gsm_input_mnc((char *)argv[2]);
+		uint16_t mcc = gsm_input_mcc((char *)argv[1]);
+		uint16_t mnc = gsm_input_mnc((char *)argv[2]);
 		if (mcc == GSM_INPUT_INVALID) {
 			vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
@@ -526,15 +512,22 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 			vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
+		set->test_sim.rplmn_mcc = mcc;
+		set->test_sim.rplmn_mnc = mnc;
+		set->test_sim.rplmn_valid = 1;
+	} else {
+		set->test_sim.rplmn_valid = 0;
 	}
 
 	if (argc >= 4)
-		lac = strtoul(argv[3], NULL, 16);
+		set->test_sim.lac = strtoul(argv[3], NULL, 16);
 
 	if (argc >= 5)
-		tmsi = strtoul(argv[4], NULL, 16);
+		set->test_sim.tmsi = strtoul(argv[4], NULL, 16);
 
-	rc = gsm_subscr_testcard(ms, mcc, mnc, lac, tmsi, attached);
+	set->test_sim.imsi_attached = attached;
+
+	rc = gsm_subscr_testcard(ms);
 	if (rc < 0) {
 		vty_out(vty, "Attach test SIM card failed: %d%s", rc, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -1047,6 +1040,9 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 	struct gsm_settings *set = &ms->settings;
 
 	set->test_sim.rplmn_valid = 0;
+	set->test_sim.rplmn_mcc = set->test_sim.rplmn_mnc = 1;
+	set->test_sim.lac = 0x0000;
+	set->test_sim.tmsi = GSM_RESERVED_TMSI;
 
 	l23_vty_restart_required_warn(vty, ms);
 
