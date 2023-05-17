@@ -61,6 +61,8 @@ static int gsm_subscr_write_loci_simcard(struct osmocom_ms *ms);
 static int gsm_subscr_sim_pin_simcard(struct osmocom_ms *ms, const char *pin1, const char *pin2,
 				      int8_t mode);
 
+static int subscr_write_plmn_na_simcard(struct osmocom_ms *ms);
+
 static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_update_cb(struct osmocom_ms *ms, struct msgb *msg);
 static void subscr_sim_key_cb(struct osmocom_ms *ms, struct msgb *msg);
@@ -297,6 +299,29 @@ int gsm_subscr_write_loci(struct osmocom_ms *ms)
 		return gsm_subscr_write_loci_simcard(ms);
 	case GSM_SIM_TYPE_TEST:
 		LOGP(DMM, LOGL_NOTICE, "Updating LOCI on test SIM: not implemented!\n");
+		return 0; /* TODO */
+	default:
+		OSMO_ASSERT(0);
+	}
+}
+
+/* update plmn not allowed list on SIM */
+static int subscr_write_plmn_na(struct osmocom_ms *ms)
+{
+	struct gsm_subscriber *subscr = &ms->subscr;
+
+	/* skip, if no real valid SIM */
+	if (subscr->sim_type == GSM_SIM_TYPE_NONE || !subscr->sim_valid)
+		return 0;
+
+	LOGP(DMM, LOGL_INFO, "Updating FPLMN on SIM\n");
+
+	switch (subscr->sim_type) {
+	case GSM_SIM_TYPE_L1PHY:
+	case GSM_SIM_TYPE_SAP:
+		return subscr_write_plmn_na_simcard(ms);
+	case GSM_SIM_TYPE_TEST:
+		LOGP(DMM, LOGL_NOTICE, "Updating FPLMN on test SIM: not implemented!\n");
 		return 0; /* TODO */
 	default:
 		OSMO_ASSERT(0);
@@ -926,7 +951,7 @@ int gsm_subscr_insert_simcard(struct osmocom_ms *ms)
 }
 
 /* update plmn not allowed list on SIM */
-static int subscr_write_plmn_na(struct osmocom_ms *ms)
+static int subscr_write_plmn_na_simcard(struct osmocom_ms *ms)
 {
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
@@ -939,10 +964,6 @@ static int subscr_write_plmn_na(struct osmocom_ms *ms)
 #ifdef TEST_EMPTY_FPLMN
 	return 0;
 #endif
-
-	/* skip, if no real valid SIM */
-	if (!GSM_SIM_IS_READER(subscr->sim_type) || !subscr->sim_valid)
-		return 0;
 
 	/* get tail list from "PLMN not allowed" */
 	llist_for_each_entry(na, &subscr->plmn_na, entry) {
