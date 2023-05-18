@@ -1,5 +1,5 @@
 /*
- * (C) 2022-2023 by sysmocom - s.m.f.c. GmbH <info@sysmocom.de>
+ * (C) 2022-2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify

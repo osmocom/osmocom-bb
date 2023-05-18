@@ -1,6 +1,6 @@
 /* modem app (gprs) */
 
-/* (C) 2022 by sysmocom - s.m.f.c. GmbH <info@sysmocom.de>
+/* (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -311,7 +311,7 @@ static struct vty_app_info _modem_vty_info = {
 };
 
 const struct l23_app_info l23_app_info = {
-	.copyright = "Copyright (C) 2022 by sysmocom - s.m.f.c. GmbH <info@sysmocom.de>\n",
+	.copyright = "Copyright (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>\n",
 	.opt_supported = L23_OPT_ARFCN | L23_OPT_TAP | L23_OPT_VTY | L23_OPT_DBG,
 	.vty_info = &_modem_vty_info,
 	.vty_init = modem_vty_init,

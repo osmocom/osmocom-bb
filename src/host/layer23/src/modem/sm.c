@@ -1,5 +1,5 @@
 /* GPRS SM interfaces as per 3GPP TS 24.008, TS 24.007 */
-/* (C) 2023 by sysmocom - s.m.f.c. GmbH <info@sysmocom.de>
+/* (C) 2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  * All Rights Reserved
  * Author: Pau Espin Pedrol <pespin@sysmocom.de>
  *

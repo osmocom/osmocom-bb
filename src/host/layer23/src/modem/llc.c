@@ -1,5 +1,5 @@
 /* GPRS LLC protocol implementation as per 3GPP TS 04.64 */
-/* (C) 2023 by sysmocom - s.m.f.c. GmbH <info@sysmocom.de>
+/* (C) 2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  * All Rights Reserved
  * Author: Pau Espin Pedrol <pespin@sysmocom.de>
  *

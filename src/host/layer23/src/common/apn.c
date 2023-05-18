@@ -1,5 +1,5 @@
 /*
- * (C) 2023 by sysmocom - s.m.f.c. GmbH <info@sysmocom.de>
+ * (C) 2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * All Rights Reserved
  *
