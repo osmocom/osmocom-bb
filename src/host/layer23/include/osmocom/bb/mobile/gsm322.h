@@ -1,10 +1,11 @@
 #ifndef _GSM322_H
 #define _GSM322_H
 
-#include <osmocom/bb/common/sysinfo.h>
-
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/timer.h>
+#include <osmocom/gsm/gsm23003.h>
+
+#include <osmocom/bb/common/sysinfo.h>
 
 /* 4.3.1.1 List of states for PLMN selection process (automatic mode) */
 #define GSM322_A0_NULL			0
@@ -74,7 +75,7 @@ enum {
 /* node for each PLMN */
 struct gsm322_plmn_list {
 	struct llist_head	entry;
-	uint16_t		mcc, mnc;
+	struct osmo_plmn_id	plmn;
 	uint8_t			rxlev; /* rx level in range format */
 	uint8_t			cause; /* cause value, if PLMN is not allowed */
 };
@@ -82,14 +83,14 @@ struct gsm322_plmn_list {
 /* node for each forbidden LA */
 struct gsm322_la_list {
 	struct llist_head	entry;
-	uint16_t		mcc, mnc, lac;
+	struct osmo_location_area_id lai;
 	uint8_t			cause;
 };
 
 /* node for each BA-List */
 struct gsm322_ba_list {
 	struct llist_head	entry;
-	uint16_t		mcc, mnc;
+	struct osmo_plmn_id	plmn;
 	/* Band allocation for 1024+299 frequencies.
 	 * First bit of first index is frequency 0.
 	 */
@@ -124,7 +125,7 @@ struct gsm322_plmn {
 	struct osmo_timer_list	timer;
 
 	int			plmn_curr; /* current index in sorted_plmn */
-	uint16_t		mcc, mnc; /* current network selected */
+	struct osmo_plmn_id	plmn; /* current network selected */
 };
 
 /* state of CCCH activation */
@@ -171,7 +172,7 @@ struct gsm322_cellsel {
 					/* cell selection list per frequency. */
 	/* scan and tune state */
 	struct osmo_timer_list	timer; /* cell selection timer */
-	uint16_t		mcc, mnc; /* current network to search for */
+	struct osmo_plmn_id	plmn; /* current network to search for */
 	uint8_t			powerscan; /* currently scanning for power */
 	uint8_t			ccch_state; /* special state of current ccch */
 	uint32_t		scan_state; /* special state of current scan */
@@ -188,7 +189,7 @@ struct gsm322_cellsel {
 	uint8_t			selected; /* if a cell is selected */
 	uint16_t		sel_arfcn; /* current selected serving cell! */
 	struct gsm48_sysinfo	sel_si; /* copy of selected cell, will update */
-	uint16_t		sel_mcc, sel_mnc, sel_lac, sel_id;
+	struct osmo_cell_global_id sel_cgi;
 
 	/* cell re-selection */
 	struct llist_head	nb_list; /* list of neighbour cells */
@@ -209,7 +210,7 @@ struct gsm322_cellsel {
 /* GSM 03.22 message */
 struct gsm322_msg {
 	int			msg_type;
-	uint16_t		mcc, mnc;
+	struct osmo_plmn_id	plmn;
 	uint8_t			sysinfo; /* system information type */
 	uint8_t			same_cell; /* select same cell when RET_IDLE */
 	uint8_t			reject; /* location update reject cause */
@@ -229,18 +230,15 @@ int gsm322_cs_sendmsg(struct osmocom_ms *ms, struct msgb *msg);
 int gsm322_c_event(struct osmocom_ms *ms, struct msgb *msg);
 int gsm322_plmn_dequeue(struct osmocom_ms *ms);
 int gsm322_cs_dequeue(struct osmocom_ms *ms);
-int gsm322_add_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
-	uint16_t mnc, uint16_t lac, uint8_t cause);
-int gsm322_del_forbidden_la(struct osmocom_ms *ms, uint16_t mcc,
-	uint16_t mnc, uint16_t lac);
-int gsm322_is_forbidden_la(struct osmocom_ms *ms, uint16_t mcc, uint16_t mnc,
-	uint16_t lac);
+int gsm322_add_forbidden_la(struct osmocom_ms *ms, const struct osmo_location_area_id *lai, uint8_t cause);
+int gsm322_del_forbidden_la(struct osmocom_ms *ms, const struct osmo_location_area_id *lai);
+int gsm322_is_forbidden_la(struct osmocom_ms *ms, const struct osmo_location_area_id *lai);
 int gsm322_dump_sorted_plmn(struct osmocom_ms *ms);
 int gsm322_dump_cs_list(struct gsm322_cellsel *cs, uint8_t flags,
 			void (*print)(void *, const char *, ...), void *priv);
 int gsm322_dump_forbidden_la(struct osmocom_ms *ms,
 			void (*print)(void *, const char *, ...), void *priv);
-int gsm322_dump_ba_list(struct gsm322_cellsel *cs, uint16_t mcc, uint16_t mnc,
+int gsm322_dump_ba_list(struct gsm322_cellsel *cs, const struct osmo_plmn_id *plmn,
 			void (*print)(void *, const char *, ...), void *priv);
 int gsm322_dump_nb_list(struct gsm322_cellsel *cs,
                         void (*print)(void *, const char *, ...), void *priv);

@@ -186,7 +186,7 @@ struct gsm48_mmlayer {
 	uint8_t			lupd_rej_cause;	/* cause of last reject */
 	uint8_t			lupd_periodic;	/* periodic update pending */
 	uint8_t			lupd_retry;	/* pending T3211/T3213 to */
-	uint16_t		lupd_mcc, lupd_mnc, lupd_lac;
+	struct osmo_location_area_id lupd_lai;
 
 	/* imsi detach */
 	uint8_t			delay_detach;	/* do detach when possible */

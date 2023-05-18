@@ -2,6 +2,7 @@
 #define _SYSINFO_H
 
 #include <osmocom/gsm/gsm48_ie.h>
+#include <osmocom/gsm/gsm23003.h>
 
 /* collection of system information of the current cell */
 
@@ -44,7 +45,7 @@ struct gsm48_sysinfo {
 	/* serving cell */
 	uint8_t				bsic;
 	uint16_t			cell_id;
-	uint16_t			mcc, mnc, lac; /* LAI */
+	struct osmo_location_area_id	lai;
 	uint8_t				max_retrans; /* decoded */
 	uint8_t				tx_integer; /* decoded */
 	uint8_t				reest_denied; /* 1 = denied */
@@ -195,9 +196,5 @@ int gsm48_decode_sysinfo13(struct gsm48_sysinfo *s,
 int gsm48_decode_mobile_alloc(struct gsm_sysinfo_freq *freq,
 			      const uint8_t *ma, uint8_t len,
 			      uint16_t *hopping, uint8_t *hopp_len, int si4);
-int gsm48_encode_lai_hex(struct gsm48_loc_area_id *lai,
-			 uint16_t mcc, uint16_t mnc, uint16_t lac);
-int gsm48_decode_lai_hex(const struct gsm48_loc_area_id *lai,
-			 uint16_t *mcc, uint16_t *mnc, uint16_t *lac);
 
 #endif /* _SYSINFO_H */

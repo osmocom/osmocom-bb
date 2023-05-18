@@ -106,7 +106,7 @@ int gsm_subscr_init(struct osmocom_ms *ms)
 	/* set TMSI / LAC invalid */
 	subscr->tmsi = GSM_RESERVED_TMSI;
 	subscr->ptmsi = GSM_RESERVED_TMSI;
-	subscr->lac = 0x0000;
+	subscr->lai.lac = 0x0000;
 
 	/* set key invalid */
 	subscr->key_seq = 7;
@@ -328,22 +328,20 @@ static int subscr_write_plmn_na(struct osmocom_ms *ms)
 	}
 }
 
-/* del forbidden PLMN. if MCC==0, flush complete list */
-int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
-	uint16_t mnc)
+/* del forbidden PLMN. if PLMN is NULL, flush complete list */
+int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, const struct osmo_plmn_id *plmn)
 {
 	struct gsm_sub_plmn_na *na, *na2;
 	int deleted = 0;
 
 	llist_for_each_entry_safe(na, na2, &subscr->plmn_na, entry) {
-		if (!mcc || (na->mcc == mcc && na->mnc == mnc)) {
-			LOGP(DPLMN, LOGL_INFO, "Delete from list of forbidden "
-				"PLMNs (mcc=%s, mnc=%s)\n",
-				gsm_print_mcc(mcc), gsm_print_mnc(mnc));
+		if (!plmn || (osmo_plmn_cmp(&na->plmn, plmn) == 0)) {
+			LOGP(DPLMN, LOGL_INFO, "Delete from list of forbidden PLMNs (mcc-mnc=%s)\n",
+			     osmo_plmn_name(&na->plmn));
 			llist_del(&na->entry);
 			talloc_free(na);
 			deleted = 1;
-			if (mcc)
+			if (plmn)
 				break;
 		}
 	}
@@ -357,26 +355,24 @@ int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 }
 
 /* add forbidden PLMN */
-int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
-					uint16_t mnc, uint8_t cause)
+int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, const struct osmo_plmn_id *plmn, uint8_t cause)
 {
 	struct gsm_sub_plmn_na *na;
 
 	/* if already in the list, remove and add to tail */
-	gsm_subscr_del_forbidden_plmn(subscr, mcc, mnc);
+	gsm_subscr_del_forbidden_plmn(subscr, plmn);
 
 	LOGP(DPLMN, LOGL_INFO, "Add to list of forbidden PLMNs "
-		"(mcc=%s, mnc=%s)\n", gsm_print_mcc(mcc), gsm_print_mnc(mnc));
+		"(mcc-mnc=%s)\n", osmo_plmn_name(plmn));
 	na = talloc_zero(subscr->ms, struct gsm_sub_plmn_na);
 	if (!na)
 		return -ENOMEM;
-	na->mcc = mcc;
-	na->mnc = mnc;
+	memcpy(&na->plmn, plmn, sizeof(struct osmo_plmn_id));
 	na->cause = cause ? : -1; /* cause 0 is not allowed */
 	llist_add_tail(&na->entry, &subscr->plmn_na);
 
 	/* don't add Home PLMN to SIM */
-	if (subscr->sim_valid && gsm_match_mnc(mcc, mnc, subscr->imsi))
+	if (subscr->sim_valid && gsm_match_mnc(plmn->mcc, plmn->mnc, plmn->mnc_3_digits, subscr->imsi))
 		return -EINVAL;
 
 	/* update plmn not allowed list on SIM */
@@ -386,13 +382,12 @@ int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
 }
 
 /* search forbidden PLMN */
-int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
-					uint16_t mnc)
+int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, const struct osmo_plmn_id *plmn)
 {
 	struct gsm_sub_plmn_na *na;
 
 	llist_for_each_entry(na, &subscr->plmn_na, entry) {
-		if (na->mcc == mcc && na->mnc == mnc)
+		if (osmo_plmn_cmp(&na->plmn, plmn) == 0)
 			return 1;
 	}
 
@@ -416,9 +411,10 @@ int gsm_subscr_dump_forbidden_plmn(struct osmocom_ms *ms,
 	print(priv, "MCC    |MNC    |cause\n");
 	print(priv, "-------+-------+-------\n");
 	llist_for_each_entry(temp, &subscr->plmn_na, entry)
-		print(priv, "%s    |%s%s    |#%d\n",
-			gsm_print_mcc(temp->mcc), gsm_print_mnc(temp->mnc),
-			((temp->mnc & 0x00f) == 0x00f) ? " ":"", temp->cause);
+		print(priv, "%s    |%-3s    |#%d\n",
+			osmo_mcc_name(temp->plmn.mcc),
+			osmo_mnc_name(temp->plmn.mnc, temp->plmn.mnc_3_digits),
+			temp->cause);
 
 	return 0;
 }
@@ -454,13 +450,12 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		print(priv, "  TMSI 0x%08x", subscr->tmsi);
 	if (subscr->ptmsi != GSM_RESERVED_TMSI)
 		print(priv, "  P-TMSI 0x%08x", subscr->ptmsi);
-	if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
+	if (subscr->lai.lac > 0x0000 && subscr->lai.lac < 0xfffe) {
 		print(priv, "\n");
-		print(priv, "         LAI: MCC %s  MNC %s  LAC 0x%04x  "
-			"(%s, %s)\n", gsm_print_mcc(subscr->mcc),
-			gsm_print_mnc(subscr->mnc), subscr->lac,
-			gsm_get_mcc(subscr->mcc),
-			gsm_get_mnc(subscr->mcc, subscr->mnc));
+		print(priv, "         LAI: %s  (%s, %s)\n",
+			osmo_lai_name(&subscr->lai),
+			gsm_get_mcc(subscr->lai.plmn.mcc),
+			gsm_get_mnc(&subscr->lai.plmn));
 	} else
 		print(priv, "  LAI: invalid\n");
 	if (subscr->key_seq != 7) {
@@ -470,11 +465,10 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		print(priv, "\n");
 	}
 	if (subscr->plmn_valid)
-		print(priv, " Registered PLMN: MCC %s  MNC %s  (%s, %s)\n",
-			gsm_print_mcc(subscr->plmn_mcc),
-			gsm_print_mnc(subscr->plmn_mnc),
-			gsm_get_mcc(subscr->plmn_mcc),
-			gsm_get_mnc(subscr->plmn_mcc, subscr->plmn_mnc));
+		print(priv, " Registered PLMN: MCC-MNC %s  (%s, %s)\n",
+			osmo_plmn_name(&subscr->plmn),
+			gsm_get_mcc(subscr->plmn.mcc),
+			gsm_get_mnc(&subscr->plmn));
 	print(priv, " Access barred cells: %s\n",
 		(subscr->acc_barr) ? "yes" : "no");
 	print(priv, " Access classes:");
@@ -488,22 +482,21 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		print(priv, "        -------+-------\n");
 		llist_for_each_entry(plmn_list, &subscr->plmn_list, entry)
 			print(priv, "        %s    |%s        (%s, %s)\n",
-			gsm_print_mcc(plmn_list->mcc),
-			gsm_print_mnc(plmn_list->mnc),
-			gsm_get_mcc(plmn_list->mcc),
-			gsm_get_mnc(plmn_list->mcc, plmn_list->mnc));
+			osmo_mcc_name(plmn_list->plmn.mcc),
+			osmo_mnc_name(plmn_list->plmn.mnc, plmn_list->plmn.mnc_3_digits),
+			gsm_get_mcc(plmn_list->plmn.mcc),
+			gsm_get_mnc(&plmn_list->plmn));
 	}
 	if (!llist_empty(&subscr->plmn_na)) {
 		print(priv, " List of forbidden PLMNs:\n");
 		print(priv, "        MCC    |MNC    |cause\n");
 		print(priv, "        -------+-------+-------\n");
 		llist_for_each_entry(plmn_na, &subscr->plmn_na, entry)
-			print(priv, "        %s    |%s%s    |#%d        "
-				"(%s, %s)\n", gsm_print_mcc(plmn_na->mcc),
-				gsm_print_mnc(plmn_na->mnc),
-				((plmn_na->mnc & 0x00f) == 0x00f) ? " ":"",
-				plmn_na->cause, gsm_get_mcc(plmn_na->mcc),
-				gsm_get_mnc(plmn_na->mcc, plmn_na->mnc));
+			print(priv, "        %s    |%-3s    |#%d        (%s, %s)\n",
+				osmo_mcc_name(plmn_na->plmn.mcc),
+				osmo_mnc_name(plmn_na->plmn.mnc, plmn_na->plmn.mnc_3_digits),
+				plmn_na->cause, gsm_get_mcc(plmn_na->plmn.mcc),
+				gsm_get_mnc(&plmn_na->plmn));
 	}
 }
 
@@ -528,11 +521,9 @@ int gsm_subscr_insert_testcard(struct osmocom_ms *ms)
 	subscr->acc_barr = set->test_sim.barr; /* we may access barred cell */
 	subscr->acc_class = 0xffff; /* we have any access class */
 	subscr->plmn_valid = set->test_sim.rplmn_valid;
-	subscr->plmn_mcc = set->test_sim.rplmn_mcc;
-	subscr->plmn_mnc = set->test_sim.rplmn_mnc;
-	subscr->mcc = set->test_sim.rplmn_mcc;
-	subscr->mnc = set->test_sim.rplmn_mnc;
-	subscr->lac = set->test_sim.lac;
+	memcpy(&subscr->plmn, &set->test_sim.rplmn, sizeof(struct osmo_plmn_id));
+	memcpy(&subscr->lai.plmn, &set->test_sim.rplmn, sizeof(struct osmo_plmn_id));
+	subscr->lai.lac = set->test_sim.lac;
 	subscr->tmsi = set->test_sim.tmsi;
 	subscr->ptmsi = GSM_RESERVED_TMSI;
 	subscr->always_search_hplmn = set->test_sim.always;
@@ -549,10 +540,10 @@ int gsm_subscr_insert_testcard(struct osmocom_ms *ms)
 		gsm_imsi_mnc(subscr->imsi));
 
 	if (subscr->plmn_valid)
-		LOGP(DMM, LOGL_INFO, "-> Test card registered to %s %s 0x%04x"
-			"(%s, %s)\n", gsm_print_mcc(subscr->mcc),
-			gsm_print_mnc(subscr->mnc), subscr->lac, gsm_get_mcc(subscr->mcc),
-			gsm_get_mnc(subscr->mcc, subscr->mnc));
+		LOGP(DMM, LOGL_INFO, "-> Test card registered to %s"
+			"(%s, %s)\n", osmo_lai_name(&subscr->lai),
+			gsm_get_mcc(subscr->lai.plmn.mcc),
+			gsm_get_mnc(&subscr->lai.plmn));
 	else
 		LOGP(DMM, LOGL_INFO, "-> Test card not registered\n");
 	if (subscr->imsi_attached)
@@ -654,8 +645,7 @@ static int subscr_sim_loci(struct osmocom_ms *ms, uint8_t *data,
 	subscr->tmsi = ntohl(loci->tmsi);
 
 	/* LAI */
-	gsm48_decode_lai_hex(&loci->lai, &subscr->mcc, &subscr->mnc,
-		&subscr->lac);
+	gsm48_decode_lai2(&loci->lai, &subscr->lai);
 
 	/* location update status */
 	switch (loci->lupd_status & 0x07) {
@@ -670,9 +660,8 @@ static int subscr_sim_loci(struct osmocom_ms *ms, uint8_t *data,
 		subscr->ustate = GSM_SIM_U2_NOT_UPDATED;
 	}
 
-	LOGP(DMM, LOGL_INFO, "received LOCI from SIM (mcc=%s mnc=%s lac=0x%04x "
-		"U%d)\n", gsm_print_mcc(subscr->mcc),
-		gsm_print_mnc(subscr->mnc), subscr->lac, subscr->ustate);
+	LOGP(DMM, LOGL_INFO, "received LOCI from SIM (lai=%s U%d)\n",
+		osmo_lai_name(&subscr->lai), subscr->ustate);
 
 	return 0;
 }
@@ -760,8 +749,6 @@ static int subscr_sim_plmnsel(struct osmocom_ms *ms, uint8_t *data,
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm_sub_plmn_list *plmn;
 	struct llist_head *lh, *lh2;
-	uint8_t lai[5];
-	uint16_t dummy_lac;
 
 	/* flush list */
 	llist_for_each_safe(lh, lh2, &subscr->plmn_list) {
@@ -778,16 +765,11 @@ static int subscr_sim_plmnsel(struct osmocom_ms *ms, uint8_t *data,
 		plmn = talloc_zero(ms, struct gsm_sub_plmn_list);
 		if (!plmn)
 			return -ENOMEM;
-		lai[0] = data[0];
-		lai[1] = data[1];
-		lai[2] = data[2];
-		gsm48_decode_lai_hex((struct gsm48_loc_area_id *)lai,
-			&plmn->mcc, &plmn->mnc, &dummy_lac);
+		osmo_plmn_to_bcd(&data[0], &plmn->plmn);
 		llist_add_tail(&plmn->entry, &subscr->plmn_list);
 
-		LOGP(DMM, LOGL_INFO, "received PLMN selector (mcc=%s mnc=%s) "
-			"from SIM\n",
-			gsm_print_mcc(plmn->mcc), gsm_print_mnc(plmn->mnc));
+		LOGP(DMM, LOGL_INFO, "received PLMN selector (mcc-mnc=%s) from SIM\n",
+		     osmo_plmn_name(&plmn->plmn));
 
 		data += 3;
 		length -= 3;
@@ -860,8 +842,6 @@ static int subscr_sim_fplmn(struct osmocom_ms *ms, uint8_t *data,
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm_sub_plmn_na *na;
 	struct llist_head *lh, *lh2;
-	uint8_t lai[5];
-	uint16_t dummy_lac;
 
 #ifdef TEST_EMPTY_FPLMN
 	return 0;
@@ -882,13 +862,9 @@ static int subscr_sim_fplmn(struct osmocom_ms *ms, uint8_t *data,
 		na = talloc_zero(ms, struct gsm_sub_plmn_na);
 		if (!na)
 			return -ENOMEM;
-		lai[0] = data[0];
-		lai[1] = data[1];
-		lai[2] = data[2];
-		gsm48_decode_lai_hex((struct gsm48_loc_area_id *)lai, &na->mcc,
-			&na->mnc, &dummy_lac);
-		LOGP(DMM, LOGL_INFO, "received Forbidden PLMN %s %s from SIM\n",
-			gsm_print_mcc(na->mcc), gsm_print_mnc(na->mnc));
+		osmo_plmn_to_bcd(&data[0], &na->plmn);
+		LOGP(DMM, LOGL_INFO, "received Forbidden PLMN %s from SIM\n",
+			osmo_plmn_name(&na->plmn));
 		na->cause = -1; /* must have a value, but SIM stores no cause */
 		llist_add_tail(&na->entry, &subscr->plmn_na);
 
@@ -936,16 +912,13 @@ static int subscr_sim_request(struct osmocom_ms *ms)
 			gsm_imsi_mcc(subscr->imsi), gsm_imsi_mnc(subscr->imsi));
 
 		/* if LAI is valid, set RPLMN */
-		if (subscr->lac > 0x0000 && subscr->lac < 0xfffe) {
+		if (subscr->lai.lac > 0x0000 && subscr->lai.lac < 0xfffe) {
 			subscr->plmn_valid = 1;
-			subscr->plmn_mcc = subscr->mcc;
-			subscr->plmn_mnc = subscr->mnc;
-			LOGP(DMM, LOGL_INFO, "-> SIM card registered to %s %s "
-				"(%s, %s)\n", gsm_print_mcc(subscr->plmn_mcc),
-				gsm_print_mnc(subscr->plmn_mnc),
-				gsm_get_mcc(subscr->plmn_mcc),
-				gsm_get_mnc(subscr->plmn_mcc,
-					subscr->plmn_mnc));
+			memcpy(&subscr->plmn, &subscr->lai.plmn, sizeof(struct osmo_plmn_id));
+			LOGP(DMM, LOGL_INFO, "-> SIM card registered to %s (%s, %s)\n",
+			     osmo_plmn_name(&subscr->plmn),
+			     gsm_get_mcc(subscr->plmn.mcc),
+			     gsm_get_mnc(&subscr->plmn));
 		} else
 			LOGP(DMM, LOGL_INFO, "-> SIM card not registered\n");
 
@@ -1138,7 +1111,6 @@ static int subscr_write_plmn_na_simcard(struct osmocom_ms *ms)
 	struct gsm_sub_plmn_na *na, *nas[4] = { NULL, NULL, NULL, NULL };
 	int count = 0, i;
 	uint8_t *data;
-	uint8_t lai[5];
 
 #ifdef TEST_EMPTY_FPLMN
 	return 0;
@@ -1170,11 +1142,8 @@ static int subscr_write_plmn_na_simcard(struct osmocom_ms *ms)
 	nsh->file = 0x6f7b;
 	for (i = 0; i < 4; i++) {
 		if (nas[i]) {
-			gsm48_encode_lai_hex((struct gsm48_loc_area_id *)lai,
-			nas[i]->mcc, nas[i]->mnc, 0);
-			*data++ = lai[0];
-			*data++ = lai[1];
-			*data++ = lai[2];
+			osmo_plmn_to_bcd(data, &nas[i]->plmn);
+			data += 3;
 		} else {
 			*data++ = 0xff;
 			*data++ = 0xff;
@@ -1209,7 +1178,7 @@ static int gsm_subscr_write_loci_simcard(struct osmocom_ms *ms)
 	loci->tmsi = htonl(subscr->tmsi);
 
 	/* LAI */
-	gsm48_encode_lai_hex(&loci->lai, subscr->mcc, subscr->mnc, subscr->lac);
+	gsm48_generate_lai2(&loci->lai, &subscr->lai);
 
 	/* TMSI time */
 	loci->tmsi_time = 0xff;

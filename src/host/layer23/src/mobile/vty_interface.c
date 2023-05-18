@@ -151,23 +151,21 @@ static void gsm_ms_dump(struct osmocom_ms *ms, struct vty *vty)
 	else
 		vty_out(vty, "  manual network selection state   : %s%s",
 			get_m_state_name(ms->plmn.state), VTY_NEWLINE);
-	if (ms->plmn.mcc)
+	if (ms->plmn.plmn.mcc)
 		vty_out(vty, "                                     MCC=%s "
-			"MNC=%s (%s, %s)%s", gsm_print_mcc(ms->plmn.mcc),
-			gsm_print_mnc(ms->plmn.mnc), gsm_get_mcc(ms->plmn.mcc),
-			gsm_get_mnc(ms->plmn.mcc, ms->plmn.mnc), VTY_NEWLINE);
+			"MNC=%s (%s, %s)%s", osmo_mcc_name(ms->plmn.plmn.mcc),
+			osmo_mnc_name(ms->plmn.plmn.mnc, ms->plmn.plmn.mnc_3_digits),
+			gsm_get_mcc(ms->plmn.plmn.mcc),
+			gsm_get_mnc(&ms->plmn.plmn), VTY_NEWLINE);
 	vty_out(vty, "  cell selection state: %s%s",
 		get_cs_state_name(ms->cellsel.state), VTY_NEWLINE);
-	if (ms->cellsel.sel_mcc) {
-		vty_out(vty, "                        ARFCN=%s MCC=%s MNC=%s "
-			"LAC=0x%04x CELLID=0x%04x%s",
+	if (ms->cellsel.sel_cgi.lai.plmn.mcc) {
+		vty_out(vty, "                        ARFCN=%s CGI=%s%s",
 			gsm_print_arfcn(ms->cellsel.sel_arfcn),
-			gsm_print_mcc(ms->cellsel.sel_mcc),
-			gsm_print_mnc(ms->cellsel.sel_mnc),
-			ms->cellsel.sel_lac, ms->cellsel.sel_id, VTY_NEWLINE);
+			osmo_cgi_name(&ms->cellsel.sel_cgi), VTY_NEWLINE);
 		vty_out(vty, "                        (%s, %s)%s",
-			gsm_get_mcc(ms->cellsel.sel_mcc),
-			gsm_get_mnc(ms->cellsel.sel_mcc, ms->cellsel.sel_mnc),
+			gsm_get_mcc(ms->cellsel.sel_cgi.lai.plmn.mcc),
+			gsm_get_mnc(&ms->cellsel.sel_cgi.lai.plmn),
 			VTY_NEWLINE);
 	}
 	vty_out(vty, "  radio resource layer state: %s%s",
@@ -282,26 +280,26 @@ DEFUN(show_ba, show_ba_cmd, "show ba MS_NAME [MCC] [MNC]",
 	"Mobile Network Code")
 {
 	struct osmocom_ms *ms;
-	uint16_t mcc = 0, mnc = 0;
+	struct osmo_plmn_id plmn;
+	struct osmo_plmn_id *plmn_ptr = NULL;
 
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
 	if (argc >= 3) {
-		mcc = gsm_input_mcc((char *)argv[1]);
-		mnc = gsm_input_mnc((char *)argv[2]);
-		if (mcc == GSM_INPUT_INVALID) {
+		if (osmo_mcc_from_str(argv[1], &plmn.mcc) < 0) {
 			vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
-		if (mnc == GSM_INPUT_INVALID) {
+		if (osmo_mnc_from_str(argv[2], &plmn.mnc, &plmn.mnc_3_digits) < 0) {
 			vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
+		plmn_ptr = &plmn;
 	}
 
-	gsm322_dump_ba_list(&ms->cellsel, mcc, mnc, l23_vty_printf, vty);
+	gsm322_dump_ba_list(&ms->cellsel, plmn_ptr, l23_vty_printf, vty);
 
 	return CMD_SUCCESS;
 }
@@ -372,18 +370,17 @@ DEFUN(network_select, network_select_cmd,
 	"Force selecting a network that is not in the list")
 {
 	struct osmocom_ms *ms;
-	struct gsm322_plmn *plmn;
+	struct gsm322_plmn *plmn322;
 	struct msgb *nmsg;
 	struct gsm322_msg *ngm;
 	struct gsm322_plmn_list *temp;
-	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
-		 mnc = gsm_input_mnc((char *)argv[2]);
+	struct osmo_plmn_id plmn;
 	int found = 0;
 
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
-	plmn = &ms->plmn;
+	plmn322 = &ms->plmn;
 
 	if (ms->settings.plmn_mode != PLMN_MODE_MANUAL) {
 		vty_out(vty, "Not in manual network selection mode%s",
@@ -391,18 +388,18 @@ DEFUN(network_select, network_select_cmd,
 		return CMD_WARNING;
 	}
 
-	if (mcc == GSM_INPUT_INVALID) {
+	if (osmo_mcc_from_str(argv[1], &plmn.mcc) < 0) {
 		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	if (mnc == GSM_INPUT_INVALID) {
+	if (osmo_mnc_from_str(argv[2], &plmn.mnc, &plmn.mnc_3_digits) < 0) {
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
 	if (argc < 4) {
-		llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
-			if (temp->mcc == mcc &&  temp->mnc == mnc)
+		llist_for_each_entry(temp, &plmn322->sorted_plmn, entry)
+			if (osmo_plmn_cmp(&temp->plmn, &plmn) == 0)
 				found = 1;
 		if (!found) {
 			vty_out(vty, "Network not in list!%s", VTY_NEWLINE);
@@ -416,8 +413,7 @@ DEFUN(network_select, network_select_cmd,
 	if (!nmsg)
 		return CMD_WARNING;
 	ngm = (struct gsm322_msg *) nmsg->data;
-	ngm->mcc = mcc;
-	ngm->mnc = mnc;
+	memcpy(&ngm->plmn, &plmn, sizeof(struct osmo_plmn_id));
 	gsm322_plmn_sendmsg(ms, nmsg);
 
 	return CMD_SUCCESS;
@@ -623,23 +619,22 @@ DEFUN(delete_forbidden_plmn, delete_forbidden_plmn_cmd,
 	"Mobile Country Code\nMobile Network Code")
 {
 	struct osmocom_ms *ms;
-	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
-		 mnc = gsm_input_mnc((char *)argv[2]);
+	struct osmo_plmn_id plmn;
 
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
-	if (mcc == GSM_INPUT_INVALID) {
+	if (osmo_mcc_from_str(argv[1], &plmn.mcc) < 0) {
 		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	if (mnc == GSM_INPUT_INVALID) {
+	if (osmo_mnc_from_str(argv[2], &plmn.mnc, &plmn.mnc_3_digits) < 0) {
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	gsm_subscr_del_forbidden_plmn(&ms->subscr, mcc, mnc);
+	gsm_subscr_del_forbidden_plmn(&ms->subscr, &plmn);
 
 	return CMD_SUCCESS;
 }
@@ -667,9 +662,10 @@ DEFUN(network_show, network_show_cmd, "network show MS_NAME",
 
 	llist_for_each_entry(temp, &plmn->sorted_plmn, entry)
 		vty_out(vty, " Network %s, %s (%s, %s)%s",
-			gsm_print_mcc(temp->mcc), gsm_print_mnc(temp->mnc),
-			gsm_get_mcc(temp->mcc),
-			gsm_get_mnc(temp->mcc, temp->mnc), VTY_NEWLINE);
+			osmo_mcc_name(temp->plmn.mcc),
+			osmo_mnc_name(temp->plmn.mnc, temp->plmn.mnc_3_digits),
+			gsm_get_mcc(temp->plmn.mcc),
+			gsm_get_mnc(&temp->plmn), VTY_NEWLINE);
 
 	return CMD_SUCCESS;
 }

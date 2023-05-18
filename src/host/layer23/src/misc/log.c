@@ -55,18 +55,22 @@ struct node_mcc *get_node_mcc(uint16_t mcc)
 	return node_mcc;
 }
 
-struct node_mnc *get_node_mnc(struct node_mcc *mcc, uint16_t mnc)
+struct node_mnc *get_node_mnc(struct node_mcc *mcc, uint16_t mnc, bool mnc_3_digits)
 {
 	struct node_mnc *node_mnc;
 	struct node_mnc **node_mnc_p = &mcc->mnc;
 
 	while (*node_mnc_p) {
 		/* found in list */
-		if ((*node_mnc_p)->mnc == mnc)
+		if ((*node_mnc_p)->mnc == mnc &&
+		    (*node_mnc_p)->mnc_3_digits == mnc_3_digits)
 			return *node_mnc_p;
 		/* insert into list */
-		if ((*node_mnc_p)->mnc > mnc)
+		if (((*node_mnc_p)->mnc > mnc) ||
+		    ((*node_mnc_p)->mnc == mnc &&
+		     (*node_mnc_p)->mnc_3_digits > mnc_3_digits)) {
 			break;
+		}
 		node_mnc_p = &((*node_mnc_p)->next);
 	}
 
@@ -75,6 +79,7 @@ struct node_mnc *get_node_mnc(struct node_mcc *mcc, uint16_t mnc)
 	if (!node_mnc)
 		return NULL;
 	node_mnc->mnc = mnc;
+	node_mnc->mnc_3_digits = mnc_3_digits;
 	node_mnc->next = *node_mnc_p;
 	*node_mnc_p = node_mnc;
 	return node_mnc;

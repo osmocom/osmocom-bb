@@ -29,6 +29,7 @@ struct node_mcc {
 struct node_mnc {
 	struct node_mnc *next;
 	uint16_t mnc;
+	bool mnc_3_digits;
 	struct node_lac *lac;
 };
 
@@ -75,7 +76,7 @@ struct node_meas {
 };
 
 struct node_mcc *get_node_mcc(uint16_t mcc);
-struct node_mnc *get_node_mnc(struct node_mcc *mcc, uint16_t mnc);
+struct node_mnc *get_node_mnc(struct node_mcc *mcc, uint16_t mnc, bool mnc_3_digits);
 struct node_lac *get_node_lac(struct node_mnc *mnc, uint16_t lac);
 struct node_cell *get_node_cell(struct node_lac *lac, uint16_t cellid);
 struct node_meas *add_node_meas(struct node_cell *cell);

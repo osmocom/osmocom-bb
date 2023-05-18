@@ -503,18 +503,16 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 		return CMD_WARNING;
 	}
 	if (argc >= 3) {
-		uint16_t mcc = gsm_input_mcc((char *)argv[1]);
-		uint16_t mnc = gsm_input_mnc((char *)argv[2]);
-		if (mcc == GSM_INPUT_INVALID) {
+		struct osmo_plmn_id plmn;
+		if (osmo_mcc_from_str(argv[1], &plmn.mcc) < 0) {
 			vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
-		if (mnc == GSM_INPUT_INVALID) {
+		if (osmo_mnc_from_str(argv[2], &plmn.mnc, &plmn.mnc_3_digits) < 0) {
 			vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
-		set->test_sim.rplmn_mcc = mcc;
-		set->test_sim.rplmn_mnc = mnc;
+		memcpy(&set->test_sim.rplmn, &plmn, sizeof(plmn));
 		set->test_sim.rplmn_valid = 1;
 	} else {
 		set->test_sim.rplmn_valid = 0;
@@ -743,26 +741,26 @@ DEFUN(sim_lai, sim_lai_cmd, "sim lai MS_NAME MCC MNC LAC",
 	" (use 0000 to remove LAI)")
 {
 	struct osmocom_ms *ms;
-	uint16_t mcc = gsm_input_mcc((char *)argv[1]),
-		 mnc = gsm_input_mnc((char *)argv[2]),
-		 lac = strtoul(argv[3], NULL, 16);
+	struct osmo_plmn_id plmn;
+	uint16_t lac;
 
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
-	if (mcc == GSM_INPUT_INVALID) {
+	if (osmo_mcc_from_str(argv[1], &plmn.mcc) < 0) {
 		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	if (mnc == GSM_INPUT_INVALID) {
+	if (osmo_mnc_from_str(argv[2], &plmn.mnc, &plmn.mnc_3_digits) < 0) {
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	ms->subscr.mcc = mcc;
-	ms->subscr.mnc = mnc;
-	ms->subscr.lac = lac;
+	lac = strtoul(argv[3], NULL, 0);
+
+	memcpy(&ms->subscr.lai.plmn, &plmn, sizeof(plmn));
+	ms->subscr.lai.lac = lac;
 	ms->subscr.tmsi = GSM_RESERVED_TMSI;
 
 	gsm_subscr_write_loci(ms);
@@ -1044,7 +1042,9 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 	struct gsm_settings *set = &ms->settings;
 
 	set->test_sim.rplmn_valid = 0;
-	set->test_sim.rplmn_mcc = set->test_sim.rplmn_mnc = 1;
+	set->test_sim.rplmn.mcc = 1;
+	set->test_sim.rplmn.mnc = 1;
+	set->test_sim.rplmn.mnc_3_digits = false;
 	set->test_sim.lac = 0x0000;
 	set->test_sim.tmsi = GSM_RESERVED_TMSI;
 
@@ -1058,20 +1058,18 @@ static int _test_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
-	uint16_t mcc = gsm_input_mcc((char *)argv[0]),
-		 mnc = gsm_input_mnc((char *)argv[1]);
+	struct osmo_plmn_id plmn;
 
-	if (mcc == GSM_INPUT_INVALID) {
+	if (osmo_mcc_from_str(argv[0], &plmn.mcc) < 0) {
 		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	if (mnc == GSM_INPUT_INVALID) {
+	if (osmo_mnc_from_str(argv[1], &plmn.mnc, &plmn.mnc_3_digits) < 0) {
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 	set->test_sim.rplmn_valid = 1;
-	set->test_sim.rplmn_mcc = mcc;
-	set->test_sim.rplmn_mnc = mnc;
+	memcpy(&set->test_sim.rplmn, &plmn, sizeof(plmn));
 
 	if (argc >= 3)
 		set->test_sim.lac = strtoul(argv[2], NULL, 16);
@@ -1205,8 +1203,8 @@ static int l23_vty_config_write_testsim_node(struct vty *vty, const struct osmoc
 			(set->test_sim.barr) ? "" : "no ", VTY_NEWLINE);
 	if (set->test_sim.rplmn_valid) {
 		vty_out(vty, "%s rplmn %s %s", prefix,
-			gsm_print_mcc(set->test_sim.rplmn_mcc),
-			gsm_print_mnc(set->test_sim.rplmn_mnc));
+			osmo_mcc_name(set->test_sim.rplmn.mcc),
+			osmo_mnc_name(set->test_sim.rplmn.mnc, set->test_sim.rplmn.mnc_3_digits));
 		if (set->test_sim.lac > 0x0000 && set->test_sim.lac < 0xfffe) {
 			vty_out(vty, " 0x%04x", set->test_sim.lac);
 			if (set->test_sim.tmsi != GSM_RESERVED_TMSI) {

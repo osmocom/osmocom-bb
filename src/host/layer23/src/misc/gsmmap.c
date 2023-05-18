@@ -121,13 +121,13 @@ static void add_sysinfo(void)
 			23);
 	printf("--------------------------------------------------------------------------\n");
 	gsm48_sysinfo_dump(&s, sysinfo.arfcn, print_si, stdout, NULL);
-	mcc = get_node_mcc(s.mcc);
+	mcc = get_node_mcc(s.lai.plmn.mcc);
 	if (!mcc)
 		nomem();
-	mnc = get_node_mnc(mcc, s.mnc);
+	mnc = get_node_mnc(mcc, s.lai.plmn.mnc, s.lai.plmn.mnc_3_digits);
 	if (!mnc)
 		nomem();
-	lac = get_node_lac(mnc, s.lac);
+	lac = get_node_lac(mnc, s.lai.lac);
 	if (!lac)
 		nomem();
 	cell = get_node_cell(lac, s.cell_id);
@@ -296,8 +296,7 @@ void kml_footer(FILE *outfp)
 
 }
 
-void kml_meas(FILE *outfp, struct node_meas *meas, int n, uint16_t mcc,
-	uint16_t mnc, uint16_t lac, uint16_t cellid)
+static void kml_meas(FILE *outfp, struct node_meas *meas, int n, const struct osmo_cell_global_id *cgi)
 {
 	struct tm *tm = localtime(&meas->gmt);
 
@@ -305,8 +304,11 @@ void kml_meas(FILE *outfp, struct node_meas *meas, int n, uint16_t mcc,
 	fprintf(outfp, "\t\t\t\t\t\t<name>%d: %d</name>\n", n, meas->rxlev);
 	fprintf(outfp, "\t\t\t\t\t\t<description>\n");
 	fprintf(outfp, "MCC=%s MNC=%s\nLAC=%04x CELL-ID=%04x\n(%s %s)\n",
-		gsm_print_mcc(mcc), gsm_print_mnc(mnc), lac, cellid,
-		gsm_get_mcc(mcc), gsm_get_mnc(mcc, mnc));
+		osmo_mcc_name(cgi->lai.plmn.mcc),
+		osmo_mnc_name(cgi->lai.plmn.mnc, cgi->lai.plmn.mnc_3_digits),
+		cgi->lai.lac, cgi->cell_identity,
+		gsm_get_mcc(cgi->lai.plmn.mcc),
+		gsm_get_mnc(&cgi->lai.plmn));
 	fprintf(outfp, "\n%s", asctime(tm));
 	fprintf(outfp, "RX-LEV %d dBm\n", meas->rxlev);
 	if (meas->ta_valid)
@@ -423,11 +425,11 @@ void kml_cell(FILE *outfp, struct node_cell *cell)
 		return;
 
 	fprintf(outfp, "\t\t\t\t\t<Placemark>\n");
-	fprintf(outfp, "\t\t\t\t\t\t<name>MCC=%s MNC=%s\nLAC=%04x "
-		"CELL-ID=%04x\n(%s %s)</name>\n", gsm_print_mcc(cell->s.mcc),
-		gsm_print_mnc(cell->s.mnc), cell->s.lac, cell->s.cell_id,
-		gsm_get_mcc(cell->s.mcc),
-		gsm_get_mnc(cell->s.mcc, cell->s.mnc));
+	fprintf(outfp, "\t\t\t\t\t\t<name>LAI=%s "
+		"CELL-ID=%04x\n(%s %s)</name>\n",
+		osmo_lai_name(&cell->s.lai), cell->s.cell_id,
+		gsm_get_mcc(cell->s.lai.plmn.mcc),
+		gsm_get_mnc(&cell->s.lai.plmn));
 	fprintf(outfp, "\t\t\t\t\t\t<description>\n");
 	gsm48_sysinfo_dump(&cell->s, cell->sysinfo.arfcn, print_si, outfp,
 		NULL);
@@ -576,15 +578,20 @@ usage:
 	 /* folder open */
 	  fprintf(outfp, "\t<Folder>\n");
 	  fprintf(outfp, "\t\t<name>MCC %s (%s)</name>\n",
-		gsm_print_mcc(mcc->mcc), gsm_get_mcc(mcc->mcc));
+		osmo_mcc_name(mcc->mcc), gsm_get_mcc(mcc->mcc));
 	  fprintf(outfp, "\t\t<open>0</open>\n");
 	  mnc = mcc->mnc;
 	  while (mnc) {
+		struct osmo_plmn_id plmn = {
+			.mcc = mcc->mcc,
+			.mnc = mnc->mnc,
+			.mnc_3_digits = mnc->mnc_3_digits,
+		};
 	    printf(" MNC: %02x\n", mnc->mnc);
 	    /* folder open */
 	    fprintf(outfp, "\t\t<Folder>\n");
 	    fprintf(outfp, "\t\t\t<name>MNC %s (%s)</name>\n",
-	    	gsm_print_mnc(mnc->mnc), gsm_get_mnc(mcc->mcc, mnc->mnc));
+		    osmo_mnc_name(mnc->mnc, mnc->mnc_3_digits), gsm_get_mnc(&plmn));
 	    fprintf(outfp, "\t\t\t<open>0</open>\n");
 	    lac = mnc->lac;
 	    while (lac) {
@@ -604,9 +611,20 @@ usage:
 		while (meas) {
 			if (meas->ta_valid)
 				printf("    TA: %d\n", meas->ta);
-			if (meas->gps_valid)
-				kml_meas(outfp, meas, ++n, mcc->mcc, mnc->mnc,
-					lac->lac, cell->cellid);
+			if (meas->gps_valid) {
+				struct osmo_cell_global_id cgi = {
+					.lai = {
+						.plmn = {
+							.mcc = mcc->mcc,
+							.mnc = mnc->mnc,
+							.mnc_3_digits = mnc->mnc_3_digits,
+						},
+						.lac = lac->lac,
+					},
+					.cell_identity = cell->cellid,
+				};
+				kml_meas(outfp, meas, ++n, &cgi);
+			}
 			meas = meas->next;
 		}
 		kml_cell(outfp, cell);

@@ -98,7 +98,7 @@ static struct log_si {
 	uint16_t flags;
 	uint8_t bsic;
 	int8_t rxlev_dbm;
-	uint16_t mcc, mnc, lac, cellid;
+	struct osmo_cell_global_id cgi;
 	uint8_t ta;
 	double latitude, longitude;
 } log_si;
@@ -187,9 +187,10 @@ static void log_sysinfo(void)
 	if (log_si.ta != 0xff)
 		sprintf(ta_str, " TA=%d", log_si.ta);
 
-	LOGP(DSUM, LOGL_INFO, "Cell: ARFCN=%d MCC=%s MNC=%s (%s, %s)%s\n",
-		arfcn, gsm_print_mcc(s->mcc), gsm_print_mnc(s->mnc),
-		gsm_get_mcc(s->mcc), gsm_get_mnc(s->mcc, s->mnc), ta_str);
+	LOGP(DSUM, LOGL_INFO, "Cell: ARFCN=%d MCC-MNC=%s (%s, %s)%s\n",
+		arfcn, osmo_plmn_name(&s->lai.plmn),
+		gsm_get_mcc(s->lai.plmn.mcc),
+		gsm_get_mnc(&s->lai.plmn), ta_str);
 
 	LOGFILE("[sysinfo]\n");
 	LOGFILE("arfcn %d\n", s->arfcn);

@@ -5,6 +5,7 @@
 
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
+#include <osmocom/gsm/gsm23003.h>
 
 /* GSM 04.08 4.1.2.2 SIM update status */
 enum gsm_sub_sim_ustate {
@@ -22,12 +23,12 @@ static inline const char *gsm_sub_sim_ustate_name(enum gsm_sub_sim_ustate val)
 
 struct gsm_sub_plmn_list {
 	struct llist_head	entry;
-	uint16_t		mcc, mnc;
+	struct osmo_plmn_id	plmn;
 };
 
 struct gsm_sub_plmn_na {
 	struct llist_head	entry;
-	uint16_t		mcc, mnc;
+	struct osmo_plmn_id	plmn;
 	uint8_t			cause;
 };
 
@@ -58,7 +59,7 @@ struct gsm_subscriber {
 	/* TMSI / LAI */
 	uint32_t		tmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
 	uint32_t		ptmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
-	uint16_t		mcc, mnc, lac; /* invalid lac: 0x0000 */
+	struct osmo_location_area_id lai; /* invalid lac: 0x0000 */
 
 
 	/* key */
@@ -80,7 +81,7 @@ struct gsm_subscriber {
 
 	/* PLMN last registered */
 	uint8_t			plmn_valid;
-	uint16_t		plmn_mcc, plmn_mnc;
+	struct osmo_plmn_id	plmn;
 
 	/* our access */
 	uint8_t			acc_barr; /* if we may access, if cell barred */
@@ -111,12 +112,9 @@ int gsm_subscr_write_loci(struct osmocom_ms *ms);
 int gsm_subscr_generate_kc(struct osmocom_ms *ms, uint8_t key_seq, const uint8_t *rand,
 			   bool no_sim);
 void new_sim_ustate(struct gsm_subscriber *subscr, int state);
-int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
-	uint16_t mnc);
-int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
-					uint16_t mnc, uint8_t cause);
-int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, uint16_t mcc,
-					uint16_t mnc);
+int gsm_subscr_del_forbidden_plmn(struct gsm_subscriber *subscr, const struct osmo_plmn_id *plmn);
+int gsm_subscr_add_forbidden_plmn(struct gsm_subscriber *subscr, const struct osmo_plmn_id *plmn, uint8_t cause);
+int gsm_subscr_is_forbidden_plmn(struct gsm_subscriber *subscr, const struct osmo_plmn_id *plmn);
 int gsm_subscr_dump_forbidden_plmn(struct osmocom_ms *ms,
 			void (*print)(void *, const char *, ...), void *priv);
 void gsm_subscr_dump(struct gsm_subscriber *subscr,

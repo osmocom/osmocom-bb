@@ -68,7 +68,9 @@ int gsm_settings_init(struct osmocom_ms *ms)
 
 	/* test SIM */
 	OSMO_STRLCPY_ARRAY(set->test_sim.imsi, "001010000000000");
-	set->test_sim.rplmn_mcc = set->test_sim.rplmn_mnc = 1;
+	set->test_sim.rplmn.mcc = 1;
+	set->test_sim.rplmn.mnc = 1;
+	set->test_sim.rplmn.mnc_3_digits = false;
 	set->test_sim.lac = 0x0000;
 	set->test_sim.tmsi = GSM_RESERVED_TMSI;
 

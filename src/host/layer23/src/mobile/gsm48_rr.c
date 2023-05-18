@@ -658,10 +658,9 @@ static void timeout_rr_meas(void *arg)
 		berr = (meas->berr + meas->frames / 2) / meas->frames;
 		snr = (meas->snr + meas->frames / 2) / meas->frames;
 		OSMO_STRBUF_PRINTF(sb, "MON: f=%d lev=%s snr=%2d ber=%3d "
-				   "LAI=%s %s %04x ID=%04x", cs->sel_arfcn,
+				   "CGI=%s", cs->sel_arfcn,
 				   gsm_print_rxlev(rxlev), snr, berr,
-				   gsm_print_mcc(cs->sel_mcc),
-				   gsm_print_mnc(cs->sel_mnc), cs->sel_lac, cs->sel_id);
+				   osmo_cgi_name(&cs->sel_cgi));
 		if (rr->state == GSM48_RR_ST_DEDICATED) {
 			OSMO_STRBUF_PRINTF(sb, " TA=%d pwr=%d",
 					   rr->cd_now.ind_ta - set->alter_delay,
@@ -1952,9 +1951,7 @@ static int gsm48_rr_rx_sysinfo4(struct osmocom_ms *ms, struct msgb *msg)
 
 	gsm48_decode_sysinfo4(s, si, msgb_l3len(msg));
 
-	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 4 (mcc %s mnc %s "
-		"lac 0x%04x)\n", gsm_print_mcc(s->mcc),
-		gsm_print_mnc(s->mnc), s->lac);
+	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 4 (lai=%s)\n", osmo_lai_name(&s->lai));
 
 	return gsm48_new_sysinfo(ms, si->header.system_information);
 }
@@ -2077,9 +2074,8 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 
 	gsm48_decode_sysinfo6(s, si, msgb_l3len(msg));
 
-	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 6 (mcc %s mnc %s "
-		"lac 0x%04x SACCH-timeout %d)\n", gsm_print_mcc(s->mcc),
-		gsm_print_mnc(s->mnc), s->lac, s->sacch_radio_link_timeout);
+	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 6 (lai=%s SACCH-timeout %d)\n",
+	     osmo_lai_name(&s->lai), s->sacch_radio_link_timeout);
 
 	meas->rl_fail = meas->s = s->sacch_radio_link_timeout;
 	LOGP(DRR, LOGL_INFO, "using (new) SACCH timeout %d\n", meas->rl_fail);
@@ -2148,9 +2144,7 @@ static uint8_t gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
 			return 0;
 		memcpy(&tmsi, mi+2, 4);
 		if (ms->subscr.tmsi == ntohl(tmsi)
-		 && ms->subscr.mcc == cs->sel_mcc
-		 && ms->subscr.mnc == cs->sel_mnc
-		 && ms->subscr.lac == cs->sel_lac) {
+		 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)) {
 			LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
 				ntohl(tmsi));
 
@@ -2269,9 +2263,7 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 	chan_2 = pa->cneed2;
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
-	 && ms->subscr.mcc == cs->sel_mcc
-	 && ms->subscr.mnc == cs->sel_mnc
-	 && ms->subscr.lac == cs->sel_lac) {
+	 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
 			GSM_MI_TYPE_TMSI);
@@ -2280,9 +2272,7 @@ static int gsm48_rr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
 			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
-	 && ms->subscr.mcc == cs->sel_mcc
-	 && ms->subscr.mnc == cs->sel_mnc
-	 && ms->subscr.lac == cs->sel_lac) {
+	 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
 			GSM_MI_TYPE_TMSI);
@@ -2339,9 +2329,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 	chan_4 = pa->cneed4;
 	/* first MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi1)
-	 && ms->subscr.mcc == cs->sel_mcc
-	 && ms->subscr.mnc == cs->sel_mnc
-	 && ms->subscr.lac == cs->sel_lac) {
+	 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi1));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_1], 1,
 			GSM_MI_TYPE_TMSI);
@@ -2350,9 +2338,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 			ntohl(pa->tmsi1));
 	/* second MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi2)
-	 && ms->subscr.mcc == cs->sel_mcc
-	 && ms->subscr.mnc == cs->sel_mnc
-	 && ms->subscr.lac == cs->sel_lac) {
+	 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi2));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_2], 1,
 			GSM_MI_TYPE_TMSI);
@@ -2361,9 +2347,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 			ntohl(pa->tmsi2));
 	/* third MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi3)
-	 && ms->subscr.mcc == cs->sel_mcc
-	 && ms->subscr.mnc == cs->sel_mnc
-	 && ms->subscr.lac == cs->sel_lac) {
+	 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi3));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_3], 1,
 			GSM_MI_TYPE_TMSI);
@@ -2372,9 +2356,7 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
 			ntohl(pa->tmsi3));
 	/* fourth MI */
 	if (ms->subscr.tmsi == ntohl(pa->tmsi4)
-	 && ms->subscr.mcc == cs->sel_mcc
-	 && ms->subscr.mnc == cs->sel_mnc
-	 && ms->subscr.lac == cs->sel_lac) {
+	 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)) {
 		LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n", ntohl(pa->tmsi4));
 		return gsm48_rr_chan_req(ms, gsm48_rr_chan2cause[chan_4], 1,
 			GSM_MI_TYPE_TMSI);
@@ -3310,9 +3292,7 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		gsm48_rr_enc_cm2(ms, &pr->cm2, rr->cd_now.arfcn);
 		/* mobile identity */
 		if (ms->subscr.tmsi != GSM_RESERVED_TMSI
-		 && ms->subscr.mcc == cs->sel_mcc
-		 && ms->subscr.mnc == cs->sel_mnc
-		 && ms->subscr.lac == cs->sel_lac
+		 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)
 		 && rr->paging_mi_type == GSM_MI_TYPE_TMSI) {
 			gsm48_generate_mid_from_tmsi(mi, subscr->tmsi);
 			LOGP(DRR, LOGL_INFO, "sending paging response with "

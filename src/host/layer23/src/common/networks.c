@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <osmocom/gsm/gsm23003.h>
+
 #include <osmocom/bb/common/networks.h>
 
 /* list of networks */
@@ -1774,6 +1776,43 @@ static struct gsm_networks gsm_networks[] = {
 	{ 0, 0, NULL }
 };
 
+/* param: numerically stored mcc as per osmo_plmn_id. */
+uint16_t gsm_mcc_to_hex(uint16_t mcc)
+{
+	uint8_t buf[3];
+	uint16_t in = mcc;
+
+	buf[2] = in % 10;
+	in = in / 10;
+	buf[1] = in % 10;
+	in = in / 10;
+	buf[0] = in % 10;
+
+	return ((buf[0] << 8) +
+		(buf[1] << 4) +
+		buf[2]);
+}
+
+/* param: numerically stored mnc as per osmo_plmn_id. */
+uint16_t gsm_mnc_to_hex(uint16_t mnc, bool mnc_3_digits)
+{
+	uint8_t buf[3];
+	uint16_t in = mnc;
+	if (mnc_3_digits) {
+		buf[2] = in % 10;
+		in = in / 10;
+	} else {
+		buf[2] = 0x0f;
+	}
+	buf[1] = in % 10;
+	in = in / 10;
+	buf[0] = in % 10;
+
+	return ((buf[0] << 8) +
+		(buf[1] << 4) +
+		buf[2]);
+}
+
 /* GSM 03.22 Annex A */
 int gsm_match_mcc(uint16_t mcc, char *imsi)
 {
@@ -1783,30 +1822,33 @@ int gsm_match_mcc(uint16_t mcc, char *imsi)
 		 + ((imsi[1] - '0') << 4)
 		 + imsi[2] - '0';
 
-	return (mcc == sim_mcc);
+	return (gsm_mcc_to_hex(mcc) == sim_mcc);
 }
 
 /* GSM 03.22 Annex A */
-int gsm_match_mnc(uint16_t mcc, uint16_t mnc, char *imsi)
+int gsm_match_mnc(uint16_t mcc, uint16_t mnc, bool mnc_3_digits, char *imsi)
 {
 	uint16_t sim_mnc;
+	uint16_t mnc_hex;
 
 	/* 1. SIM-MCC = BCCH-MCC */
 	if (!gsm_match_mcc(mcc, imsi))
 		return 0;
 
+	mnc_hex = gsm_mnc_to_hex(mnc, mnc_3_digits);
+
 	/* 2. 3rd digit of BCCH-MNC is not 0xf */
-	if ((mnc & 0x00f) != 0x00f) {
+	if ((mnc_hex & 0x00f) != 0x00f) {
 		/* 3. 3 digit SIM-MNC = BCCH-MNC */
 		sim_mnc = ((imsi[3] - '0') << 8)
 			 + ((imsi[4] - '0') << 4)
 			 + imsi[5] - '0';
 
-		return (mnc == sim_mnc);
+		return (mnc_hex == sim_mnc);
 	}
 
 	/* 4. BCCH-MCC in the range 310-316 */
-	if (mcc >= 310 && mcc <= 316) {
+	if (gsm_mcc_to_hex(mcc) >= 310 && mnc_hex <= 316) {
 		/* 5. 3rd diit of SIM-MNC is 0 */
 		if (imsi[5] != 0)
 			return 0;
@@ -1817,123 +1859,47 @@ int gsm_match_mnc(uint16_t mcc, uint16_t mnc, char *imsi)
 		 + ((imsi[4] - '0') << 4)
 		 + 0x00f;
 
-	return (mnc == sim_mnc);
-}
-
-const char *gsm_print_mcc(uint16_t mcc)
-{
-	static char string[6] = "000";
-
-	snprintf(string, 5, "%03x", mcc);
-	return string;
-}
-
-const char *gsm_print_mnc(uint16_t mnc)
-{
-	static char string[8];
-
-	/* invalid format: return hex value */
-	if ((mnc & 0xf000)
-	 || (mnc & 0x0f00) > 0x0900
-	 || (mnc & 0x00f0) > 0x0090
-	 || ((mnc & 0x000f) > 0x0009 && (mnc & 0x000f) < 0x000f)) {
-		snprintf(string, 7, "0x%03x", mnc);
-		return string;
-	}
-
-	/* two digits */
-	if ((mnc & 0x000f) == 0x000f) {
-		snprintf(string, 7, "%02x", mnc >> 4);
-		return string;
-	}
-
-	/* three digits */
-	snprintf(string, 7, "%03x", mnc);
-	return string;
-}
-
-const uint16_t gsm_input_mcc(char *string)
-{
-	uint16_t mcc;
-
-	if (strlen(string) != 3)
-		return GSM_INPUT_INVALID;
-	if (string[0] < '0' || string [0] > '9'
-	 || string[1] < '0' || string [1] > '9'
-	 || string[2] < '0' || string [2] > '9')
-		return GSM_INPUT_INVALID;
-
-	mcc = ((string[0] - '0') << 8)
-	    | ((string[1] - '0') << 4)
-	    | ((string[2] - '0'));
-
-	if (mcc == 0x000)
-		return GSM_INPUT_INVALID;
-
-	return mcc;
-}
-
-const uint16_t gsm_input_mnc(char *string)
-{
-	uint16_t mnc = 0;
-
-	if (strlen(string) == 2) {
-		if (string[0] < '0' || string [0] > '9'
-		 || string[1] < '0' || string [1] > '9')
-			return GSM_INPUT_INVALID;
-
-		mnc = ((string[0] - '0') << 8)
-		    | ((string[1] - '0') << 4)
-		    | 0x00f;
-	} else
-	if (strlen(string) == 3) {
-		if (string[0] < '0' || string [0] > '9'
-		 || string[1] < '0' || string [1] > '9'
-		 || string[2] < '0' || string [2] > '9')
-			return GSM_INPUT_INVALID;
-
-		mnc = ((string[0] - '0') << 8)
-		    | ((string[1] - '0') << 4)
-		    | ((string[2] - '0'));
-	}
-
-	return mnc;
+	return (mnc_hex == sim_mnc);
 }
 
 const char *gsm_get_mcc(uint16_t mcc)
 {
 	int i;
+	uint16_t mcc_hex = gsm_mcc_to_hex(mcc);
 
 	for (i = 0; gsm_networks[i].name; i++)
-		if (gsm_networks[i].mnc < 0 && gsm_networks[i].mcc == mcc)
+		if (gsm_networks[i].mnc_hex < 0 && gsm_networks[i].mcc_hex == mcc_hex)
 			return gsm_networks[i].name;
 
-	return gsm_print_mcc(mcc);
+	return osmo_mcc_name(mcc);
 }
 
-const char *gsm_get_mnc(uint16_t mcc, uint16_t mnc)
+const char *gsm_get_mnc(const struct osmo_plmn_id *plmn)
 {
 	int i;
+	uint16_t mcc_hex = gsm_mcc_to_hex(plmn->mcc);
+	uint16_t mnc_hex = gsm_mnc_to_hex(plmn->mnc, plmn->mnc_3_digits);
 
 	for (i = 0; gsm_networks[i].name; i++)
-		if (gsm_networks[i].mcc == mcc && gsm_networks[i].mnc == mnc)
+		if (gsm_networks[i].mcc_hex == mcc_hex &&
+		    gsm_networks[i].mnc_hex == mnc_hex)
 			return gsm_networks[i].name;
 
-	return gsm_print_mnc(mnc);
+	return osmo_mnc_name(plmn->mnc, plmn->mnc_3_digits);
 }
 
 /* get MCC from IMSI */
 const char *gsm_imsi_mcc(char *imsi)
 {
 	int i, found = 0;
-	uint16_t mcc;
+	uint16_t mcc_hex;
 
-	mcc = ((imsi[0] - '0') << 8)
+	mcc_hex = ((imsi[0] - '0') << 8)
 	    | ((imsi[1] - '0') << 4)
 	    | ((imsi[2] - '0'));
 
 	for (i = 0; gsm_networks[i].name; i++) {
-		if (gsm_networks[i].mcc == mcc) {
+		if (gsm_networks[i].mcc_hex == mcc_hex) {
 			found = 1;
 			break;
 		}
@@ -1961,15 +1927,15 @@ const char *gsm_imsi_mnc(char *imsi)
 	     + imsi[5] - '0';
 
 	for (i = 0; gsm_networks[i].name; i++) {
-		if (gsm_networks[i].mcc != mcc)
+		if (gsm_networks[i].mcc_hex != mcc)
 			continue;
-		if ((gsm_networks[i].mnc & 0x00f) == 0x00f) {
-			if (mnc2 == gsm_networks[i].mnc) {
+		if ((gsm_networks[i].mnc_hex & 0x00f) == 0x00f) {
+			if (mnc2 == gsm_networks[i].mnc_hex) {
 				found++;
 				position = i;
 			}
 		} else {
-			if (mnc3 == gsm_networks[i].mnc) {
+			if (mnc3 == gsm_networks[i].mnc_hex) {
 				found++;
 				position = i;
 			}

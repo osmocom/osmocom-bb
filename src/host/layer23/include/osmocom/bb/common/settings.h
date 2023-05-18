@@ -4,6 +4,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
+#include <osmocom/gsm/gsm23003.h>
 
 struct osmocom_ms;
 struct osmobb_apn;
@@ -64,7 +65,7 @@ struct test_sim_settings {
 	uint8_t			ki[16]; /* 128 bit max */
 	uint8_t			barr;
 	uint8_t			rplmn_valid;
-	uint16_t		rplmn_mcc, rplmn_mnc;
+	struct osmo_plmn_id	rplmn;
 	uint16_t		lac;
 	uint8_t			imsi_attached;
 	uint8_t			always; /* ...search hplmn... */
