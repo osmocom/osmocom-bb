@@ -68,7 +68,7 @@ struct test_sim_settings {
 	struct osmo_plmn_id	rplmn;
 	uint16_t		lac;
 	bool			imsi_attached;
-	uint8_t			always; /* ...search hplmn... */
+	bool			always_search_hplmn;
 };
 
 struct gsm_settings {

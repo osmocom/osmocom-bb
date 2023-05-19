@@ -1115,10 +1115,10 @@ DEFUN(cfg_testsim_hplmn, cfg_testsim_hplmn_cmd, "hplmn-search (everywhere|foreig
 
 	switch (argv[0][0]) {
 	case 'e':
-		set->test_sim.always = 1;
+		set->test_sim.always_search_hplmn = true;
 		break;
 	case 'f':
-		set->test_sim.always = 0;
+		set->test_sim.always_search_hplmn = false;
 		break;
 	}
 
@@ -1213,9 +1213,9 @@ static int l23_vty_config_write_testsim_node(struct vty *vty, const struct osmoc
 	} else
 		if (!l23_vty_hide_default)
 			vty_out(vty, "%s no rplmn%s", prefix, VTY_NEWLINE);
-	if (!l23_vty_hide_default || set->test_sim.always)
+	if (!l23_vty_hide_default || set->test_sim.always_search_hplmn)
 		vty_out(vty, "%s hplmn-search %s%s", prefix,
-			(set->test_sim.always) ? "everywhere" : "foreign-country",
+			set->test_sim.always_search_hplmn ? "everywhere" : "foreign-country",
 			VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
