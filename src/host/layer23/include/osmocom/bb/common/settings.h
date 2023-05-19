@@ -64,7 +64,7 @@ struct test_sim_settings {
 	uint8_t			ki_type;
 	uint8_t			ki[16]; /* 128 bit max */
 	uint8_t			barr;
-	uint8_t			rplmn_valid;
+	bool			rplmn_valid;
 	struct osmo_plmn_id	rplmn;
 	uint16_t		lac;
 	bool			imsi_attached;

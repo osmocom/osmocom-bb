@@ -80,7 +80,7 @@ struct gsm_subscriber {
 	char			sim_spn[17]; /* name of service privider */
 
 	/* PLMN last registered */
-	uint8_t			plmn_valid;
+	bool			plmn_valid;
 	struct osmo_plmn_id	plmn;
 
 	/* our access */

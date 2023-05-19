@@ -513,9 +513,9 @@ static int _sim_testcard_cmd(struct vty *vty, int argc, const char *argv[],
 			return CMD_WARNING;
 		}
 		memcpy(&set->test_sim.rplmn, &plmn, sizeof(plmn));
-		set->test_sim.rplmn_valid = 1;
+		set->test_sim.rplmn_valid = true;
 	} else {
-		set->test_sim.rplmn_valid = 0;
+		set->test_sim.rplmn_valid = false;
 	}
 
 	if (argc >= 4)
@@ -1041,7 +1041,7 @@ DEFUN(cfg_testsim_no_rplmn, cfg_testsim_no_rplmn_cmd, "no rplmn",
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	set->test_sim.rplmn_valid = 0;
+	set->test_sim.rplmn_valid = false;
 	set->test_sim.rplmn.mcc = 1;
 	set->test_sim.rplmn.mnc = 1;
 	set->test_sim.rplmn.mnc_3_digits = false;
@@ -1067,7 +1067,7 @@ static int _testsim_rplmn_cmd(struct vty *vty, int argc, const char *argv[], boo
 		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-	set->test_sim.rplmn_valid = 1;
+	set->test_sim.rplmn_valid = true;
 	memcpy(&set->test_sim.rplmn, &plmn, sizeof(plmn));
 
 	if (argc >= 3)

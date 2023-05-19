@@ -913,7 +913,7 @@ static int subscr_sim_request(struct osmocom_ms *ms)
 
 		/* if LAI is valid, set RPLMN */
 		if (subscr->lai.lac > 0x0000 && subscr->lai.lac < 0xfffe) {
-			subscr->plmn_valid = 1;
+			subscr->plmn_valid = true;
 			memcpy(&subscr->plmn, &subscr->lai.plmn, sizeof(struct osmo_plmn_id));
 			LOGP(DMM, LOGL_INFO, "-> SIM card registered to %s (%s, %s)\n",
 			     osmo_plmn_name(&subscr->plmn),

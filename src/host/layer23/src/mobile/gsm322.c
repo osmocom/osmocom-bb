@@ -1685,7 +1685,7 @@ static int gsm322_m_go_on_plmn(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_subscriber *subscr = &ms->subscr;
 
 	/* set last registered PLMN */
-	subscr->plmn_valid = 1;
+	subscr->plmn_valid = true;
 	memcpy(&subscr->plmn, &plmn->plmn, sizeof(struct osmo_plmn_id));
 
 	new_m_state(plmn, GSM322_M2_ON_PLMN);
