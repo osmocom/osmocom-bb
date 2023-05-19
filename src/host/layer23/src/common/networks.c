@@ -6,7 +6,7 @@
 
 /* list of networks */
 
-struct gsm_networks gsm_networks[] = {
+static struct gsm_networks gsm_networks[] = {
 	{ 0x001, -1,	"Test" },
 	{ 0x001, 0x01f,		"Test" },
 	{ 0x412, -1,	"Afghanistan" },
