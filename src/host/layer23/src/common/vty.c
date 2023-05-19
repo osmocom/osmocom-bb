@@ -478,7 +478,7 @@ gDEFUN(l23_show_ms, l23_show_ms_cmd, "show ms [MS_NAME]",
 	return CMD_SUCCESS;
 }
 
-static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
+static int _sim_testcard_cmd(struct vty *vty, int argc, const char *argv[],
 	int attached)
 {
 	struct osmocom_ms *ms;
@@ -535,7 +535,7 @@ static int _sim_test_cmd(struct vty *vty, int argc, const char *argv[],
 	return CMD_SUCCESS;
 }
 
-DEFUN(sim_test, sim_test_cmd,
+DEFUN(sim_testcard, sim_testcard_cmd,
 	"sim testcard MS_NAME [MCC] [MNC] [LAC] [TMSI]",
 	"SIM actions\nAttach built in test SIM\nName of MS (see \"show ms\")\n"
 	"Optionally set mobile Country Code of RPLMN\n"
@@ -543,17 +543,17 @@ DEFUN(sim_test, sim_test_cmd,
 	"Optionally set location area code of RPLMN\n"
 	"Optionally set current assigned TMSI")
 {
-	return _sim_test_cmd(vty, argc, argv, 0);
+	return _sim_testcard_cmd(vty, argc, argv, 0);
 }
 
-DEFUN(sim_test_att, sim_test_att_cmd,
+DEFUN(sim_testcard_att, sim_testcard_att_cmd,
 	"sim testcard MS_NAME MCC MNC LAC TMSI attached",
 	"SIM actions\nAttach built in test SIM\nName of MS (see \"show ms\")\n"
 	"Set mobile Country Code of RPLMN\nSet mobile Network Code of RPLMN\n"
 	"Set location area code\nSet current assigned TMSI\n"
 	"Indicate to MM that card is already attached")
 {
-	return _sim_test_cmd(vty, argc, argv, 1);
+	return _sim_testcard_cmd(vty, argc, argv, 1);
 }
 
 DEFUN(sim_sap, sim_sap_cmd, "sim sap MS_NAME",
@@ -937,7 +937,7 @@ DEFUN(cfg_ms_testsim, cfg_ms_testsim_cmd, "test-sim",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
+DEFUN(cfg_testsim_imsi, cfg_testsim_imsi_cmd, "imsi IMSI",
 	"Set IMSI on test card\n15 digits IMSI")
 {
 	struct osmocom_ms *ms = vty->index;
@@ -956,7 +956,7 @@ DEFUN(cfg_test_imsi, cfg_test_imsi_cmd, "imsi IMSI",
 }
 
 #define HEX_STR "\nByte as two digits hexadecimal"
-DEFUN(cfg_test_ki_xor, cfg_test_ki_xor_cmd, "ki xor HEX HEX HEX HEX HEX HEX "
+DEFUN(cfg_testsim_ki_xor, cfg_testsim_ki_xor_cmd, "ki xor HEX HEX HEX HEX HEX HEX "
 	"HEX HEX HEX HEX HEX HEX",
 	"Set Key (Ki) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
 	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR)
@@ -984,7 +984,7 @@ DEFUN(cfg_test_ki_xor, cfg_test_ki_xor_cmd, "ki xor HEX HEX HEX HEX HEX HEX "
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_ki_comp128, cfg_test_ki_comp128_cmd, "ki comp128 HEX HEX HEX "
+DEFUN(cfg_testsim_ki_comp128, cfg_testsim_ki_comp128_cmd, "ki comp128 HEX HEX HEX "
 	"HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX HEX",
 	"Set Key (Ki) on test card\nUse XOR algorithm" HEX_STR HEX_STR HEX_STR
 	HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR HEX_STR
@@ -1013,7 +1013,7 @@ DEFUN(cfg_test_ki_comp128, cfg_test_ki_comp128_cmd, "ki comp128 HEX HEX HEX "
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access",
+DEFUN(cfg_testsim_barr, cfg_testsim_barr_cmd, "barred-access",
 	"Allow access to barred cells")
 {
 	struct osmocom_ms *ms = vty->index;
@@ -1024,7 +1024,7 @@ DEFUN(cfg_test_barr, cfg_test_barr_cmd, "barred-access",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_no_barr, cfg_test_no_barr_cmd, "no barred-access",
+DEFUN(cfg_testsim_no_barr, cfg_testsim_no_barr_cmd, "no barred-access",
 	NO_STR "Deny access to barred cells")
 {
 	struct osmocom_ms *ms = vty->index;
@@ -1035,7 +1035,7 @@ DEFUN(cfg_test_no_barr, cfg_test_no_barr_cmd, "no barred-access",
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
+DEFUN(cfg_testsim_no_rplmn, cfg_testsim_no_rplmn_cmd, "no rplmn",
 	NO_STR "Unset Registered PLMN")
 {
 	struct osmocom_ms *ms = vty->index;
@@ -1053,7 +1053,7 @@ DEFUN(cfg_test_no_rplmn, cfg_test_no_rplmn_cmd, "no rplmn",
 	return CMD_SUCCESS;
 }
 
-static int _test_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
+static int _testsim_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
 	int attached)
 {
 	struct osmocom_ms *ms = vty->index;
@@ -1091,25 +1091,25 @@ static int _test_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_test_rplmn, cfg_test_rplmn_cmd,
+DEFUN(cfg_testsim_rplmn, cfg_testsim_rplmn_cmd,
 	"rplmn MCC MNC [LAC] [TMSI]",
 	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
 	"Optionally set location area code\n"
 	"Optionally set current assigned TMSI")
 {
-	return _test_rplmn_cmd(vty, argc, argv, 0);
+	return _testsim_rplmn_cmd(vty, argc, argv, 0);
 }
 
-DEFUN(cfg_test_rplmn_att, cfg_test_rplmn_att_cmd,
+DEFUN(cfg_testsim_rplmn_att, cfg_testsim_rplmn_att_cmd,
 	"rplmn MCC MNC LAC TMSI attached",
 	"Set Registered PLMN\nMobile Country Code\nMobile Network Code\n"
 	"Set location area code\nSet current assigned TMSI\n"
 	"Indicate to MM that card is already attached")
 {
-	return _test_rplmn_cmd(vty, argc, argv, 1);
+	return _testsim_rplmn_cmd(vty, argc, argv, 1);
 }
 
-DEFUN(cfg_test_hplmn, cfg_test_hplmn_cmd, "hplmn-search (everywhere|foreign-country)",
+DEFUN(cfg_testsim_hplmn, cfg_testsim_hplmn_cmd, "hplmn-search (everywhere|foreign-country)",
 	"Set Home PLMN search mode\n"
 	"Search for HPLMN when on any other network\n"
 	"Search for HPLMN when in a different country")
@@ -1340,8 +1340,8 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 	install_element_ve(&show_subscr_cmd);
 	install_element_ve(&show_support_cmd);
 
-	install_element(ENABLE_NODE, &sim_test_cmd);
-	install_element(ENABLE_NODE, &sim_test_att_cmd);
+	install_element(ENABLE_NODE, &sim_testcard_cmd);
+	install_element(ENABLE_NODE, &sim_testcard_att_cmd);
 	install_element(ENABLE_NODE, &sim_sap_cmd);
 	install_element(ENABLE_NODE, &sim_reader_cmd);
 	install_element(ENABLE_NODE, &sim_remove_cmd);
@@ -1363,15 +1363,15 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
 	install_element(MS_NODE, &cfg_ms_testsim_cmd);
 	install_node(&testsim_node, NULL);
-	install_element(TESTSIM_NODE, &cfg_test_imsi_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_ki_xor_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_ki_comp128_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_barr_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_no_barr_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_no_rplmn_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_rplmn_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_rplmn_att_cmd);
-	install_element(TESTSIM_NODE, &cfg_test_hplmn_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_imsi_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_ki_xor_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_ki_comp128_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_barr_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_no_barr_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_no_rplmn_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_rplmn_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_rplmn_att_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_hplmn_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
 	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);
