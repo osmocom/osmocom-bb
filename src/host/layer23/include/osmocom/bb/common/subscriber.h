@@ -49,7 +49,7 @@ struct gsm_subscriber {
 	enum gsm_subscriber_sim_type sim_type; /* type of sim */
 	bool			sim_valid; /* sim inserted and valid */
 	enum gsm_sub_sim_ustate	ustate; /* update status */
-	uint8_t			imsi_attached; /* attached state */
+	bool			imsi_attached; /* attached state */
 
 	/* IMSI & co */
 	char			imsi[OSMO_IMSI_BUF_SIZE];

@@ -2234,7 +2234,7 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 	 && (subscr->imsi_attached
 	  || !s->att_allowed)) {
 		LOGP(DMM, LOGL_INFO, "Loc. upd. not required.\n");
-	  	subscr->imsi_attached = 1;
+		subscr->imsi_attached = true;
 
 		/* go straight to normal service state */
 		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
@@ -2413,7 +2413,7 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	mm->lupd_attempt = 0;
 
 	/* mark SIM as attached */
-	subscr->imsi_attached = 1;
+	subscr->imsi_attached = true;
 
 	/* set the status in the sim to updated */
 	new_sim_ustate(subscr, GSM_SIM_U1_UPDATED);

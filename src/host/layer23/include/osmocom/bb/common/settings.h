@@ -67,7 +67,7 @@ struct test_sim_settings {
 	uint8_t			rplmn_valid;
 	struct osmo_plmn_id	rplmn;
 	uint16_t		lac;
-	uint8_t			imsi_attached;
+	bool			imsi_attached;
 	uint8_t			always; /* ...search hplmn... */
 };
 

@@ -1053,8 +1053,7 @@ DEFUN(cfg_testsim_no_rplmn, cfg_testsim_no_rplmn_cmd, "no rplmn",
 	return CMD_SUCCESS;
 }
 
-static int _testsim_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
-	int attached)
+static int _testsim_rplmn_cmd(struct vty *vty, int argc, const char *argv[], bool attached)
 {
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
@@ -1081,10 +1080,7 @@ static int _testsim_rplmn_cmd(struct vty *vty, int argc, const char *argv[],
 	else
 		set->test_sim.tmsi = GSM_RESERVED_TMSI;
 
-	if (attached)
-		set->test_sim.imsi_attached = 1;
-	else
-		set->test_sim.imsi_attached = 0;
+	set->test_sim.imsi_attached = attached;
 
 	l23_vty_restart_required_warn(vty, ms);
 
@@ -1097,7 +1093,7 @@ DEFUN(cfg_testsim_rplmn, cfg_testsim_rplmn_cmd,
 	"Optionally set location area code\n"
 	"Optionally set current assigned TMSI")
 {
-	return _testsim_rplmn_cmd(vty, argc, argv, 0);
+	return _testsim_rplmn_cmd(vty, argc, argv, false);
 }
 
 DEFUN(cfg_testsim_rplmn_att, cfg_testsim_rplmn_att_cmd,
@@ -1106,7 +1102,7 @@ DEFUN(cfg_testsim_rplmn_att, cfg_testsim_rplmn_att_cmd,
 	"Set location area code\nSet current assigned TMSI\n"
 	"Indicate to MM that card is already attached")
 {
-	return _testsim_rplmn_cmd(vty, argc, argv, 1);
+	return _testsim_rplmn_cmd(vty, argc, argv, true);
 }
 
 DEFUN(cfg_testsim_hplmn, cfg_testsim_hplmn_cmd, "hplmn-search (everywhere|foreign-country)",
