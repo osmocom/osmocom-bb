@@ -112,6 +112,7 @@ struct gsm_subscriber {
 
 	struct {
 		uint8_t			gu_state; /* GU, TS 24.008 */
+		bool			rai_valid;
 		struct gprs_ra_id	rai;
 		uint32_t		ptmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
 		uint32_t		ptmsi_sig; /* P-TMSI signature, 3 bytes */

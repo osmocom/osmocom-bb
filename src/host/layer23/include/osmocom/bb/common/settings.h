@@ -5,6 +5,9 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
 #include <osmocom/gsm/gsm23003.h>
+#include <osmocom/gsm/gsm48.h>
+
+#include <osmocom/bb/common/sim.h>
 
 struct osmocom_ms;
 struct osmobb_apn;
@@ -69,6 +72,14 @@ struct test_sim_settings {
 	uint16_t		lac;
 	bool			imsi_attached;
 	bool			always_search_hplmn;
+	struct {
+		bool			valid;
+		uint32_t		ptmsi; /* invalid tmsi: GSM_RESERVED_TMSI */
+		uint32_t		ptmsi_sig; /* P-TMSI signature, 3 bytes */
+		struct gprs_ra_id	rai;
+		enum gsm1111_ef_locigprs_rau_status gu_state; /* GU, TS 24.008 */
+		bool			imsi_attached;
+	} locigprs;
 };
 
 struct gsm_settings {

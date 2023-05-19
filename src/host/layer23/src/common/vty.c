@@ -1127,6 +1127,95 @@ DEFUN(cfg_testsim_hplmn, cfg_testsim_hplmn_cmd, "hplmn-search (everywhere|foreig
 	return CMD_SUCCESS;
 }
 
+static int _testsim_locigprs_cmd(struct vty *vty, int argc, const char *argv[], bool attached)
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+	struct osmo_plmn_id plmn;
+
+	if (osmo_mcc_from_str(argv[0], &plmn.mcc) < 0) {
+		vty_out(vty, "Given MCC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	if (osmo_mnc_from_str(argv[1], &plmn.mnc, &plmn.mnc_3_digits) < 0) {
+		vty_out(vty, "Given MNC invalid%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	set->test_sim.locigprs.valid = true;
+	set->test_sim.locigprs.rai.mcc = plmn.mcc;
+	set->test_sim.locigprs.rai.mnc = plmn.mnc;
+	set->test_sim.locigprs.rai.mnc_3_digits = plmn.mnc_3_digits;
+
+	if (argc >= 3)
+		set->test_sim.locigprs.rai.lac = strtoul(argv[2], NULL, 16);
+	else
+		set->test_sim.locigprs.rai.lac = 0xfffe;
+
+	if (argc >= 4)
+		set->test_sim.locigprs.rai.rac = strtoul(argv[3], NULL, 16);
+	else
+		set->test_sim.locigprs.rai.rac = 0xff;
+
+	if (argc >= 5)
+		set->test_sim.locigprs.ptmsi = strtoul(argv[4], NULL, 16);
+	else
+		set->test_sim.locigprs.ptmsi = GSM_RESERVED_TMSI;
+
+	if (argc >= 6)
+		set->test_sim.locigprs.ptmsi_sig = strtoul(argv[5], NULL, 16);
+	else
+		set->test_sim.locigprs.ptmsi_sig = GSM_RESERVED_TMSI;
+
+	set->test_sim.locigprs.imsi_attached = attached;
+
+	l23_vty_restart_required_warn(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_testsim_no_locigprs, cfg_testsim_no_locigprs_cmd, "no locigprs",
+	NO_STR "Unset EF LOCIgprs\n")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->test_sim.locigprs.valid = false;
+	set->test_sim.locigprs.ptmsi = GSM_RESERVED_TMSI;
+	set->test_sim.locigprs.ptmsi_sig = GSM_RESERVED_TMSI;
+	set->test_sim.locigprs.rai.mcc = 1;
+	set->test_sim.locigprs.rai.mnc = 1;
+	set->test_sim.locigprs.rai.mnc_3_digits = false;
+	set->test_sim.locigprs.rai.lac = 0x0000;
+	set->test_sim.locigprs.rai.rac = 0x0000;
+
+	l23_vty_restart_required_warn(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_testsim_locigprs, cfg_testsim_locigprs_cmd,
+	"locigprs MCC MNC [LAC] [RAC] [PTMSI] [PTMSISIG]",
+	"Set EF LOCIgprs\nMobile Country Code\nMobile Network Code\n"
+	"Optionally set location area code\n"
+	"Optionally set routing area code\n"
+	"Optionally set current assigned P-TMSI\n"
+	"Optionally set current assigned P-TMSI signature\n")
+{
+	return _testsim_locigprs_cmd(vty, argc, argv, false);
+}
+
+DEFUN(cfg_testsim_locigprs_att, cfg_testsim_locigprs_att_cmd,
+	"locigprs MCC MNC LAC RAC PTMSI PTMSISIG attached",
+	"Set EF LOCIgprs\nMobile Country Code\nMobile Network Code\n"
+	"Set location area code\n"
+	"Set routing area code\n"
+	"Set current assigned P-TMSI\n"
+	"Set current assigned P-TMSI signature\n"
+	"Indicate to MM that card is already attached\n")
+{
+	return _testsim_locigprs_cmd(vty, argc, argv, true);
+}
+
 static int l23_vty_config_write_gsmtap_node(struct vty *vty)
 {
 	const char *chan_buf;
@@ -1213,10 +1302,34 @@ static int l23_vty_config_write_testsim_node(struct vty *vty, const struct osmoc
 	} else
 		if (!l23_vty_hide_default)
 			vty_out(vty, "%s no rplmn%s", prefix, VTY_NEWLINE);
+
 	if (!l23_vty_hide_default || set->test_sim.always_search_hplmn)
 		vty_out(vty, "%s hplmn-search %s%s", prefix,
 			set->test_sim.always_search_hplmn ? "everywhere" : "foreign-country",
 			VTY_NEWLINE);
+
+	if (set->test_sim.locigprs.valid) {
+		vty_out(vty, "%s locigprs %s %s", prefix,
+			osmo_mcc_name(set->test_sim.locigprs.rai.mcc),
+			osmo_mnc_name(set->test_sim.locigprs.rai.mnc,
+				      set->test_sim.locigprs.rai.mnc_3_digits));
+		if (set->test_sim.locigprs.rai.lac > 0x0000 && set->test_sim.locigprs.rai.lac < 0xfffe) {
+			vty_out(vty, " 0x%04x", set->test_sim.locigprs.rai.lac);
+			if (set->test_sim.locigprs.rai.rac < 0xff) {
+				vty_out(vty, " 0x%02x", set->test_sim.locigprs.rai.rac);
+				if (set->test_sim.locigprs.ptmsi != GSM_RESERVED_TMSI) {
+					vty_out(vty, " 0x%08x 0x%06x",
+						set->test_sim.locigprs.ptmsi,
+						set->test_sim.locigprs.ptmsi_sig);
+					if (set->test_sim.locigprs.imsi_attached)
+						vty_out(vty, " attached");
+				}
+			}
+		}
+		vty_out(vty, "%s", VTY_NEWLINE);
+	} else
+		if (!l23_vty_hide_default)
+			vty_out(vty, "%s no locigprs%s", prefix, VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
@@ -1368,6 +1481,9 @@ int l23_vty_init(int (*config_write_ms_node_cb)(struct vty *), osmo_signal_cbfn 
 	install_element(TESTSIM_NODE, &cfg_testsim_rplmn_cmd);
 	install_element(TESTSIM_NODE, &cfg_testsim_rplmn_att_cmd);
 	install_element(TESTSIM_NODE, &cfg_testsim_hplmn_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_no_locigprs_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_locigprs_cmd);
+	install_element(TESTSIM_NODE, &cfg_testsim_locigprs_att_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_cmd);
 	install_element(MS_NODE, &cfg_ms_shutdown_force_cmd);
 	install_element(MS_NODE, &cfg_ms_no_shutdown_cmd);
