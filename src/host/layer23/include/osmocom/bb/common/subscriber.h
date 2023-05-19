@@ -84,7 +84,7 @@ struct gsm_subscriber {
 	struct osmo_plmn_id	plmn;
 
 	/* our access */
-	uint8_t			acc_barr; /* if we may access, if cell barred */
+	bool			acc_barr; /* if we may access, if cell barred */
 	uint16_t		acc_class; /* bitmask of what we may access */
 
 	/* talk to SIM */

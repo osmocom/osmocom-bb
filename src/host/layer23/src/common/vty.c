@@ -1019,7 +1019,7 @@ DEFUN(cfg_testsim_barr, cfg_testsim_barr_cmd, "barred-access",
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	set->test_sim.barr = 1;
+	set->test_sim.barr = true;
 
 	return CMD_SUCCESS;
 }
@@ -1030,7 +1030,7 @@ DEFUN(cfg_testsim_no_barr, cfg_testsim_no_barr_cmd, "no barred-access",
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	set->test_sim.barr = 0;
+	set->test_sim.barr = false;
 
 	return CMD_SUCCESS;
 }
