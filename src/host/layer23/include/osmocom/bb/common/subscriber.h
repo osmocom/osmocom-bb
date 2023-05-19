@@ -89,7 +89,7 @@ struct gsm_subscriber {
 
 	/* talk to SIM */
 	uint8_t			sim_state;
-	uint8_t			sim_pin_required; /* state: wait for PIN */
+	bool			sim_pin_required; /* state: wait for PIN */
 	uint8_t			sim_file_index;
 	uint32_t		sim_handle_query;
 	uint32_t		sim_handle_update;

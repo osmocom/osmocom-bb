@@ -970,7 +970,7 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 			l23_vty_ms_notify(ms, NULL);
 			l23_vty_ms_notify(ms, "Please give PIN for ICCID %s (you have "
 				"%d tries left)\n", subscr->iccid, payload[1]);
-			subscr->sim_pin_required = 1;
+			subscr->sim_pin_required = true;
 			break;
 		case SIM_CAUSE_PIN1_BLOCKED:
 			LOGP(DMM, LOGL_NOTICE, "PIN is blocked\n");
@@ -982,14 +982,14 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 					"(you have %d tries left)\n",
 					subscr->iccid, payload[1]);
 			}
-			subscr->sim_pin_required = 1;
+			subscr->sim_pin_required = true;
 			break;
 		case SIM_CAUSE_PUC_BLOCKED:
 			LOGP(DMM, LOGL_NOTICE, "PUC is blocked\n");
 
 			l23_vty_ms_notify(ms, NULL);
 			l23_vty_ms_notify(ms, "PUC is blocked\n");
-			subscr->sim_pin_required = 1;
+			subscr->sim_pin_required = true;
 			break;
 		default:
 			if (sf->func && !sf->mandatory) {
@@ -1013,7 +1013,7 @@ static void subscr_sim_query_cb(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* if pin was successfully unlocked, then resend request */
 	if (subscr->sim_pin_required) {
-		subscr->sim_pin_required = 0;
+		subscr->sim_pin_required = false;
 		subscr_sim_request(ms);
 		return;
 	}
