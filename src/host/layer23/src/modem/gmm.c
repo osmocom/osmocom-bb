@@ -193,10 +193,12 @@ int modem_gmm_gmmreg_attach_req(const struct osmocom_ms *ms)
 	gmm_prim = osmo_gprs_gmm_prim_alloc_gmmreg_attach_req();
 	gmm_prim->gmmreg.attach_req.attach_type = OSMO_GPRS_GMM_ATTACH_TYPE_GPRS;
 	gmm_prim->gmmreg.attach_req.ptmsi = subscr->gprs.ptmsi;
+	gmm_prim->gmmreg.attach_req.ptmsi_sig = subscr->gprs.ptmsi_sig;
 	gmm_prim->gmmreg.attach_req.attach_with_imsi = (subscr->gprs.ptmsi == GSM_RESERVED_TMSI);
 	memcpy(gmm_prim->gmmreg.attach_req.imsi, subscr->imsi, ARRAY_SIZE(subscr->imsi));
 	memcpy(gmm_prim->gmmreg.attach_req.imei, ms->settings.imei, ARRAY_SIZE(ms->settings.imei));
 	memcpy(gmm_prim->gmmreg.attach_req.imeisv, ms->settings.imeisv, ARRAY_SIZE(ms->settings.imeisv));
+	memcpy(&gmm_prim->gmmreg.attach_req.old_rai, &subscr->gprs.rai, sizeof(subscr->gprs.rai));
 	rc = osmo_gprs_gmm_prim_upper_down(gmm_prim);
 	if (rc < 0)
 		LOGP(DMM, LOGL_ERROR, "Failed submitting GMMREG-ATTACH.req\n");
