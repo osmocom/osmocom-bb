@@ -66,7 +66,6 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 	size_t l2_len;
 	int amr = 0;
 	uint8_t ft;
-	bool amr_is_cmr;
 
 	/* Set up pointers */
 	mask = &lchan->rx_burst_mask;
@@ -122,20 +121,19 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 			1, 1, &n_errors, &n_bits_total);
 		break;
 	case GSM48_CMODE_SPEECH_AMR: /* AMR */
-		/* the first FN 4,13,21 defines that CMI is included in frame,
-		 * the first FN 0,8,17 defines that CMR/CMC is included in frame.
-		 * NOTE: A frame ends 7 FN after start.
-		 */
-		amr_is_cmr = !sched_tchf_dl_amr_cmi_map[bi->fn % 26];
-
 		/* we store tch_data + 2 header bytes, the amr variable set to
 		 * 2 will allow us to skip the first 2 bytes in case we did
 		 * receive an FACCH frame instead of a voice frame (we do not
 		 * know this before we actually decode the frame) */
 		amr = 2;
 		rc = gsm0503_tch_afs_decode_dtx(l2 + amr, buffer,
-			amr_is_cmr, lchan->amr.codec, lchan->amr.codecs, &lchan->amr.dl_ft,
-			&lchan->amr.dl_cmr, &n_errors, &n_bits_total, &lchan->amr.last_dtx);
+						!sched_tchf_dl_amr_cmi_map[bi->fn % 26],
+						lchan->amr.codec,
+						lchan->amr.codecs,
+						&lchan->amr.dl_ft,
+						&lchan->amr.dl_cmr,
+						&n_errors, &n_bits_total,
+						&lchan->amr.last_dtx);
 
 		/* only good speech frames get rtp header */
 		if (rc != GSM_MACBLOCK_LEN && rc >= 4) {
