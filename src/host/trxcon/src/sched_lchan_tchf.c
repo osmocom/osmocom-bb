@@ -303,8 +303,10 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 		break;
 	}
 	default:
-		LOGP_LCHAND(lchan, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);
-		return -EINVAL;
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "TCH mode %s is unknown or not supported\n",
+			    gsm48_chan_mode_name(lchan->tch_mode));
+		goto free_bad_msg;
 	}
 
 	if (rc) {
