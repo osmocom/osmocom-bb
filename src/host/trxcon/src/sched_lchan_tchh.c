@@ -252,6 +252,14 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	LOGP_LCHAND(lchan, LOGL_DEBUG,
 		    "Traffic received: fn=%u bid=%u\n", bi->fn, bi->bid);
 
+	if (bi->bid == 0) {
+		/* Shift the burst buffer by 2 bursts leftwards */
+		memcpy(&bursts_p[0], &bursts_p[232], 232);
+		memcpy(&bursts_p[232], &bursts_p[464], 232);
+		memset(&bursts_p[464], 0, 232);
+		*mask = *mask << 2;
+	}
+
 	if (*mask == 0x00) {
 		/* Align to the first burst */
 		if (bi->bid > 0)
@@ -286,17 +294,17 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	if (lchan->tch_mode == GSM48_CMODE_SIGN) {
 		/* FACCH/H is interleaved over 6 bursts */
 		if ((*mask & 0x3f) != 0x3f)
-			goto bfi_shift;
+			goto bfi;
 	} else {
 		/* Traffic is interleaved over 4 bursts */
 		if ((*mask & 0x0f) != 0x0f)
-			goto bfi_shift;
+			goto bfi;
 	}
 
 	/* Skip decoding attempt in case of FACCH/H */
 	if (lchan->dl_ongoing_facch) {
 		lchan->dl_ongoing_facch = false;
-		goto bfi_shift; /* 2/2 BFI */
+		goto bfi; /* 2/2 BFI */
 	}
 
 	switch (lchan->tch_mode) {
@@ -340,13 +348,6 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		return -EINVAL;
 	}
 
-	/* Shift buffer by 4 bursts for interleaving */
-	memcpy(bursts_p, bursts_p + 232, 232);
-	memcpy(bursts_p + 232, bursts_p + 464, 232);
-
-	/* Shift burst mask */
-	*mask = *mask << 2;
-
 	/* Check decoding result */
 	if (rc < 4) {
 		/* Calculate AVG of the measurements (assuming 4 bursts) */
@@ -383,14 +384,6 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	/* Send a traffic frame to the higher layers */
 	return l1sched_lchan_emit_data_ind(lchan, &tch_data[0], tch_data_len,
 					   n_errors, n_bits_total, true);
-
-bfi_shift:
-	/* Shift buffer */
-	memcpy(bursts_p, bursts_p + 232, 232);
-	memcpy(bursts_p + 232, bursts_p + 464, 232);
-
-	/* Shift burst mask */
-	*mask = *mask << 2;
 
 bfi:
 	/* Didn't try to decode, fake measurements */
@@ -441,17 +434,15 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 				return 0;
 	}
 
-	/* Shift buffer by 2 bursts back for interleaving */
-	memcpy(bursts_p, bursts_p + 232, 232);
-
-	/* Also shift TX burst mask */
+	/* Shift the burst buffer by 2 bursts leftwards for interleaving */
+	memcpy(&bursts_p[0], &bursts_p[232], 232);
+	memcpy(&bursts_p[232], &bursts_p[464], 232);
+	memset(&bursts_p[464], 0, 232);
 	*mask = *mask << 2;
 
 	/* If FACCH/H blocks are still pending */
-	if (lchan->ul_facch_blocks > 2) {
-		memcpy(bursts_p + 232, bursts_p + 464, 232);
+	if (lchan->ul_facch_blocks > 2)
 		goto send_burst;
-	}
 
 	if (msgb_l2len(lchan->prim) == GSM_MACBLOCK_LEN)
 		lchan->ul_facch_blocks = 6;

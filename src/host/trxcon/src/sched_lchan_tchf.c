@@ -75,9 +75,16 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 	LOGP_LCHAND(lchan, LOGL_DEBUG,
 		    "Traffic received: fn=%u bid=%u\n", bi->fn, bi->bid);
 
-	/* Align to the first burst of a block */
-	if (*mask == 0x00 && bi->bid != 0)
-		return 0;
+	if (bi->bid == 0) {
+		/* Shift the burst buffer by 4 bursts leftwards */
+		memcpy(&bursts_p[0], &bursts_p[464], 464);
+		memset(&bursts_p[464], 0, 464);
+		*mask = *mask << 4;
+	} else {
+		/* Align to the first burst of a block */
+		if (*mask == 0x00)
+			return 0;
+	}
 
 	/* Update mask */
 	*mask |= (1 << bi->bid);
@@ -107,9 +114,6 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 		/* NOTE: do not abort here, give it a try. Maybe we're lucky ;) */
 
 	}
-
-	/* Keep the mask updated */
-	*mask = *mask << 4;
 
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
@@ -156,9 +160,6 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 		LOGP_LCHAND(lchan, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);
 		return -EINVAL;
 	}
-
-	/* Shift buffer by 4 bursts for interleaving */
-	memcpy(bursts_p, bursts_p + 464, 464);
 
 	/* Check decoding result */
 	if (rc < 4) {
@@ -227,8 +228,10 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	if (br->bid > 0)
 		goto send_burst;
 
-	/* Shift buffer by 4 bursts back for interleaving */
-	memcpy(bursts_p, bursts_p + 464, 464);
+	/* Shift the burst buffer by 4 bursts leftwards for interleaving */
+	memcpy(&bursts_p[0], &bursts_p[464], 464);
+	memset(&bursts_p[464], 0, 464);
+	*mask = *mask << 4;
 
 	/* populate the buffer with bursts */
 	switch (lchan->tch_mode) {
@@ -332,12 +335,9 @@ send_burst:
 	LOGP_LCHAND(lchan, LOGL_DEBUG, "Scheduled fn=%u burst=%u\n", br->fn, br->bid);
 
 	/* If we have sent the last (4/4) burst */
-	if (*mask == 0x0f) {
+	if ((*mask & 0x0f) == 0x0f) {
 		/* Confirm data / traffic sending (pass ownership of the prim) */
 		l1sched_lchan_emit_data_cnf(lchan, br->fn);
-
-		/* Reset mask */
-		*mask = 0x00;
 	}
 
 	return 0;
