@@ -141,7 +141,7 @@ int tx_data_fn(struct l1sched_lchan_state *lchan,
 
 	lchan->prim = prim_dequeue_xcch(lchan);
 	if (lchan->prim == NULL)
-		lchan->prim = l1sched_lchan_prim_dummy(lchan);
+		lchan->prim = l1sched_lchan_prim_dummy_lapdm(lchan);
 	OSMO_ASSERT(lchan->prim != NULL);
 
 	/* Encode payload */

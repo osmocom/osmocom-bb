@@ -180,60 +180,6 @@ bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
 	return false;
 }
 
-/**
- * Calculates a frame number of the first burst
- * using given frame number of the last burst.
- *
- * See GSM 05.02, clause 7, table 1
- *
- * @param  chan      channel type (L1SCHED_TCHH_0 or L1SCHED_TCHH_1)
- * @param  last_fn   frame number of the last burst
- * @param  facch     FACCH/H or traffic?
- * @return           either frame number of the first burst,
- *                   or fn=last_fn if calculation failed
- */
-static uint32_t tchh_block_dl_first_fn(const struct l1sched_lchan_state *lchan,
-				       uint32_t last_fn, bool facch)
-{
-	enum l1sched_lchan_type chan = lchan->type;
-	uint8_t fn_mf, fn_diff;
-	int i = 0;
-
-	/* Just to be sure */
-	OSMO_ASSERT(chan == L1SCHED_TCHH_0 || chan == L1SCHED_TCHH_1);
-
-	/* Calculate a modulo */
-	fn_mf = facch ? (last_fn % 26) : (last_fn % 13);
-
-#define BLOCK_FIRST_FN(map) \
-	do { \
-		if (map[i][ARRAY_SIZE(map[i]) - 1] == fn_mf) { \
-			fn_diff = GSM_TDMA_FN_DIFF(fn_mf, map[i][0]); \
-			return GSM_TDMA_FN_SUB(last_fn, fn_diff); \
-		} \
-	} while (++i < ARRAY_SIZE(map))
-
-	/* Choose a proper block map */
-	if (facch) {
-		if (chan == L1SCHED_TCHH_0)
-			BLOCK_FIRST_FN(tch_h0_dl_facch_block_map);
-		else
-			BLOCK_FIRST_FN(tch_h1_dl_facch_block_map);
-	} else {
-		if (chan == L1SCHED_TCHH_0)
-			BLOCK_FIRST_FN(tch_h0_traffic_block_map);
-		else
-			BLOCK_FIRST_FN(tch_h1_traffic_block_map);
-	}
-
-	LOGP_LCHAND(lchan, LOGL_ERROR,
-		    "Failed to calculate TDMA frame number of the first burst of %s block, "
-		    "using the current fn=%u\n", facch ? "FACCH/H" : "TCH/H", last_fn);
-
-	/* Couldn't calculate the first fn, return the last */
-	return last_fn;
-}
-
 int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	       const struct l1sched_burst_ind *bi)
 {
@@ -290,21 +236,13 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	if (bi->bid != 1)
 		return 0;
 
-	/* Wait for complete set of bursts */
-	if (lchan->tch_mode == GSM48_CMODE_SIGN) {
-		/* FACCH/H is interleaved over 6 bursts */
-		if ((*mask & 0x3f) != 0x3f)
-			goto bfi;
-	} else {
-		/* Traffic is interleaved over 4 bursts */
-		if ((*mask & 0x0f) != 0x0f)
-			goto bfi;
-	}
-
 	/* Skip decoding attempt in case of FACCH/H */
 	if (lchan->dl_ongoing_facch) {
+		/* Send BFI (DATA.ind without payload) for the 2nd stolen TCH frame */
+		l1sched_lchan_meas_avg(lchan, 4);
+		l1sched_lchan_emit_data_ind(lchan, NULL, 0, 0, 0, true);
 		lchan->dl_ongoing_facch = false;
-		goto bfi; /* 2/2 BFI */
+		return 0;
 	}
 
 	switch (lchan->tch_mode) {
@@ -350,15 +288,12 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 
 	/* Check decoding result */
 	if (rc < 4) {
-		/* Calculate AVG of the measurements (assuming 4 bursts) */
-		l1sched_lchan_meas_avg(lchan, 4);
-
 		LOGP_LCHAND(lchan, LOGL_ERROR,
 			    "Received bad frame (rc=%d, ber=%d/%d) at fn=%u\n",
 			    rc, n_errors, n_bits_total, lchan->meas_avg.fn);
 
-		/* Send BFI */
-		goto bfi;
+		/* Send BFI (DATA.ind without payload) */
+		tch_data_len = 0;
 	} else if (rc == GSM_MACBLOCK_LEN) {
 		/* Skip decoding of the next 2 stolen bursts */
 		lchan->dl_ongoing_facch = true;
@@ -370,44 +305,19 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		l1sched_lchan_emit_data_ind(lchan, &tch_data[amr], GSM_MACBLOCK_LEN,
 					    n_errors, n_bits_total, false);
 
-		/* Send BFI substituting 1/2 stolen TCH frames */
-		n_errors = -1; /* ensure fake measurements */
-		goto bfi;
+		/* Send BFI (DATA.ind without payload) for the 1st stolen TCH frame */
+		if (lchan->tch_mode == GSM48_CMODE_SIGN)
+			return 0;
+		tch_data_len = 0;
 	} else {
 		/* A good TCH frame received */
 		tch_data_len = rc;
-
-		/* Calculate AVG of the measurements (traffic takes 4 bursts) */
-		l1sched_lchan_meas_avg(lchan, 4);
 	}
+
+	/* Calculate AVG of the measurements (traffic takes 4 bursts) */
+	l1sched_lchan_meas_avg(lchan, 4);
 
 	/* Send a traffic frame to the higher layers */
-	return l1sched_lchan_emit_data_ind(lchan, &tch_data[0], tch_data_len,
-					   n_errors, n_bits_total, true);
-
-bfi:
-	/* Didn't try to decode, fake measurements */
-	if (n_errors < 0) {
-		lchan->meas_avg = (struct l1sched_meas_set) {
-			.fn = tchh_block_dl_first_fn(lchan, bi->fn, false),
-			.toa256 = 0,
-			.rssi = -110,
-		};
-
-		/* No bursts => no errors */
-		n_errors = 0;
-	}
-
-	/* BFI is not applicable in signalling mode */
-	if (lchan->tch_mode == GSM48_CMODE_SIGN) {
-		return l1sched_lchan_emit_data_ind(lchan, NULL, 0,
-						   n_errors, n_bits_total, false);
-	}
-
-	/* Bad frame indication */
-	tch_data_len = l1sched_bad_frame_ind(&tch_data[0], lchan);
-
-	/* Send a BFI frame to the higher layers */
 	return l1sched_lchan_emit_data_ind(lchan, &tch_data[0], tch_data_len,
 					   n_errors, n_bits_total, true);
 }
@@ -473,7 +383,8 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 
 	lchan->prim = prim_dequeue_tchh(lchan, br->fn);
 	if (lchan->prim == NULL) {
-		lchan->prim = l1sched_lchan_prim_dummy(lchan);
+		if (l1sched_tchh_facch_start(lchan->type, br->fn, 1))
+			lchan->prim = l1sched_lchan_prim_dummy_lapdm(lchan);
 		if (lchan->prim == NULL)
 			return -ENOENT;
 	}

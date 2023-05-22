@@ -167,48 +167,23 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 			    "Received bad frame (rc=%d, ber=%d/%d) at fn=%u\n",
 			    rc, n_errors, n_bits_total, lchan->meas_avg.fn);
 
-		/* Send BFI */
-		goto bfi;
+		/* Send BFI (DATA.ind without payload) */
+		tch_data_len = 0;
 	} else if (rc == GSM_MACBLOCK_LEN) {
 		/* FACCH received, forward it to the higher layers */
 		l1sched_lchan_emit_data_ind(lchan, &tch_data[amr], GSM_MACBLOCK_LEN,
 					    n_errors, n_bits_total, false);
 
-		/* Send BFI substituting a stolen TCH frame */
-		n_errors = -1; /* ensure fake measurements */
-		goto bfi;
+		/* Send BFI (DATA.ind without payload) */
+		if (lchan->tch_mode == GSM48_CMODE_SIGN)
+			return 0;
+		tch_data_len = 0;
 	} else {
 		/* A good TCH frame received */
 		tch_data_len = rc;
 	}
 
 	/* Send a traffic frame to the higher layers */
-	return l1sched_lchan_emit_data_ind(lchan, &tch_data[0], tch_data_len,
-					   n_errors, n_bits_total, true);
-
-bfi:
-	/* Didn't try to decode, fake measurements */
-	if (n_errors < 0) {
-		lchan->meas_avg = (struct l1sched_meas_set) {
-			.fn = lchan->meas_avg.fn,
-			.toa256 = 0,
-			.rssi = -110,
-		};
-
-		/* No bursts => no errors */
-		n_errors = 0;
-	}
-
-	/* BFI is not applicable in signalling mode */
-	if (lchan->tch_mode == GSM48_CMODE_SIGN) {
-		return l1sched_lchan_emit_data_ind(lchan, NULL, 0,
-						   n_errors, n_bits_total, false);
-	}
-
-	/* Bad frame indication */
-	tch_data_len = l1sched_bad_frame_ind(&tch_data[0], lchan);
-
-	/* Send a BFI frame to the higher layers */
 	return l1sched_lchan_emit_data_ind(lchan, &tch_data[0], tch_data_len,
 					   n_errors, n_bits_total, true);
 }
@@ -255,11 +230,9 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	*mask = *mask << 4;
 
 	lchan->prim = prim_dequeue_tchf(lchan);
-	if (lchan->prim == NULL) {
-		lchan->prim = l1sched_lchan_prim_dummy(lchan);
-		if (lchan->prim == NULL)
-			return -ENOENT;
-	}
+	if (lchan->prim == NULL)
+		lchan->prim = l1sched_lchan_prim_dummy_lapdm(lchan);
+	OSMO_ASSERT(lchan->prim != NULL);
 
 	/* populate the buffer with bursts */
 	switch (lchan->tch_mode) {

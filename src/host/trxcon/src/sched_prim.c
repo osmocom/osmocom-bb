@@ -260,81 +260,50 @@ void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan)
 }
 
 /**
- * Allocate a dummy DATA.req for the given logical channel.
+ * Allocate a DATA.req with dummy LAPDm func=UI frame for the given logical channel.
  * To be used when no suitable DATA.req is present in the Tx queue.
  *
  * @param  lchan lchan to allocate a dummy primitive for
  * @return       an msgb with DATA.req primitive, or NULL
  */
-struct msgb *l1sched_lchan_prim_dummy(struct l1sched_lchan_state *lchan)
+struct msgb *l1sched_lchan_prim_dummy_lapdm(const struct l1sched_lchan_state *lchan)
 {
-	const struct l1sched_lchan_desc *lchan_desc;
-	enum l1sched_lchan_type chan = lchan->type;
-	uint8_t tch_mode = lchan->tch_mode;
 	struct l1sched_prim *prim;
 	struct msgb *msg;
-	uint8_t prim_buffer[40];
-	size_t prim_len = 0;
-	int i;
+	uint8_t *ptr;
 
-	/**
-	 * TS 144.006, section 8.4.2.3 "Fill frames"
-	 * A fill frame is a UI command frame for SAPI 0, P=0
-	 * and with an information field of 0 octet length.
-	 */
-	static const uint8_t lapdm_fill_frame[] = {
-		0x01, 0x03, 0x01, 0x2b,
-		/* Pending part is to be randomized */
-	};
-
-	/* Not applicable for SACCH! */
+	/* LAPDm func=UI is not applicable for SACCH */
 	OSMO_ASSERT(!L1SCHED_CHAN_IS_SACCH(lchan->type));
-
-	lchan_desc = &l1sched_lchan_desc[lchan->type];
-
-	/**
-	 * Determine what actually should be generated:
-	 * TCH in GSM48_CMODE_SIGN: LAPDm fill frame;
-	 * TCH in other modes: silence frame;
-	 * other channels: LAPDm fill frame.
-	 */
-	if (L1SCHED_CHAN_IS_TCH(chan) && L1SCHED_TCH_MODE_IS_SPEECH(tch_mode)) {
-		/* Bad frame indication */
-		prim_len = l1sched_bad_frame_ind(prim_buffer, lchan);
-	} else if (L1SCHED_CHAN_IS_TCH(chan) && L1SCHED_TCH_MODE_IS_DATA(tch_mode)) {
-		/* FIXME: should we do anything for CSD? */
-		return NULL;
-	} else {
-		/* Copy LAPDm fill frame's header */
-		memcpy(prim_buffer, lapdm_fill_frame, sizeof(lapdm_fill_frame));
-
-		/**
-		 * TS 144.006, section 5.2 "Frame delimitation and fill bits"
-		 * Except for the first octet containing fill bits which shall
-		 * be set to the binary value "00101011", each fill bit should
-		 * be set to a random value when sent by the network.
-		 */
-		for (i = sizeof(lapdm_fill_frame); i < GSM_MACBLOCK_LEN; i++)
-			prim_buffer[i] = (uint8_t) rand();
-
-		/* Define a prim length */
-		prim_len = GSM_MACBLOCK_LEN;
-	}
-
-	/* Nothing to allocate / assign */
-	if (!prim_len)
-		return NULL;
 
 	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST);
 	OSMO_ASSERT(msg != NULL);
 
 	prim = l1sched_prim_from_msgb(msg);
 	prim->data_req = (struct l1sched_prim_chdr) {
-		.chan_nr = lchan_desc->chan_nr | lchan->ts->index,
-		.link_id = lchan_desc->link_id,
+		.chan_nr = l1sched_lchan_desc[lchan->type].chan_nr | lchan->ts->index,
+		.link_id = l1sched_lchan_desc[lchan->type].link_id,
 	};
 
-	memcpy(msgb_put(msg, prim_len), &prim_buffer[0], prim_len);
+	ptr = msgb_put(msg, GSM_MACBLOCK_LEN);
+
+	/**
+	 * TS 144.006, section 8.4.2.3 "Fill frames"
+	 * A fill frame is a UI command frame for SAPI 0, P=0
+	 * and with an information field of 0 octet length.
+	 */
+	*(ptr++) = 0x01;
+	*(ptr++) = 0x03;
+	*(ptr++) = 0x01;
+
+	/**
+	 * TS 144.006, section 5.2 "Frame delimitation and fill bits"
+	 * Except for the first octet containing fill bits which shall
+	 * be set to the binary value "00101011", each fill bit should
+	 * be set to a random value when sent by the network.
+	 */
+	*(ptr++) = 0x2b;
+	while (ptr < msg->tail)
+		*(ptr++) = (uint8_t)rand();
 
 	return msg;
 }
