@@ -38,12 +38,12 @@ int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
 {
 	uint8_t l2[GPRS_L2_MAX_LEN], *mask;
 	int n_errors, n_bits_total, rc;
-	sbit_t *buffer, *offset;
+	sbit_t *bursts_p, *burst;
 	size_t l2_len;
 
 	/* Set up pointers */
 	mask = &lchan->rx_burst_mask;
-	buffer = lchan->rx_bursts;
+	bursts_p = lchan->rx_bursts;
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG,
 		    "Packet data received: fn=%u bid=%u\n", bi->fn, bi->bid);
@@ -59,9 +59,9 @@ int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
 	l1sched_lchan_meas_push(lchan, bi);
 
 	/* Copy burst to buffer of 4 bursts */
-	offset = buffer + bi->bid * 116;
-	memcpy(offset, bi->burst + 3, 58);
-	memcpy(offset + 58, bi->burst + 87, 58);
+	burst = bursts_p + bi->bid * 116;
+	memcpy(burst, bi->burst + 3, 58);
+	memcpy(burst + 58, bi->burst + 87, 58);
 
 	/* Wait until complete set of bursts */
 	if (bi->bid != 3)
@@ -84,7 +84,7 @@ int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
 	*mask = *mask << 4;
 
 	/* Attempt to decode */
-	rc = gsm0503_pdtch_decode(l2, buffer,
+	rc = gsm0503_pdtch_decode(l2, bursts_p,
 		NULL, &n_errors, &n_bits_total);
 	if (rc < 0) {
 		LOGP_LCHAND(lchan, LOGL_ERROR,
@@ -105,14 +105,14 @@ int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
 int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 		struct l1sched_burst_req *br)
 {
-	ubit_t *buffer, *offset;
+	ubit_t *bursts_p, *burst;
 	const uint8_t *tsc;
 	uint8_t *mask;
 	int rc;
 
 	/* Set up pointers */
 	mask = &lchan->tx_burst_mask;
-	buffer = lchan->tx_bursts;
+	bursts_p = lchan->tx_bursts;
 
 	if (br->bid > 0) {
 		/* If we have encoded bursts */
@@ -123,7 +123,7 @@ int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 	}
 
 	/* Encode payload */
-	rc = gsm0503_pdtch_encode(buffer, msgb_l2(lchan->prim), msgb_l2len(lchan->prim));
+	rc = gsm0503_pdtch_encode(bursts_p, msgb_l2(lchan->prim), msgb_l2len(lchan->prim));
 	if (rc < 0) {
 		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%u): %s\n",
 			    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
@@ -133,7 +133,7 @@ int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 
 send_burst:
 	/* Determine which burst should be sent */
-	offset = buffer + br->bid * 116;
+	burst = bursts_p + br->bid * 116;
 
 	/* Update mask */
 	*mask |= (1 << br->bid);
@@ -143,9 +143,9 @@ send_burst:
 
 	/* Compose a new burst */
 	memset(br->burst, 0, 3); /* TB */
-	memcpy(br->burst + 3, offset, 58); /* Payload 1/2 */
+	memcpy(br->burst + 3, burst, 58); /* Payload 1/2 */
 	memcpy(br->burst + 61, tsc, 26); /* TSC */
-	memcpy(br->burst + 87, offset + 58, 58); /* Payload 2/2 */
+	memcpy(br->burst + 87, burst + 58, 58); /* Payload 2/2 */
 	memset(br->burst + 145, 0, 3); /* TB */
 	br->burst_len = GSM_NBITS_NB_GMSK_BURST;
 

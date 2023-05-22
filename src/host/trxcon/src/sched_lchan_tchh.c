@@ -238,15 +238,16 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	       const struct l1sched_burst_ind *bi)
 {
 	int n_errors = -1, n_bits_total = 0, rc;
-	sbit_t *buffer, *offset;
-	uint8_t l2[128], *mask;
-	size_t l2_len;
+	sbit_t *bursts_p, *burst;
+	uint8_t tch_data[128];
+	size_t tch_data_len;
+	uint8_t *mask;
 	int amr = 0;
 	uint8_t ft;
 
 	/* Set up pointers */
 	mask = &lchan->rx_burst_mask;
-	buffer = lchan->rx_bursts;
+	bursts_p = lchan->rx_bursts;
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG,
 		    "Traffic received: fn=%u bid=%u\n", bi->fn, bi->bid);
@@ -273,9 +274,9 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	l1sched_lchan_meas_push(lchan, bi);
 
 	/* Copy burst to the end of buffer of 6 bursts */
-	offset = buffer + bi->bid * 116 + 464;
-	memcpy(offset, bi->burst + 3, 58);
-	memcpy(offset + 58, bi->burst + 87, 58);
+	burst = bursts_p + bi->bid * 116 + 464;
+	memcpy(burst, bi->burst + 3, 58);
+	memcpy(burst + 58, bi->burst + 87, 58);
 
 	/* Wait until the second burst */
 	if (bi->bid != 1)
@@ -301,14 +302,14 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
 	case GSM48_CMODE_SPEECH_V1: /* HR */
-		rc = gsm0503_tch_hr_decode(l2, buffer,
+		rc = gsm0503_tch_hr_decode(&tch_data[0], bursts_p,
 					   !sched_tchh_dl_facch_map[bi->fn % 26],
 					   &n_errors, &n_bits_total);
 		break;
 	case GSM48_CMODE_SPEECH_AMR: /* AMR */
 		/* See comment in function rx_tchf_fn() */
 		amr = 2;
-		rc = gsm0503_tch_ahs_decode_dtx(l2 + amr, buffer,
+		rc = gsm0503_tch_ahs_decode_dtx(&tch_data[amr], bursts_p,
 						!sched_tchh_dl_facch_map[bi->fn % 26],
 						!sched_tchh_dl_amr_cmi_map[bi->fn % 26],
 						lchan->amr.codec,
@@ -326,7 +327,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 				/* SID frames will always get Frame Type Index 8 (AMR_SID) */
 				ft = AMR_SID;
 			}
-			rc = osmo_amr_rtp_enc(l2,
+			rc = osmo_amr_rtp_enc(&tch_data[0],
 				lchan->amr.codec[lchan->amr.dl_cmr],
 				ft, AMR_GOOD);
 			if (rc < 0)
@@ -340,8 +341,8 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	}
 
 	/* Shift buffer by 4 bursts for interleaving */
-	memcpy(buffer, buffer + 232, 232);
-	memcpy(buffer + 232, buffer + 464, 232);
+	memcpy(bursts_p, bursts_p + 232, 232);
+	memcpy(bursts_p + 232, bursts_p + 464, 232);
 
 	/* Shift burst mask */
 	*mask = *mask << 2;
@@ -365,7 +366,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		l1sched_lchan_meas_avg(lchan, 6);
 
 		/* FACCH/H received, forward to the higher layers */
-		l1sched_lchan_emit_data_ind(lchan, l2 + amr, GSM_MACBLOCK_LEN,
+		l1sched_lchan_emit_data_ind(lchan, &tch_data[amr], GSM_MACBLOCK_LEN,
 					    n_errors, n_bits_total, false);
 
 		/* Send BFI substituting 1/2 stolen TCH frames */
@@ -373,20 +374,20 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		goto bfi;
 	} else {
 		/* A good TCH frame received */
-		l2_len = rc;
+		tch_data_len = rc;
 
 		/* Calculate AVG of the measurements (traffic takes 4 bursts) */
 		l1sched_lchan_meas_avg(lchan, 4);
 	}
 
 	/* Send a traffic frame to the higher layers */
-	return l1sched_lchan_emit_data_ind(lchan, l2, l2_len,
+	return l1sched_lchan_emit_data_ind(lchan, &tch_data[0], tch_data_len,
 					   n_errors, n_bits_total, true);
 
 bfi_shift:
 	/* Shift buffer */
-	memcpy(buffer, buffer + 232, 232);
-	memcpy(buffer + 232, buffer + 464, 232);
+	memcpy(bursts_p, bursts_p + 232, 232);
+	memcpy(bursts_p + 232, bursts_p + 464, 232);
 
 	/* Shift burst mask */
 	*mask = *mask << 2;
@@ -411,24 +412,24 @@ bfi:
 	}
 
 	/* Bad frame indication */
-	l2_len = l1sched_bad_frame_ind(l2, lchan);
+	tch_data_len = l1sched_bad_frame_ind(&tch_data[0], lchan);
 
 	/* Send a BFI frame to the higher layers */
-	return l1sched_lchan_emit_data_ind(lchan, l2, l2_len,
+	return l1sched_lchan_emit_data_ind(lchan, &tch_data[0], tch_data_len,
 					   n_errors, n_bits_total, true);
 }
 
 int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
-	ubit_t *buffer, *offset;
+	ubit_t *bursts_p, *burst;
 	const uint8_t *tsc;
 	uint8_t *mask;
 	int rc;
 
 	/* Set up pointers */
 	mask = &lchan->tx_burst_mask;
-	buffer = lchan->tx_bursts;
+	bursts_p = lchan->tx_bursts;
 
 	if (br->bid > 0) {
 		/* Align to the first burst */
@@ -445,14 +446,14 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	}
 
 	/* Shift buffer by 2 bursts back for interleaving */
-	memcpy(buffer, buffer + 232, 232);
+	memcpy(bursts_p, bursts_p + 232, 232);
 
 	/* Also shift TX burst mask */
 	*mask = *mask << 2;
 
 	/* If FACCH/H blocks are still pending */
 	if (lchan->ul_facch_blocks > 2) {
-		memcpy(buffer + 232, buffer + 464, 232);
+		memcpy(bursts_p + 232, bursts_p + 464, 232);
 		goto send_burst;
 	}
 
@@ -463,7 +464,7 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
 	case GSM48_CMODE_SPEECH_V1:
-		rc = gsm0503_tch_hr_encode(buffer,
+		rc = gsm0503_tch_hr_encode(bursts_p,
 					   msgb_l2(lchan->prim),
 					   msgb_l2len(lchan->prim));
 		break;
@@ -514,7 +515,7 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 		} else {
 			lchan->amr.ul_cmr = cmr;
 		}
-		rc = gsm0503_tch_ahs_encode(buffer,
+		rc = gsm0503_tch_ahs_encode(bursts_p,
 					    msgb_l2(lchan->prim) + 2,
 					    msgb_l2len(lchan->prim) - 2,
 					    amr_fn_is_cmr,
@@ -541,7 +542,7 @@ free_bad_msg:
 
 send_burst:
 	/* Determine which burst should be sent */
-	offset = buffer + br->bid * 116;
+	burst = bursts_p + br->bid * 116;
 
 	/* Update mask */
 	*mask |= (1 << br->bid);
@@ -551,9 +552,9 @@ send_burst:
 
 	/* Compose a new burst */
 	memset(br->burst, 0, 3); /* TB */
-	memcpy(br->burst + 3, offset, 58); /* Payload 1/2 */
+	memcpy(br->burst + 3, burst, 58); /* Payload 1/2 */
 	memcpy(br->burst + 61, tsc, 26); /* TSC */
-	memcpy(br->burst + 87, offset + 58, 58); /* Payload 2/2 */
+	memcpy(br->burst + 87, burst + 58, 58); /* Payload 2/2 */
 	memset(br->burst + 145, 0, 3); /* TB */
 	br->burst_len = GSM_NBITS_NB_GMSK_BURST;
 
