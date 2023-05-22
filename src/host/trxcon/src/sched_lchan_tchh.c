@@ -425,7 +425,6 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	ubit_t *buffer, *offset;
 	const uint8_t *tsc;
 	uint8_t *mask;
-	size_t l2_len;
 	int rc;
 
 	/* Set up pointers */
@@ -459,10 +458,15 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	}
 
 	/* populate the buffer with bursts */
-	if (msgb_l2len(lchan->prim) == GSM_MACBLOCK_LEN) {
-		rc = gsm0503_tch_hr_encode(buffer, msgb_l2(lchan->prim), GSM_MACBLOCK_LEN);
-		lchan->ul_facch_blocks = 6;
-	} else if (lchan->tch_mode == GSM48_CMODE_SPEECH_AMR) {
+	switch (lchan->tch_mode) {
+	case GSM48_CMODE_SIGN:
+	case GSM48_CMODE_SPEECH_V1:
+		rc = gsm0503_tch_hr_encode(buffer,
+					   msgb_l2(lchan->prim),
+					   msgb_l2len(lchan->prim));
+		break;
+	case GSM48_CMODE_SPEECH_AMR:
+	{
 		int len;
 		uint8_t cmr_codec;
 		int ft, cmr, i;
@@ -516,28 +520,11 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 					    lchan->amr.codecs,
 					    lchan->amr.ul_ft,
 					    lchan->amr.ul_cmr);
-	} else {
-		/* Determine and check the payload length */
-		switch (lchan->tch_mode) {
-		case GSM48_CMODE_SIGN:
-		case GSM48_CMODE_SPEECH_V1: /* HR */
-			l2_len = GSM_HR_BYTES + 1;
-			break;
-		default:
-			LOGP_LCHAND(lchan, LOGL_ERROR,
-				    "Invalid TCH mode: %u, dropping frame...\n",
-				    lchan->tch_mode);
-			l1sched_lchan_prim_drop(lchan);
-			return -EINVAL;
-		}
-		if (msgb_l2len(lchan->prim) != l2_len) {
-			LOGP_LCHAND(lchan, LOGL_ERROR, "Primitive has odd length %u "
-				    "(expected %zu for TCH or %u for FACCH), so dropping...\n",
-				    msgb_l2len(lchan->prim), l2_len, GSM_MACBLOCK_LEN);
-			l1sched_lchan_prim_drop(lchan);
-			return -EINVAL;
-		}
-		rc = gsm0503_tch_hr_encode(buffer, msgb_l2(lchan->prim), l2_len);
+		break;
+	}
+	default:
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Invalid TCH mode: %u\n", lchan->tch_mode);
+		return -EINVAL;
 	}
 
 	if (rc) {
