@@ -302,8 +302,8 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	case GSM48_CMODE_SIGN:
 	case GSM48_CMODE_SPEECH_V1: /* HR */
 		rc = gsm0503_tch_hr_decode(l2, buffer,
-			!l1sched_tchh_facch_end(lchan->type, bi->fn, 0),
-			&n_errors, &n_bits_total);
+					   !sched_tchh_dl_facch_map[bi->fn % 26],
+					   &n_errors, &n_bits_total);
 		break;
 	case GSM48_CMODE_SPEECH_AMR: /* AMR */
 		/* See comment in function rx_tchf_fn() */
