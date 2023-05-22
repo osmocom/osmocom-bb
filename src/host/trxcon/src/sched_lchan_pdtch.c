@@ -36,10 +36,11 @@
 int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
 		const struct l1sched_burst_ind *bi)
 {
-	uint8_t l2[GPRS_L2_MAX_LEN], *mask;
+	uint8_t l2[GPRS_L2_MAX_LEN];
 	int n_errors, n_bits_total, rc;
 	sbit_t *bursts_p, *burst;
 	size_t l2_len;
+	uint32_t *mask;
 
 	/* Set up pointers */
 	mask = &lchan->rx_burst_mask;
@@ -125,7 +126,7 @@ int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 {
 	ubit_t *bursts_p, *burst;
 	const uint8_t *tsc;
-	uint8_t *mask;
+	uint32_t *mask;
 	int rc;
 
 	/* Set up pointers */

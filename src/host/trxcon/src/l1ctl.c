@@ -44,7 +44,7 @@
 #include <osmocom/bb/trxcon/trxcon.h>
 #include <osmocom/bb/trxcon/trxcon_fsm.h>
 
-#define L1CTL_LENGTH		256
+#define L1CTL_LENGTH		512
 #define L1CTL_HEADROOM		32
 
 /* Logging categories configurable via trxcon_set_log_cfg() */

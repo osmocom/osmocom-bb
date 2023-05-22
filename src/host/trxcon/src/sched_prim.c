@@ -36,7 +36,7 @@
 #include <osmocom/bb/l1sched/logging.h>
 
 #define L1SCHED_PRIM_HEADROOM	64
-#define L1SCHED_PRIM_TAILROOM	64
+#define L1SCHED_PRIM_TAILROOM	512
 
 osmo_static_assert(sizeof(struct l1sched_prim) <= L1SCHED_PRIM_HEADROOM, l1sched_prim_size);
 

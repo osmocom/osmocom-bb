@@ -7,7 +7,7 @@
 #include <osmocom/core/timer.h>
 #include <osmocom/core/msgb.h>
 
-#define L1CTL_LENGTH 256
+#define L1CTL_LENGTH 512
 #define L1CTL_HEADROOM 32
 
 /**

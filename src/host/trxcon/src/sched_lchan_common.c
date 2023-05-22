@@ -78,13 +78,12 @@ const uint8_t l1sched_nb_training_bits[8][26] = {
  * Examples: "  ****.." (incomplete, 4/6 bursts)
  *           "    ****" (complete, all 4 bursts)
  *           "**.***.." (incomplete, 5/8 bursts) */
-const char *l1sched_burst_mask2str(const uint8_t *mask, int bits)
+const char *l1sched_burst_mask2str(const uint32_t *mask, int bits)
 {
-	/* TODO: CSD is interleaved over 22 bursts, so the mask needs to be extended */
-	static char buf[8 + 1];
+	static char buf[32 + 1];
 	char *ptr = buf;
 
-	OSMO_ASSERT(bits <= 8 && bits > 0);
+	OSMO_ASSERT(bits <= 32 && bits > 0);
 
 	while (--bits >= 0)
 		*(ptr++) = (*mask & (1 << bits)) ? '*' : '.';

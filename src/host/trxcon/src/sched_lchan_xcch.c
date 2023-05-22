@@ -36,9 +36,10 @@
 int rx_data_fn(struct l1sched_lchan_state *lchan,
 	       const struct l1sched_burst_ind *bi)
 {
-	uint8_t l2[GSM_MACBLOCK_LEN], *mask;
+	uint8_t l2[GSM_MACBLOCK_LEN];
 	int n_errors, n_bits_total, rc;
 	sbit_t *bursts_p, *burst;
+	uint32_t *mask;
 
 	/* Set up pointers */
 	mask = &lchan->rx_burst_mask;
@@ -124,7 +125,7 @@ int tx_data_fn(struct l1sched_lchan_state *lchan,
 {
 	ubit_t *bursts_p, *burst;
 	const uint8_t *tsc;
-	uint8_t *mask;
+	uint32_t *mask;
 	int rc;
 
 	/* Set up pointers */
