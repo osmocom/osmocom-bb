@@ -100,6 +100,15 @@ int modem_grr_tx_chan_req(struct osmocom_ms *ms, uint8_t chan_req)
 	return 0;
 }
 
+static int forward_to_rlcmac(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
+
+	/* Forward SI13 to RLC/MAC layer */
+	rlcmac_prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_data_ind(0 /* TODO: fn */, msgb_l3(msg));
+	return osmo_gprs_rlcmac_prim_lower_up(rlcmac_prim);
+}
+
 static int grr_handle_si1(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
@@ -186,7 +195,6 @@ static int grr_handle_si4(struct osmocom_ms *ms, struct msgb *msg)
 
 static int grr_handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	int rc;
 
@@ -200,8 +208,7 @@ static int grr_handle_si13(struct osmocom_ms *ms, struct msgb *msg)
 		return rc;
 
 	/* Forward SI13 to RLC/MAC layer */
-	rlcmac_prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_data_ind(0 /* TODO: fn */, msgb_l3(msg));
-	rc = osmo_gprs_rlcmac_prim_lower_up(rlcmac_prim);
+	rc = forward_to_rlcmac(ms, msg);
 
 	modem_gprs_attach_if_needed(ms);
 	return rc;
@@ -235,7 +242,6 @@ static int grr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;
 	int rc;
-	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
 
 	/* Discard CS channel assignment */
 	if ((ia->page_mode >> 4) == 0) {
@@ -306,12 +312,38 @@ static int grr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 				       ia->chan_desc.h1.tsc, GSM48_CMODE_SIGN, 0);
 	}
 
-	rlcmac_prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_data_ind(0 /* TODO: fn */, (uint8_t *)ia);
-	rc = osmo_gprs_rlcmac_prim_lower_up(rlcmac_prim);
+	rc = forward_to_rlcmac(ms, msg);
 	if (rc < 0)
 		return rc;
 
 	rr->state = GSM48_RR_ST_DEDICATED;
+	return 0;
+}
+
+/* TS 44.018 9.1.22 "Paging request type 1" */
+static int grr_rx_pag_req_1(struct osmocom_ms *ms, struct msgb *msg)
+{
+	LOGP(DRR, LOGL_INFO, "Rx Paging Request Type 1\n");
+
+	return forward_to_rlcmac(ms, msg);
+}
+
+/* TS 44.018 9.1.23 "Paging request type 2" */
+static int grr_rx_pag_req_2(struct osmocom_ms *ms, struct msgb *msg)
+{
+	LOGP(DRR, LOGL_INFO, "Rx Paging Request Type 2\n");
+
+	return forward_to_rlcmac(ms, msg);
+}
+
+/* 9.1.24 Paging request type 3 */
+static int grr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
+{
+	LOGP(DRR, LOGL_INFO, "Rx Paging Request Type 3\n");
+
+	/* Paging Request Type 3 contains 4 TMSI/P-TMSI, but P3 Rest Octets
+	contain no "Packet Page Indication" IE, hence it cannot be used to page
+	for GPRS. Simply ignore it. */
 	return 0;
 }
 
@@ -363,6 +395,12 @@ static int grr_rx_ccch(struct osmocom_ms *ms, struct msgb *msg)
 	switch (sih->system_information) {
 	case GSM48_MT_RR_IMM_ASS:
 		return grr_rx_imm_ass(ms, msg);
+	case GSM48_MT_RR_PAG_REQ_1:
+		return grr_rx_pag_req_1(ms, msg);
+	case GSM48_MT_RR_PAG_REQ_2:
+		return grr_rx_pag_req_2(ms, msg);
+	case GSM48_MT_RR_PAG_REQ_3:
+		return grr_rx_pag_req_3(ms, msg);
 	default:
 		return 0;
 	}
