@@ -110,13 +110,8 @@ int tx_data_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->tx_burst_mask;
 	bursts_p = lchan->tx_bursts;
 
-	if (br->bid > 0) {
-		/* If we have encoded bursts */
-		if (*mask)
-			goto send_burst;
-		else
-			return 0;
-	}
+	if (br->bid > 0)
+		goto send_burst;
 
 	/* Check the prim payload length */
 	if (msgb_l2len(lchan->prim) != GSM_MACBLOCK_LEN) {

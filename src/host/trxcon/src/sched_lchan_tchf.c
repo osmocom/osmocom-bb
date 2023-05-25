@@ -224,13 +224,8 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->tx_burst_mask;
 	bursts_p = lchan->tx_bursts;
 
-	/* If we have encoded bursts */
-	if (*mask)
-		goto send_burst;
-
-	/* Wait until a first burst in period */
 	if (br->bid > 0)
-		return 0;
+		goto send_burst;
 
 	/* Shift buffer by 4 bursts back for interleaving */
 	memcpy(bursts_p, bursts_p + 464, 464);

@@ -431,12 +431,8 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->tx_burst_mask;
 	bursts_p = lchan->tx_bursts;
 
-	if (br->bid > 0) {
-		/* Align to the first burst */
-		if (*mask == 0x00)
-			return 0;
+	if (br->bid > 0)
 		goto send_burst;
-	}
 
 	if (*mask == 0x00) {
 		/* Align transmission of the first FACCH/H frame */

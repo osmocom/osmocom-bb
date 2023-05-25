@@ -114,13 +114,8 @@ int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->tx_burst_mask;
 	bursts_p = lchan->tx_bursts;
 
-	if (br->bid > 0) {
-		/* If we have encoded bursts */
-		if (*mask)
-			goto send_burst;
-		else
-			return 0;
-	}
+	if (br->bid > 0)
+		goto send_burst;
 
 	/* Encode payload */
 	rc = gsm0503_pdtch_encode(bursts_p, msgb_l2(lchan->prim), msgb_l2len(lchan->prim));
