@@ -496,7 +496,7 @@ void gsm_subscr_dump(struct gsm_subscriber *subscr,
 		(subscr->gprs.imsi_attached) ? "attached" : "detached");
 	if (subscr->gprs.ptmsi != GSM_RESERVED_TMSI)
 		print(priv, "  PTMSI 0x%08x", subscr->tmsi);
-	if (subscr->gprs.ptmsi != GSM_RESERVED_TMSI)
+	if (subscr->gprs.ptmsi_sig != GSM_RESERVED_TMSI)
 		print(priv, "  PTMSI-sig 0x%06x", subscr->gprs.ptmsi_sig);
 	if (subscr->gprs.rai.lac > 0x0000 && subscr->gprs.rai.lac < 0xfffe) {
 		struct osmo_plmn_id plmn = {
