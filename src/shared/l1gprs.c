@@ -383,6 +383,10 @@ int l1gprs_handle_ul_block_req(struct l1gprs_state *gprs,
 	return 0;
 }
 
+/* Check if a Downlink block is a PTCCH/D (see 3GPP TS 45.002, table 6) */
+#define BLOCK_IND_IS_PTCCH(ind) \
+	(((ind)->hdr.fn % 104) == 12)
+
 struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
 					const struct l1gprs_prim_dl_block_ind *ind)
 {
@@ -401,7 +405,8 @@ struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
 	pdch = &gprs->pdch[ind->hdr.tn];
 
 	LOGP_PDCH(pdch, LOGL_DEBUG,
-		  "Rx DL BLOCK.ind (fn=%u, len=%zu): %s\n",
+		  "Rx DL BLOCK.ind (%s, fn=%u, len=%zu): %s\n",
+		  BLOCK_IND_IS_PTCCH(ind) ? "PTCCH" : "PDTCH",
 		  ind->hdr.fn, ind->data_len, osmo_hexdump(ind->data, ind->data_len));
 
 	if ((pdch->ul_tbf_count == 0) && (pdch->dl_tbf_count == 0)) {
@@ -432,6 +437,10 @@ struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
 
 	if (ind->data_len == 0)
 		return msg;
+	if (BLOCK_IND_IS_PTCCH(ind)) {
+		memcpy(msgb_put(msg, ind->data_len), ind->data, ind->data_len);
+		return msg;
+	}
 
 	cs = osmo_gprs_dl_cs_by_block_bytes(ind->data_len);
 	switch (cs) {
