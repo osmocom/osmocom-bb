@@ -365,7 +365,6 @@ struct msgb *l1sched_lchan_prim_dequeue(struct l1sched_lchan_state *lchan, uint3
 
 	/* PDCH is timing critical, we need to check TDMA Fn */
 	case L1SCHED_PDTCH:
-	case L1SCHED_PTCCH:
 	{
 		struct msgb *msg = msgb_dequeue(&lchan->tx_prims);
 		const struct l1sched_prim *prim;
