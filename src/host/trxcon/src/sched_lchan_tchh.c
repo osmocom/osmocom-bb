@@ -456,6 +456,9 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 		goto send_burst;
 	}
 
+	if (msgb_l2len(lchan->prim) == GSM_MACBLOCK_LEN)
+		lchan->ul_facch_blocks = 6;
+
 	/* populate the buffer with bursts */
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
