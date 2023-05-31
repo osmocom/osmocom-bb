@@ -195,6 +195,10 @@ static int l1ctl_dl_block_cb(struct osmocom_ms *ms, struct msgb *msg)
 	};
 	osmo_gprs_rlcmac_prim_lower_up(prim);
 
+	/* Do not send RTS.ind if we got PTCCH/D */
+	if (fn % 104 == 12)
+		return 0;
+
 	/* Every fn % 13 == 12 we have either a PTCCH or an IDLE slot, thus
 	 * every fn % 13 ==  8 we add 5 frames, or 4 frames othrwise.  The
 	 * resulting value is first fn of the next block. */
