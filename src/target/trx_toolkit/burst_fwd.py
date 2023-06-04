@@ -58,8 +58,6 @@ class BurstForwarder(TRXList):
 			# Check transceiver state
 			if not trx.running:
 				continue
-			if rx_msg.tn not in trx.ts_list:
-				continue
 
 			# Match Tx/Rx frequencies of the both transceivers
 			if trx.get_rx_freq(rx_msg.fn) != tx_freq:

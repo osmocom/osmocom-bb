@@ -134,32 +134,6 @@ class CTRLInterfaceTRX(CTRLInterface):
 			self.trx._tx_freq = int(request[1]) * 1000
 			return 0
 
-		elif self.verify_cmd(request, "SETSLOT", 2):
-			log.debug("(%s) Recv SETSLOT cmd" % self.trx)
-
-			# Obtain TS index
-			ts = int(request[1])
-			if ts not in range(0, 8):
-				log.error("(%s) TS index should be in "
-					"range: 0..7" % self.trx)
-				return -1
-
-			# Parse TS type
-			ts_type = int(request[2])
-
-			# TS activation / deactivation
-			# We don't care about ts_type
-			if ts_type == 0:
-				# Deactivate TS (remove from the list of active timeslots)
-				if ts in self.trx.ts_list:
-					self.trx.ts_list.remove(ts)
-			else:
-				# Activate TS (add to the list of active timeslots)
-				if ts not in self.trx.ts_list:
-					self.trx.ts_list.append(ts)
-
-			return 0
-
 		# Power measurement
 		if self.verify_cmd(request, "MEASURE", 1):
 			log.debug("(%s) Recv MEASURE cmd" % self.trx)

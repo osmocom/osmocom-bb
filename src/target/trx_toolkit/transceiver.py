@@ -43,16 +43,6 @@ class Transceiver:
 
 	NOTE: CLCK is not required for some L1 implementations, so it is optional.
 
-	== Timeslot configuration
-
-	Transceiver has a list of active (i.e. configured) TDMA timeslots.
-	The L1 should configure a timeslot before sending or expecting any
-	data on it. This is done by SETSLOT control command, which also
-	indicates an associated channel combination (see GSM TS 05.02).
-
-	NOTE: we don't store the associated channel combinations,
-	      as they are only useful for burst detection and demodulation.
-
 	== Child transceivers
 
 	A BTS can (optionally) have more than one transceiver. In this case
@@ -168,9 +158,6 @@ class Transceiver:
 		# Frequency hopping parameters (set by CTRL)
 		self.fh = None
 
-		# List of active (configured) timeslots
-		self.ts_list = []
-
 		# List of child transceivers
 		self.child_trx_list = TRXList()
 
@@ -262,13 +249,6 @@ class Transceiver:
 		if not self.running:
 			log.warning("(%s) RX TRXD message (%s), but transceiver "
 				"is not running => dropping..." % (self, msg.desc_hdr()))
-			return None
-
-		# Make sure that indicated timeslot is configured
-		# Pass PDUs without burst bits, they will be sent as NOPE.ind
-		if msg.tn not in self.ts_list and msg.burst:
-			log.warning("(%s) RX TRXD message (%s), but timeslot is not "
-				"configured => dropping..." % (self, msg.desc_hdr()))
 			return None
 
 		return msg
