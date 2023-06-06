@@ -85,13 +85,25 @@ static int modem_rlcmac_handle_gmmrr(struct osmo_gprs_rlcmac_prim *rlcmac_prim)
 	switch (rlcmac_prim->oph.primitive) {
 	case OSMO_GPRS_RLCMAC_GMMRR_PAGE:
 		/* Forward it to upper layers, pass ownership over to GMM: */
-		/* Optimization: RLCMAC-GMMRR-ASSIGN-REQ is 1-to-1 ABI compatible with
-				 GMM-GMMRR-ASSIGN-REQ, we just need to adapt the header.
+		/* Optimization: RLCMAC-GMMRR-PAGE-IND is 1-to-1 ABI compatible with
+				 GMM-GMMRR-PAGE-IND, we just need to adapt the header.
 				 See osmo_static_assert(_gmmrr_prim_size) above.
 		*/
 		gmm_prim = (struct osmo_gprs_gmm_prim *)rlcmac_prim;
 		gmm_prim->oph.sap = OSMO_GPRS_GMM_SAP_GMMRR;
 		gmm_prim->oph.primitive = OSMO_GPRS_RLCMAC_GMMRR_PAGE;
+		osmo_gprs_gmm_prim_lower_up(gmm_prim);
+		rc = 1; /* Tell RLCMAC that we take ownership of the prim. */
+		break;
+	case OSMO_GPRS_RLCMAC_GMMRR_LLC_TRANSMITTED:
+		/* Forward it to upper layers, pass ownership over to GMM: */
+		/* Optimization: RLCMAC-GMMRR-LLC-TRANSMITTED-IND is 1-to-1 ABI compatible with
+				 GMM-GMMRR-LLC-TRANSMITTED-IND, we just need to adapt the header.
+				 See osmo_static_assert(_gmmrr_prim_size) above.
+		*/
+		gmm_prim = (struct osmo_gprs_gmm_prim *)rlcmac_prim;
+		gmm_prim->oph.sap = OSMO_GPRS_GMM_SAP_GMMRR;
+		gmm_prim->oph.primitive = OSMO_GPRS_GMM_GMMRR_LLC_TRANSMITTED;
 		osmo_gprs_gmm_prim_lower_up(gmm_prim);
 		rc = 1; /* Tell RLCMAC that we take ownership of the prim. */
 		break;
