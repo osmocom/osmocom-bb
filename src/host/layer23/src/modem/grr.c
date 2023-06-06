@@ -47,6 +47,16 @@
 
 #include <l1ctl_proto.h>
 
+static uint32_t _gsm48_req_ref2fn(const struct gsm48_req_ref *ref)
+{
+	const struct gsm_time time = {
+		.t3 = ref->t3_high << 3 | ref->t3_low,
+		.t2 = ref->t2,
+		.t1 = ref->t1,
+	};
+	return gsm_gsmtime2fn(&time);
+}
+
 /* Generate an 8-bit CHANNEL REQUEST message as per 3GPP TS 44.018, 9.1.8 */
 uint8_t modem_grr_gen_chan_req(bool single_block)
 {
@@ -254,9 +264,10 @@ static int grr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		return 0;
 	}
 	if (!grr_match_req_ref(ms, &ia->req_ref)) {
-		LOGP(DRR, LOGL_INFO, "%s(): req_ref mismatch (RA=0x%02x, T1=%u, T3=%u, T2=%u)\n",
+		LOGP(DRR, LOGL_INFO, "%s(): req_ref mismatch (RA=0x%02x, T1=%u, T3=%u, T2=%u, FN=%u)\n",
 		     __func__, ia->req_ref.ra, ia->req_ref.t1,
-		     ia->req_ref.t3_high << 3 | ia->req_ref.t3_low, ia->req_ref.t2);
+		     ia->req_ref.t3_high << 3 | ia->req_ref.t3_low, ia->req_ref.t2,
+		     _gsm48_req_ref2fn(&ia->req_ref));
 		return 0;
 	}
 
@@ -460,8 +471,9 @@ static int grr_rx_rslms_cchan(struct osmocom_ms *ms, struct msgb *msg)
 		if (rr->state == GSM48_RR_ST_CONN_PEND) {
 			const struct gsm48_req_ref *ref = (void *)&ch->data[1];
 			LOGP(DRSL, LOGL_NOTICE,
-			     "Rx RACH.conf (RA=0x%02x, T1=%u, T3=%u, T2=%u)\n",
-			     rr->cr_ra, ref->t1, ref->t3_high << 3 | ref->t3_low, ref->t2);
+			     "Rx RACH.conf (RA=0x%02x, T1=%u, T3=%u, T2=%u, FN=%u)\n",
+			     rr->cr_ra, ref->t1, ref->t3_high << 3 | ref->t3_low, ref->t2,
+			     _gsm48_req_ref2fn(ref));
 			/* shift the CHANNEL REQUEST history buffer */
 			memmove(&rr->cr_hist[1], &rr->cr_hist[0], ARRAY_SIZE(rr->cr_hist) - 1);
 			/* store the new entry */
