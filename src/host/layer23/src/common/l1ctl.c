@@ -1034,7 +1034,7 @@ int l1ctl_tx_gprs_ul_block_req(struct osmocom_ms *ms, uint32_t fn, uint8_t tn,
 
 /* Transmit L1CTL_GPRS_UL_TBF_CFG_REQ */
 int l1ctl_tx_gprs_ul_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
-				 uint8_t slotmask)
+				 uint8_t slotmask, uint32_t start_fn)
 {
 	struct l1ctl_gprs_ul_tbf_cfg_req *req;
 	struct msgb *msg;
@@ -1047,17 +1047,20 @@ int l1ctl_tx_gprs_ul_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
 	*req = (struct l1ctl_gprs_ul_tbf_cfg_req) {
 		.tbf_ref = tbf_ref,
 		.slotmask = slotmask,
+		.start_fn = htonl(start_fn),
 	};
 
-	DEBUGP(DL1C, "Tx GPRS UL TBF CFG (tbf_ref=%u, slotmask=0x%02x)\n",
-	       tbf_ref, slotmask);
+	DEBUGP(DL1C, "Tx GPRS UL TBF CFG: "
+	       "tbf_ref=%u, slotmask=0x%02x, start_fn=%u\n",
+	       tbf_ref, slotmask, start_fn);
 
 	return osmo_send_l1(ms, msg);
 }
 
 /* Transmit L1CTL_GPRS_DL_TBF_CFG_REQ */
 int l1ctl_tx_gprs_dl_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
-				 uint8_t slotmask, uint8_t dl_tfi)
+				 uint8_t slotmask, uint32_t start_fn,
+				 uint8_t dl_tfi)
 {
 	struct l1ctl_gprs_dl_tbf_cfg_req *req;
 	struct msgb *msg;
@@ -1070,11 +1073,13 @@ int l1ctl_tx_gprs_dl_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
 	*req = (struct l1ctl_gprs_dl_tbf_cfg_req) {
 		.tbf_ref = tbf_ref,
 		.slotmask = slotmask,
+		.start_fn = htonl(start_fn),
 		.dl_tfi = dl_tfi,
 	};
 
-	DEBUGP(DL1C, "Tx GPRS DL TBF CFG (tbf_ref=%u, slotmask=0x%02x, dl_tfi=%u)\n",
-	       tbf_ref, slotmask, dl_tfi);
+	DEBUGP(DL1C, "Tx GPRS DL TBF CFG: "
+	       "tbf_ref=%u, slotmask=0x%02x, start_fn=%u, dl_tfi=%u)\n",
+	       tbf_ref, slotmask, start_fn, dl_tfi);
 
 	return osmo_send_l1(ms, msg);
 }
