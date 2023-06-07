@@ -81,10 +81,11 @@ int l1ctl_tx_gprs_ul_block_req(struct osmocom_ms *ms, uint32_t fn, uint8_t tn,
 
 /* Transmit L1CTL_GPRS_UL_TBF_CFG_REQ */
 int l1ctl_tx_gprs_ul_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
-				 uint8_t slotmask);
+				 uint8_t slotmask, uint32_t start_fn);
 
 /* Transmit L1CTL_GPRS_DL_TBF_CFG_REQ */
 int l1ctl_tx_gprs_dl_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
-				 uint8_t slotmask, uint8_t dl_tfi);
+				 uint8_t slotmask, uint32_t start_fn,
+				 uint8_t dl_tfi);
 
 #endif

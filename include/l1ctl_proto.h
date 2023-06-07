@@ -350,6 +350,7 @@ struct l1ctl_gprs_ul_tbf_cfg_req {
 	uint8_t tbf_ref;
 	uint8_t slotmask;
 	uint8_t padding[2];
+	uint32_t start_fn; /* TBF Starting Time (absolute Fn) */
 } __attribute__((packed));
 
 /* payload of L1CTL_GPRS_DL_TBF_CFG_REQ */
@@ -358,6 +359,7 @@ struct l1ctl_gprs_dl_tbf_cfg_req {
 	uint8_t slotmask;
 	uint8_t dl_tfi;
 	uint8_t padding[1];
+	uint32_t start_fn; /* TBF Starting Time (absolute Fn) */
 } __attribute__((packed));
 
 /* part of L1CTL_GPRS_{UL,DL}_BLOCK_{REQ,IND} */

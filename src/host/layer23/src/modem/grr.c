@@ -661,7 +661,8 @@ static void grr_st_packet_transfer_action(struct osmo_fsm_inst *fi,
 		const struct osmo_gprs_rlcmac_l1ctl_prim *lp = data;
 		l1ctl_tx_gprs_ul_tbf_cfg_req(ms,
 					     lp->cfg_ul_tbf_req.ul_tbf_nr,
-					     lp->cfg_ul_tbf_req.ul_slotmask);
+					     lp->cfg_ul_tbf_req.ul_slotmask,
+					     0xffffffff /* TODO: start Fn */);
 		break;
 	}
 	case GRR_EV_PDCH_DL_TBF_CFG_REQ:
@@ -670,6 +671,7 @@ static void grr_st_packet_transfer_action(struct osmo_fsm_inst *fi,
 		l1ctl_tx_gprs_dl_tbf_cfg_req(ms,
 					     lp->cfg_dl_tbf_req.dl_tbf_nr,
 					     lp->cfg_dl_tbf_req.dl_slotmask,
+					     0xffffffff, /* TODO: start Fn */
 					     lp->cfg_dl_tbf_req.dl_tfi);
 		break;
 	}
