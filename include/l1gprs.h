@@ -9,6 +9,21 @@
 struct l1gprs_state;
 struct msgb;
 
+struct l1gprs_tbf_pending_req {
+	/*! Item in l1gprs_state->tbf_list_pending */
+	struct llist_head list;
+	/*! Uplink or Downlink */
+	bool uplink;
+	/*! TBF reference number (not index) */
+	uint8_t tbf_ref;
+	/*! PDCH timeslots used by this TBF */
+	uint8_t slotmask;
+	/*! (Downlink only) DL TFI (Temporary Flow Indentity): 0..31 */
+	uint8_t dl_tfi;
+	/*! TBF starting time (absolute TDMA Fn) */
+	uint32_t start_fn;
+};
+
 struct l1gprs_tbf {
 	/*! Item in l1gprs_state->tbf_list */
 	struct llist_head list;
@@ -33,11 +48,16 @@ struct l1gprs_pdch {
 	uint8_t dl_tbf_count;
 	/*! DL TFI mask */
 	uint32_t dl_tfi_mask;
+	/*! Pending UL TBF count */
+	uint8_t pending_ul_tbf_count;
+	/*! Pending DL TBF count */
+	uint8_t pending_dl_tbf_count;
 };
 
 static inline size_t l1gprs_pdch_use_count(const struct l1gprs_pdch *pdch)
 {
-	return pdch->ul_tbf_count + pdch->dl_tbf_count;
+	return pdch->ul_tbf_count + pdch->dl_tbf_count +
+	       pdch->pending_ul_tbf_count + pdch->pending_dl_tbf_count;
 }
 
 
@@ -46,8 +66,10 @@ typedef void (*l1gprs_pdch_changed_t)(struct l1gprs_pdch *pdch, bool active);
 struct l1gprs_state {
 	/*! PDCH state for each timeslot */
 	struct l1gprs_pdch pdch[8];
-	/*! Uplink and Downlink TBFs */
+	/*! Uplink and Downlink TBFs (active), struct l1gprs_pending_tbf */
 	struct llist_head tbf_list;
+	/*! Uplink and Downlink TBFs (pending), struct l1gprs_tbf_pending_req */
+	struct llist_head tbf_list_pending;
 	/*! Logging context (used as prefix for messages) */
 	char *log_prefix;
 	/*! Some private data for API user */
