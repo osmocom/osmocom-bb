@@ -31,6 +31,7 @@
 
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_44_060.h>
+#include <osmocom/gsm/gsm0502.h>
 
 #include <osmocom/bb/l1ctl_proto.h>
 #include <osmocom/bb/l1gprs.h>
@@ -43,9 +44,15 @@
 	LOGP_GPRS((pdch)->gprs, level, "(PDCH-%u) " fmt, \
 		  (pdch)->tn, ## args)
 
+#define LOG_TBF_CFG_REQ_FMT "tbf_ref=%u, slotmask=0x%02x, start_fn=%u"
+#define LOG_TBF_CFG_REQ_ARGS(req) \
+	(req)->tbf_ref, (req)->slotmask, ntohl((req)->start_fn)
+
 #define LOG_TBF_FMT "%cL-TBF#%03d"
 #define LOG_TBF_ARGS(tbf) \
 	(tbf)->uplink ? 'U' : 'D', tbf->tbf_ref
+
+#define TDMA_FN_INVALID 0xffffffff
 
 static int l1gprs_log_cat = DLGLOBAL;
 
@@ -58,7 +65,7 @@ enum gprs_rlcmac_block_type {
 
 static struct l1gprs_tbf *l1gprs_tbf_alloc(struct l1gprs_state *gprs,
 					   bool uplink, uint8_t tbf_ref,
-					   uint8_t slotmask)
+					   uint8_t slotmask, uint32_t start_fn)
 {
 	struct l1gprs_tbf *tbf;
 
@@ -68,6 +75,7 @@ static struct l1gprs_tbf *l1gprs_tbf_alloc(struct l1gprs_state *gprs,
 	tbf->uplink = uplink;
 	tbf->tbf_ref = tbf_ref;
 	tbf->slotmask = slotmask;
+	tbf->start_fn = start_fn;
 
 	return tbf;
 }
@@ -80,12 +88,12 @@ static void l1gprs_tbf_free(struct l1gprs_tbf *tbf)
 	talloc_free(tbf);
 }
 
-static struct l1gprs_tbf *l1gprs_find_tbf(struct l1gprs_state *gprs,
-					  bool uplink, uint8_t tbf_ref)
+static struct l1gprs_tbf *_l1gprs_find_tbf(const struct llist_head *tbf_list,
+					   bool uplink, uint8_t tbf_ref)
 {
 	struct l1gprs_tbf *tbf;
 
-	llist_for_each_entry(tbf, &gprs->tbf_list, list) {
+	llist_for_each_entry(tbf, tbf_list, list) {
 		if (tbf->uplink != uplink)
 			continue;
 		if (tbf->tbf_ref != tbf_ref)
@@ -93,6 +101,18 @@ static struct l1gprs_tbf *l1gprs_find_tbf(struct l1gprs_state *gprs,
 		return tbf;
 	}
 
+	return NULL;
+}
+
+static struct l1gprs_tbf *l1gprs_find_tbf(struct l1gprs_state *gprs,
+					  bool uplink, uint8_t tbf_ref)
+{
+	struct l1gprs_tbf *tbf;
+
+	if ((tbf = _l1gprs_find_tbf(&gprs->tbf_list, uplink, tbf_ref)) != NULL)
+		return tbf;
+	if ((tbf = _l1gprs_find_tbf(&gprs->tbf_list_pending, uplink, tbf_ref)) != NULL)
+		return tbf;
 	return NULL;
 }
 
@@ -123,7 +143,7 @@ static void l1gprs_register_tbf(struct l1gprs_state *gprs,
 	llist_add_tail(&tbf->list, &gprs->tbf_list);
 
 	LOGP_GPRS(gprs, LOGL_INFO,
-		  LOG_TBF_FMT " is registered\n",
+		  LOG_TBF_FMT " is registered as active\n",
 		  LOG_TBF_ARGS(tbf));
 }
 
@@ -166,6 +186,47 @@ static void l1gprs_unregister_tbf(struct l1gprs_state *gprs,
 		  LOG_TBF_ARGS(tbf));
 
 	l1gprs_tbf_free(tbf);
+}
+
+static void l1gprs_add_pending_tbf(struct l1gprs_state *gprs,
+				   struct l1gprs_tbf *tbf)
+{
+	llist_add_tail(&tbf->list, &gprs->tbf_list_pending);
+
+	LOGP_GPRS(gprs, LOGL_INFO,
+		  LOG_TBF_FMT " is added as pending (fn=%u)\n",
+		  LOG_TBF_ARGS(tbf), tbf->start_fn);
+}
+
+/* Check if the current TDMA Fn is past the start TDMA Fn.
+ * Based on fn_cmp() implementation from osmo-pcu.git, simplified. */
+static bool l1gprs_check_fn(uint32_t current, uint32_t start)
+{
+	const uint32_t thresh = GSM_TDMA_HYPERFRAME / 2;
+
+	if ((current < start && (start - current) < thresh) ||
+	    (current > start && (current - start) > thresh))
+		return false;
+
+	return true;
+}
+
+/* Check the list of pending TBFs and move those with expired Fn to the active list */
+static void l1gprs_check_pending_tbfs(struct l1gprs_state *gprs, uint32_t fn)
+{
+	struct l1gprs_tbf *tbf, *tmp;
+
+	llist_for_each_entry_safe(tbf, tmp, &gprs->tbf_list_pending, list) {
+		if (l1gprs_check_fn(fn, tbf->start_fn))
+			continue;
+
+		LOGP_GPRS(gprs, LOGL_INFO,
+			  LOG_TBF_FMT " becomes active (current_fn=%u, start_fn=%u)\n",
+			  LOG_TBF_ARGS(tbf), fn, tbf->start_fn);
+
+		llist_del(&tbf->list);
+		l1gprs_register_tbf(gprs, tbf);
+	}
 }
 
 #define L1GPRS_L1CTL_MSGB_SIZE		256
@@ -286,12 +347,17 @@ int l1gprs_handle_ul_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *m
 	}
 
 	LOGP_GPRS(gprs, LOGL_INFO,
-		  "Rx Uplink TBF config: tbf_ref=%u, slotmask=0x%02x\n",
-		  req->tbf_ref, req->slotmask);
+		  "Rx UL TBF config: " LOG_TBF_CFG_REQ_FMT "\n",
+		  LOG_TBF_CFG_REQ_ARGS(req));
 
 	if (req->slotmask != 0x00) {
-		tbf = l1gprs_tbf_alloc(gprs, true, req->tbf_ref, req->slotmask);
-		l1gprs_register_tbf(gprs, tbf);
+		tbf = l1gprs_tbf_alloc(gprs, true, req->tbf_ref,
+				       req->slotmask, ntohl(req->start_fn));
+		/* TBFs with specific starting time go to pending list */
+		if (tbf->start_fn != TDMA_FN_INVALID)
+			l1gprs_add_pending_tbf(gprs, tbf);
+		else /* ... otherwise register immediately */
+			l1gprs_register_tbf(gprs, tbf);
 	} else {
 		l1gprs_unregister_tbf(gprs, true, req->tbf_ref);
 	}
@@ -314,8 +380,8 @@ int l1gprs_handle_dl_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *m
 	}
 
 	LOGP_GPRS(gprs, LOGL_INFO,
-		  "Rx Downlink TBF config: tbf_ref=%u, slotmask=0x%02x, dl_tfi=%u\n",
-		  req->tbf_ref, req->slotmask, req->dl_tfi);
+		  "Rx DL TBF config: " LOG_TBF_CFG_REQ_FMT ", dl_tfi=%u\n",
+		  LOG_TBF_CFG_REQ_ARGS(req), req->dl_tfi);
 
 	if (req->dl_tfi > 31) {
 		LOGP_GPRS(gprs, LOGL_ERROR,
@@ -325,9 +391,14 @@ int l1gprs_handle_dl_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *m
 	}
 
 	if (req->slotmask != 0x00) {
-		tbf = l1gprs_tbf_alloc(gprs, false, req->tbf_ref, req->slotmask);
+		tbf = l1gprs_tbf_alloc(gprs, false, req->tbf_ref,
+				       req->slotmask, ntohl(req->start_fn));
 		tbf->dl_tfi = req->dl_tfi;
-		l1gprs_register_tbf(gprs, tbf);
+		/* TBFs with specific starting time go to pending list */
+		if (tbf->start_fn != TDMA_FN_INVALID)
+			l1gprs_add_pending_tbf(gprs, tbf);
+		else /* ... otherwise register immediately */
+			l1gprs_register_tbf(gprs, tbf);
 	} else {
 		l1gprs_unregister_tbf(gprs, false, req->tbf_ref);
 	}
@@ -408,6 +479,8 @@ struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
 		  "Rx DL BLOCK.ind (%s, fn=%u, len=%zu): %s\n",
 		  BLOCK_IND_IS_PTCCH(ind) ? "PTCCH" : "PDTCH",
 		  ind->hdr.fn, ind->data_len, osmo_hexdump(ind->data, ind->data_len));
+
+	l1gprs_check_pending_tbfs(gprs, ind->hdr.fn);
 
 	if ((pdch->ul_tbf_count == 0) && (pdch->dl_tbf_count == 0)) {
 		LOGP_PDCH(pdch, LOGL_ERROR,

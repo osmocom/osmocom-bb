@@ -17,6 +17,8 @@ struct l1gprs_tbf {
 	uint8_t tbf_ref;
 	/*! PDCH timeslots used by this TBF */
 	uint8_t slotmask;
+	/*! TBF starting time (absolute TDMA Fn) */
+	uint32_t start_fn;
 	/*! (Downlink only) DL TFI (Temporary Flow Indentity): 0..31 */
 	uint8_t dl_tfi;
 };
@@ -37,8 +39,10 @@ struct l1gprs_pdch {
 struct l1gprs_state {
 	/*! PDCH state for each timeslot */
 	struct l1gprs_pdch pdch[8];
-	/*! Uplink and Downlink TBFs */
+	/*! Uplink and Downlink TBFs (active) */
 	struct llist_head tbf_list;
+	/*! Uplink and Downlink TBFs (pending) */
+	struct llist_head tbf_list_pending;
 	/*! Logging context (used as prefix for messages) */
 	char *log_prefix;
 	/*! Some private data for API user */
