@@ -163,12 +163,12 @@ static int modem_rlcmac_prim_down_cb(struct osmo_gprs_rlcmac_prim *prim, void *u
 		return l1ctl_tx_gprs_ul_tbf_cfg_req(ms,
 						    lp->cfg_ul_tbf_req.ul_tbf_nr,
 						    lp->cfg_ul_tbf_req.ul_slotmask,
-						    0xffffffff /* TODO: start Fn */);
+						    lp->cfg_ul_tbf_req.start_fn);
 	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_CFG_DL_TBF, PRIM_OP_REQUEST):
 		return l1ctl_tx_gprs_dl_tbf_cfg_req(ms,
 						    lp->cfg_dl_tbf_req.dl_tbf_nr,
 						    lp->cfg_dl_tbf_req.dl_slotmask,
-						    0xffffffff, /* TODO: start Fn */
+						    lp->cfg_ul_tbf_req.start_fn,
 						    lp->cfg_dl_tbf_req.dl_tfi);
 	default:
 		LOGP(DRLCMAC, LOGL_DEBUG, "%s(): Unexpected Rx %s\n", __func__, pdu_name);
