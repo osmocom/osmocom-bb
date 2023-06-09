@@ -97,8 +97,8 @@ static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_
 			break;
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_CONFIRM):
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_DETACH, PRIM_OP_INDICATION):
-				LOGP(DGMM, LOGL_NOTICE, "%s(): Rx %s\n", __func__, pdu_name);
-				ms_dispatch_all_apn(ms, APN_EV_GMM_DETACHED, NULL);
+			LOGP(DGMM, LOGL_NOTICE, "%s(): Rx %s\n", __func__, pdu_name);
+			ms_dispatch_all_apn(ms, APN_EV_GMM_DETACHED, NULL);
 			break;
 		default:
 			LOGP(DGMM, LOGL_ERROR, "%s(): Rx %s UNIMPLEMENTED\n", __func__, pdu_name);
