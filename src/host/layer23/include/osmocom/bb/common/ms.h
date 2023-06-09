@@ -100,6 +100,7 @@ struct osmocom_ms {
 	/* GPRS */
 	struct gprs_settings gprs;
 	struct osmobb_ms_gmm_layer gmmlayer;
+	struct osmo_fsm_inst *grr_fi;
 
 	/* Audio I/O */
 	struct gapk_io_state *gapk_io;

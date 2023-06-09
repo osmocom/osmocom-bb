@@ -62,34 +62,6 @@
 
 struct modem_app app_data;
 
-static bool modem_can_gprs_attach(const struct osmocom_ms *ms)
-{
-	const struct gsm_subscriber *subscr = &ms->subscr;
-	const struct gsm322_cellsel *cs = &ms->cellsel;
-	const struct gsm48_sysinfo *si = &cs->sel_si;
-
-	if (!subscr->sim_valid)
-		goto ret_false;
-
-	if (!si->si1 || !si->si3 || !si->si4 || !si->si13)
-		goto ret_false;
-
-	if (!si->gprs.supported)
-		goto ret_false;
-
-	return true;
-
-ret_false:
-	LOGP(DRLCMAC, LOGL_INFO, "Delaying GPRS attach, waiting for:%s%s%s%s%s%s\n",
-	     subscr->sim_valid ? "" : " imsi",
-	     si->si1 ? "" : " si1",
-	     si->si3 ? "" : " si3",
-	     si->si4 ? "" : " si4",
-	     si->si13 ? "" : " si13",
-	     si->gprs.supported ? "" : " GprsIndicator");
-	return false;
-}
-
 int modem_gprs_attach_if_needed(struct osmocom_ms *ms)
 {
 	int rc;
@@ -97,7 +69,10 @@ int modem_gprs_attach_if_needed(struct osmocom_ms *ms)
 	if (app_data.modem_state != MODEM_ST_IDLE)
 		return 0;
 
-	if (!modem_can_gprs_attach(ms))
+	if (ms->grr_fi->state == GRR_ST_PACKET_NOT_READY)
+		return 0;
+
+	if (!ms->subscr.sim_valid)
 		return 0;
 
 	app_data.modem_state = MODEM_ST_ATTACHING;
@@ -201,6 +176,8 @@ static int global_signal_cb(unsigned int subsys, unsigned int signal,
 	switch (signal) {
 	case S_L1CTL_RESET:
 		ms = signal_data;
+		if (ms->started)
+			break;
 		layer3_app_reset();
 		app_data.ms = ms;
 
@@ -284,6 +261,12 @@ int l23_app_init(void)
 		LOGP(DSM, LOGL_FATAL, "Failed initializing SM layer\n");
 		return rc;
 	}
+
+	/* TODO: move to a separate function */
+	app_data.ms->grr_fi = osmo_fsm_inst_alloc(&grr_fsm_def, NULL,
+						  app_data.ms, LOGL_DEBUG,
+						  app_data.ms->name);
+	OSMO_ASSERT(app_data.ms->grr_fi != NULL);
 
 	osmo_signal_register_handler(SS_L1CTL, &global_signal_cb, NULL);
 	osmo_signal_register_handler(SS_L23_SUBSCR, &modem_l23_subscr_signal_cb, NULL);

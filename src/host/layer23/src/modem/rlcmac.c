@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <osmocom/core/fsm.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/bits.h>
 #include <osmocom/core/prim.h>
@@ -38,12 +39,9 @@
 #include <osmocom/gprs/gmm/gmm_prim.h>
 
 #include <osmocom/bb/common/logging.h>
-#include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/modem/rlcmac.h>
 #include <osmocom/bb/modem/grr.h>
-
-#include <l1ctl_proto.h>
 
 static int modem_rlcmac_handle_grr(struct osmo_gprs_rlcmac_prim *rlcmac_prim)
 {
@@ -141,33 +139,19 @@ static int modem_rlcmac_prim_up_cb(struct osmo_gprs_rlcmac_prim *rlcmac_prim, vo
 
 static int modem_rlcmac_prim_down_cb(struct osmo_gprs_rlcmac_prim *prim, void *user_data)
 {
-	const struct osmo_gprs_rlcmac_l1ctl_prim *lp = &prim->l1ctl;
+	struct osmo_gprs_rlcmac_l1ctl_prim *lp = &prim->l1ctl;
 	const char *pdu_name = osmo_gprs_rlcmac_prim_name(prim);
 	struct osmocom_ms *ms = user_data;
 
 	switch (OSMO_PRIM_HDR(&prim->oph)) {
 	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_RACH, PRIM_OP_REQUEST):
-		if (lp->rach_req.is_11bit) {
-			LOGP(DRLCMAC, LOGL_NOTICE,
-			     "%s(): 11-bit RACH is not supported\n", __func__);
-			return -ENOTSUP;
-		}
-		return modem_grr_tx_chan_req(ms, lp->rach_req.ra);
+		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_RACH_REQ, lp);
 	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_PDCH_DATA, PRIM_OP_REQUEST):
-		return l1ctl_tx_gprs_ul_block_req(ms,
-						  lp->pdch_data_req.fn,
-						  lp->pdch_data_req.ts_nr,
-						  lp->pdch_data_req.data,
-						  lp->pdch_data_req.data_len);
+		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_BLOCK_REQ, lp);
 	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_CFG_UL_TBF, PRIM_OP_REQUEST):
-		return l1ctl_tx_gprs_ul_tbf_cfg_req(ms,
-						    lp->cfg_ul_tbf_req.ul_tbf_nr,
-						    lp->cfg_ul_tbf_req.ul_slotmask);
+		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_UL_TBF_CFG_REQ, lp);
 	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_CFG_DL_TBF, PRIM_OP_REQUEST):
-		return l1ctl_tx_gprs_dl_tbf_cfg_req(ms,
-						    lp->cfg_dl_tbf_req.dl_tbf_nr,
-						    lp->cfg_dl_tbf_req.dl_slotmask,
-						    lp->cfg_dl_tbf_req.dl_tfi);
+		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_DL_TBF_CFG_REQ, lp);
 	default:
 		LOGP(DRLCMAC, LOGL_DEBUG, "%s(): Unexpected Rx %s\n", __func__, pdu_name);
 		OSMO_ASSERT(0);
@@ -176,37 +160,7 @@ static int modem_rlcmac_prim_down_cb(struct osmo_gprs_rlcmac_prim *prim, void *u
 
 static int l1ctl_dl_block_cb(struct osmocom_ms *ms, struct msgb *msg)
 {
-	const struct l1ctl_gprs_dl_block_ind *ind = (void *)msg->l1h;
-	const uint32_t fn = osmo_load32be(&ind->hdr.fn);
-	struct osmo_gprs_rlcmac_prim *prim;
-
-	/* FIXME: sadly, rlcmac_prim_l1ctl_alloc() is not exposed */
-	prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_pdch_data_ind(0, 0, 0, 0, 0, NULL, 0);
-	prim->l1ctl = (struct osmo_gprs_rlcmac_l1ctl_prim) {
-		.pdch_data_ind = {
-			.fn = fn,
-			.ts_nr = ind->hdr.tn,
-			.rx_lev = ind->meas.rx_lev,
-			.ber10k = osmo_load16be(&ind->meas.ber10k),
-			.ci_cb = osmo_load16be(&ind->meas.ci_cb),
-			.data_len = msgb_l2len(msg),
-			.data = msgb_l2(msg),
-		}
-	};
-	osmo_gprs_rlcmac_prim_lower_up(prim);
-
-	/* Do not send RTS.ind if we got PTCCH/D */
-	if (fn % 104 == 12)
-		return 0;
-
-	/* Every fn % 13 == 12 we have either a PTCCH or an IDLE slot, thus
-	 * every fn % 13 ==  8 we add 5 frames, or 4 frames othrwise.  The
-	 * resulting value is first fn of the next block. */
-	const uint32_t rts_fn = GSM_TDMA_FN_SUM(fn, (fn % 13 == 8) ? 5 : 4);
-	prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_pdch_rts_ind(ind->hdr.tn, rts_fn, ind->usf);
-	osmo_gprs_rlcmac_prim_lower_up(prim);
-
-	return 0;
+	return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_BLOCK_IND, msg);
 }
 
 int modem_rlcmac_init(struct osmocom_ms *ms)

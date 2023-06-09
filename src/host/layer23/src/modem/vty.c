@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <osmocom/core/fsm.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/linuxlist.h>
@@ -27,6 +28,7 @@
 #include <osmocom/gprs/llc/llc_prim.h>
 #include <osmocom/gprs/gmm/gmm_prim.h>
 #include <osmocom/gprs/sm/sm_prim.h>
+#include <osmocom/gprs/rlcmac/rlcmac_prim.h>
 
 
 #include <osmocom/vty/vty.h>
@@ -84,7 +86,14 @@ DEFUN_HIDDEN(test_grr_tx_chan_req,
 		return CMD_WARNING;
 
 	chan_req = modem_grr_gen_chan_req(argv[1][0] == '2');
-	if (modem_grr_tx_chan_req(ms, chan_req) != 0) {
+	const struct osmo_gprs_rlcmac_l1ctl_prim lp = {
+		.rach_req = {
+			.is_11bit = false,
+			.ra = chan_req,
+		}
+	};
+
+	if (osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_RACH_REQ, (void *)&lp)) {
 		vty_out(vty, "Failed to send a CHANNEL REQUEST%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
