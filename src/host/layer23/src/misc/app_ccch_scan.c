@@ -236,24 +236,6 @@ static char *chan_need(int need)
 	}
 }
 
-static char *mi_type_to_string(int type)
-{
-	switch (type) {
-	case GSM_MI_TYPE_NONE:
-		return "none";
-	case GSM_MI_TYPE_IMSI:
-		return "imsi";
-	case GSM_MI_TYPE_IMEI:
-		return "imei";
-	case GSM_MI_TYPE_IMEISV:
-		return "imeisv";
-	case GSM_MI_TYPE_TMSI:
-		return "tmsi";
-	default:
-		return "invalid";
-	}
-}
-
 /**
  * This can contain two MIs. The size checking is a bit of a mess.
  */
@@ -261,6 +243,7 @@ static int gsm48_rx_paging_p1(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_paging1 *pag;
 	int len1, len2, mi_type, tag;
+	struct osmo_mobile_identity mi;
 	char mi_string[GSM48_MI_SIZE];
 
 	/* is there enough room for the header + LV? */
@@ -279,11 +262,11 @@ static int gsm48_rx_paging_p1(struct msgb *msg, struct osmocom_ms *ms)
 	}
 
 	if (mi_type != GSM_MI_TYPE_NONE) {
-		gsm48_mi_to_string(mi_string, sizeof(mi_string), &pag->data[1], len1);
-		LOGP(DRR, LOGL_NOTICE, "Paging1: %s chan %s to %s M(%s) \n",
+		osmo_mobile_identity_decode(&mi, &pag->data[1], len1, false);
+		osmo_mobile_identity_to_str_buf(mi_string, sizeof(mi_string), &mi);
+		LOGP(DRR, LOGL_NOTICE, "Paging1: %s chan %s to M(%s)\n",
 		     pag_print_mode(pag->pag_mode),
 		     chan_need(pag->cneed1),
-		     mi_type_to_string(mi_type),
 		     mi_string);
 	}
 
@@ -300,11 +283,11 @@ static int gsm48_rx_paging_p1(struct msgb *msg, struct osmocom_ms *ms)
 			return -1;
 		}
 
-		gsm48_mi_to_string(mi_string, sizeof(mi_string), &pag->data[2 + len1 + 2], len2);
-		LOGP(DRR, LOGL_NOTICE, "Paging2: %s chan %s to %s M(%s) \n",
+		osmo_mobile_identity_decode(&mi, &pag->data[2 + len1 + 2], len2, false);
+		osmo_mobile_identity_to_str_buf(mi_string, sizeof(mi_string), &mi);
+		LOGP(DRR, LOGL_NOTICE, "Paging2: %s chan %s to M(%s)\n",
 		     pag_print_mode(pag->pag_mode),
 		     chan_need(pag->cneed2),
-		     mi_type_to_string(mi_type),
 		     mi_string);
 	}
 	return 0;
@@ -313,8 +296,9 @@ static int gsm48_rx_paging_p1(struct msgb *msg, struct osmocom_ms *ms)
 static int gsm48_rx_paging_p2(struct msgb *msg, struct osmocom_ms *ms)
 {
 	struct gsm48_paging2 *pag;
-	int tag, len, mi_type;
+	struct osmo_mobile_identity mi;
 	char mi_string[GSM48_MI_SIZE];
+	int tag, len;
 
 	if (msgb_l3len(msg) < sizeof(*pag)) {
 		LOGP(DRR, LOGL_ERROR, "Paging2 message is too small.\n");
@@ -322,12 +306,14 @@ static int gsm48_rx_paging_p2(struct msgb *msg, struct osmocom_ms *ms)
 	}
 
 	pag = msgb_l3(msg);
-	LOGP(DRR, LOGL_NOTICE, "Paging1: %s chan %s to TMSI M(0x%x) \n",
-		     pag_print_mode(pag->pag_mode),
-		     chan_need(pag->cneed1), pag->tmsi1);
-	LOGP(DRR, LOGL_NOTICE, "Paging2: %s chan %s to TMSI M(0x%x) \n",
-		     pag_print_mode(pag->pag_mode),
-		     chan_need(pag->cneed2), pag->tmsi2);
+	LOGP(DRR, LOGL_NOTICE, "Paging1: %s chan %s to M(TMSI-0x%08x)\n",
+	     pag_print_mode(pag->pag_mode),
+	     chan_need(pag->cneed1),
+	     osmo_load32be(&pag->tmsi1));
+	LOGP(DRR, LOGL_NOTICE, "Paging2: %s chan %s to M(TMSI-0x%08x)\n",
+	     pag_print_mode(pag->pag_mode),
+	     chan_need(pag->cneed2),
+	     osmo_load32be(&pag->tmsi2));
 
 	/* no optional element */
 	if (msgb_l3len(msg) < sizeof(*pag) + 3)
@@ -335,7 +321,6 @@ static int gsm48_rx_paging_p2(struct msgb *msg, struct osmocom_ms *ms)
 
 	tag = pag->data[0];
 	len = pag->data[1];
-	mi_type = pag->data[2] & GSM_MI_TYPE_MASK;
 
 	if (tag != GSM48_IE_MOBILE_ID)
 		return 0;
@@ -345,11 +330,10 @@ static int gsm48_rx_paging_p2(struct msgb *msg, struct osmocom_ms *ms)
 		return -1;
 	}
 
-	gsm48_mi_to_string(mi_string, sizeof(mi_string), &pag->data[2], len);
-	LOGP(DRR, LOGL_NOTICE, "Paging3: %s chan %s to %s M(%s) \n",
+	osmo_mobile_identity_decode(&mi, &pag->data[2], len, false);
+	osmo_mobile_identity_to_str_buf(mi_string, sizeof(mi_string), &mi);
+	LOGP(DRR, LOGL_NOTICE, "Paging3: %s chan n/a to M(%s)\n",
 	     pag_print_mode(pag->pag_mode),
-	     "n/a ",
-	     mi_type_to_string(mi_type),
 	     mi_string);
 
 	return 0;
@@ -365,18 +349,20 @@ static int gsm48_rx_paging_p3(struct msgb *msg, struct osmocom_ms *ms)
 	}
 
 	pag = msgb_l3(msg);
-	LOGP(DRR, LOGL_NOTICE, "Paging1: %s chan %s to TMSI M(0x%x) \n",
-		     pag_print_mode(pag->pag_mode),
-		     chan_need(pag->cneed1), pag->tmsi1);
-	LOGP(DRR, LOGL_NOTICE, "Paging2: %s chan %s to TMSI M(0x%x) \n",
-		     pag_print_mode(pag->pag_mode),
-		     chan_need(pag->cneed2), pag->tmsi2);
-	LOGP(DRR, LOGL_NOTICE, "Paging3: %s chan %s to TMSI M(0x%x) \n",
-		     pag_print_mode(pag->pag_mode),
-		     "n/a ", pag->tmsi3);
-	LOGP(DRR, LOGL_NOTICE, "Paging4: %s chan %s to TMSI M(0x%x) \n",
-		     pag_print_mode(pag->pag_mode),
-		     "n/a ", pag->tmsi4);
+	LOGP(DRR, LOGL_NOTICE, "Paging1: %s chan %s to M(TMSI-0x%08x)\n",
+	     pag_print_mode(pag->pag_mode),
+	     chan_need(pag->cneed1),
+	     osmo_load32be(&pag->tmsi1));
+	LOGP(DRR, LOGL_NOTICE, "Paging2: %s chan %s to M(TMSI-0x%08x)\n",
+	     pag_print_mode(pag->pag_mode),
+	     chan_need(pag->cneed2),
+	     osmo_load32be(&pag->tmsi2));
+	LOGP(DRR, LOGL_NOTICE, "Paging3: %s chan n/a to M(TMSI-0x%08x)\n",
+	     pag_print_mode(pag->pag_mode),
+	     osmo_load32be(&pag->tmsi3));
+	LOGP(DRR, LOGL_NOTICE, "Paging4: %s chan n/a to M(TMSI-0x%08x)\n",
+	     pag_print_mode(pag->pag_mode),
+	     osmo_load32be(&pag->tmsi4));
 
 	return 0;
 }
