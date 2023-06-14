@@ -3037,43 +3037,37 @@ static int gsm48_rr_chan2cause[4] = {
 };
 
 /* given LV of mobile identity is checked against ms */
-static uint8_t gsm_match_mi(struct osmocom_ms *ms, uint8_t *mi)
+static uint8_t gsm_match_mi(struct osmocom_ms *ms, const uint8_t *mi_lv)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
-	char imsi[16];
-	uint32_t tmsi;
-	uint8_t mi_type;
+	struct osmo_mobile_identity mi;
+	char buf[32];
+	int rc;
 
-	if (mi[0] < 1)
-		return 0;
-	mi_type = mi[1] & GSM_MI_TYPE_MASK;
-	switch (mi_type) {
+	rc = osmo_mobile_identity_decode(&mi, mi_lv+1, mi_lv[0], false);
+	if (rc < 0)
+		return rc;
+	osmo_mobile_identity_to_str_buf(buf, sizeof(buf), &mi);
+
+	switch (mi.type) {
 	case GSM_MI_TYPE_TMSI:
-		if (mi[0] < 5)
-			return 0;
-		memcpy(&tmsi, mi+2, 4);
-		if (ms->subscr.tmsi == ntohl(tmsi)
+		if ((ms->subscr.tmsi == mi.tmsi)
 		 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)) {
-			LOGP(DPAG, LOGL_INFO, " TMSI %08x matches\n",
-				ntohl(tmsi));
-
-			return mi_type;
+			LOGP(DPAG, LOGL_INFO, " %s matches\n", buf);
+			return mi.type;
 		} else
-			LOGP(DPAG, LOGL_INFO, " TMSI %08x (not for us)\n",
-				ntohl(tmsi));
+			LOGP(DPAG, LOGL_INFO, " %s (not for us)\n", buf);
 		break;
 	case GSM_MI_TYPE_IMSI:
-		gsm48_mi_to_string(imsi, sizeof(imsi), mi + 1, mi[0]);
-		if (!strcmp(imsi, ms->subscr.imsi)) {
-			LOGP(DPAG, LOGL_INFO, " IMSI %s matches\n", imsi);
-
-			return mi_type;
+		if (!strcmp(mi.imsi, ms->subscr.imsi)) {
+			LOGP(DPAG, LOGL_INFO, " %s matches\n", buf);
+			return mi.type;
 		} else
-			LOGP(DPAG, LOGL_INFO, " IMSI %s (not for us)\n", imsi);
+			LOGP(DPAG, LOGL_INFO, "  %s (not for us)\n", buf);
 		break;
 	default:
 		LOGP(DPAG, LOGL_NOTICE, "Paging with unsupported MI type %d.\n",
-			mi_type);
+			mi.type);
 	}
 
 	return 0;
