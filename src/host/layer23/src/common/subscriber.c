@@ -639,7 +639,7 @@ static int gsm_subscr_generate_kc_testcard(struct osmocom_ms *ms, uint8_t key_se
 	struct osmobb_l23_subscr_sim_auth_resp_sig_data sd;
 
 	struct gsm_settings *set = &ms->settings;
-	static struct osmo_sub_auth_data auth = {
+	static struct osmo_sub_auth_data2 auth = {
 		.type = OSMO_AUTH_TYPE_GSM
 	};
 	struct osmo_auth_vector _vec;
@@ -647,7 +647,7 @@ static int gsm_subscr_generate_kc_testcard(struct osmocom_ms *ms, uint8_t key_se
 
 	auth.algo = set->test_sim.ki_type;
 	memcpy(auth.u.gsm.ki, set->test_sim.ki, sizeof(auth.u.gsm.ki));
-	int ret = osmo_auth_gen_vec(vec, &auth, rand);
+	int ret = osmo_auth_gen_vec2(vec, &auth, rand);
 	if (ret < 0)
 		return ret;
 
