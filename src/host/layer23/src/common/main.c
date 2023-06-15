@@ -58,6 +58,7 @@ static char *sap_socket_path = "/tmp/osmocom_sap";
 struct llist_head ms_list;
 static char *gsmtap_ip = NULL;
 static char *config_file = NULL;
+static char *log_cat_mask = NULL;
 
 int (*l23_app_start)(void) = NULL;
 int (*l23_app_work)(void) = NULL;
@@ -162,7 +163,7 @@ static void handle_options(int argc, char **argv)
 			config_file = optarg;
 			break;
 		case 'd':
-			log_parse_category_mask(osmo_stderr_target, optarg);
+			log_cat_mask = optarg;
 			break;
 		default:
 			if (l23_app_info.cfg_handle_opt != NULL)
@@ -267,6 +268,9 @@ int main(int argc, char **argv)
 		if (_vty_init() < 0)
 			exit(1);
 	}
+
+	if (log_cat_mask != NULL)
+		log_parse_category_mask(osmo_stderr_target, log_cat_mask);
 
 	if (l23_app_info.opt_supported & L23_OPT_TAP) {
 		if (gsmtap_ip) {

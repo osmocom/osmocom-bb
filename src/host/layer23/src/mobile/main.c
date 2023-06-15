@@ -54,6 +54,7 @@ void *l23_ctx = NULL;
 struct l23_global_config l23_cfg;
 struct llist_head ms_list;
 static const char *custom_cfg_file = NULL;
+static const char *log_cat_mask = NULL;
 static char *config_file = NULL;
 char *config_dir = NULL;
 int daemonize = 0;
@@ -118,7 +119,7 @@ static int handle_options(int argc, char **argv)
 			custom_cfg_file = optarg;
 			break;
 		case 'd':
-			log_parse_category_mask(osmo_stderr_target, optarg);
+			log_cat_mask = optarg;
 			break;
 		case 'D':
 			daemonize = 1;
@@ -296,6 +297,9 @@ int main(int argc, char **argv)
 		if (_vty_init() < 0)
 			exit(1);
 	}
+
+	if (log_cat_mask != NULL)
+		log_parse_category_mask(osmo_stderr_target, log_cat_mask);
 
 	if (l23_cfg.gsmtap.remote_host) {
 		l23_cfg.gsmtap.inst = gsmtap_source_init2(l23_cfg.gsmtap.local_host, 0,
