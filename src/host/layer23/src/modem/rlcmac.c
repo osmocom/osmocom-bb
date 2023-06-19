@@ -152,6 +152,10 @@ static int modem_rlcmac_prim_down_cb(struct osmo_gprs_rlcmac_prim *prim, void *u
 		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_UL_TBF_CFG_REQ, lp);
 	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_CFG_DL_TBF, PRIM_OP_REQUEST):
 		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_DL_TBF_CFG_REQ, lp);
+	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_PDCH_ESTABLISH, PRIM_OP_REQUEST):
+		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_ESTABLISH_REQ, lp);
+	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_PDCH_RELEASE, PRIM_OP_REQUEST):
+		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_RELEASE_REQ, lp);
 	default:
 		LOGP(DRLCMAC, LOGL_DEBUG, "%s(): Unexpected Rx %s\n", __func__, pdu_name);
 		OSMO_ASSERT(0);

@@ -226,8 +226,6 @@ static int grr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 {
 	const struct gsm48_imm_ass *ia = msgb_l3(msg);
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	uint8_t ch_type, ch_subch, ch_ts;
-	int rc;
 
 	/* 3GPP TS 44.018, section 10.5.2.25b "Dedicated mode or TBF".
 	 * As per table 9.1.18.1, only the value part (4 bits) is present in the
@@ -269,68 +267,7 @@ static int grr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 		}
 	}
 
-	if (rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
-		LOGP(DRR, LOGL_ERROR, "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
-		     __func__, ia->chan_desc.chan_nr);
-		return -EINVAL;
-	}
-
-	/* FIXME: this event should be triggered by the RLC/MAC layers itself */
-	rc = osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_ESTABLISH_REQ, NULL);
-	if (rc != 0)
-		return rc;
-
-	if (!ia->chan_desc.h0.h) {
-		/* Non-hopping */
-		uint16_t arfcn;
-
-		arfcn = ia->chan_desc.h0.arfcn_low | (ia->chan_desc.h0.arfcn_high << 8);
-
-		LOGP(DRR, LOGL_INFO, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
-		     "ARFCN=%u, TS=%u, SS=%u, TSC=%u)\n", ia->req_ref.ra,
-		     ia->chan_desc.chan_nr, arfcn, ch_ts, ch_subch,
-		     ia->chan_desc.h0.tsc);
-
-		l1ctl_tx_dm_est_req_h0(ms, arfcn,
-				       RSL_CHAN_OSMO_PDCH | ch_ts,
-				       ia->chan_desc.h0.tsc, GSM48_CMODE_SIGN, 0);
-	} else {
-		/* Hopping */
-		uint8_t ma_len = 0;
-		uint8_t maio, hsn;
-		uint16_t ma[64];
-
-		hsn = ia->chan_desc.h1.hsn;
-		maio = ia->chan_desc.h1.maio_low | (ia->chan_desc.h1.maio_high << 2);
-
-		LOGP(DRR, LOGL_INFO, "GSM48 IMM ASS (ra=0x%02x, chan_nr=0x%02x, "
-		     "HSN=%u, MAIO=%u, TS=%u, SS=%u, TSC=%u)\n", ia->req_ref.ra,
-		     ia->chan_desc.chan_nr, hsn, maio, ch_ts, ch_subch,
-		     ia->chan_desc.h1.tsc);
-
-		for (unsigned int i = 1, j = 0; i <= 1024; i++) {
-			unsigned int arfcn = i & 1023;
-			unsigned int k;
-
-			if (~ms->cellsel.sel_si.freq[arfcn].mask & 0x01)
-				continue;
-
-			k = ia->mob_alloc_len - (j >> 3) - 1;
-			if (ia->mob_alloc[k] & (1 << (j & 7)))
-				ma[ma_len++] = arfcn;
-			j++;
-		}
-
-		l1ctl_tx_dm_est_req_h1(ms, maio, hsn, &ma[0], ma_len,
-				       RSL_CHAN_OSMO_PDCH | ch_ts,
-				       ia->chan_desc.h1.tsc, GSM48_CMODE_SIGN, 0);
-	}
-
-	rc = forward_to_rlcmac(ms, msg);
-	if (rc < 0)
-		return rc;
-
-	return 0;
+	return forward_to_rlcmac(ms, msg);
 }
 
 /* TS 44.018 9.1.22 "Paging request type 1" */
@@ -643,9 +580,50 @@ static void grr_st_packet_idle_action(struct osmo_fsm_inst *fi,
 		break;
 	}
 	case GRR_EV_PDCH_ESTABLISH_REQ:
-		/* TODO: send L1CTL_DM_EST_REQ here */
+	{
+		const struct osmo_gprs_rlcmac_l1ctl_prim *lp = data;
+
+		if (!lp->pdch_est_req.fh) {
+			LOGPFSML(fi, LOGL_INFO,
+				 "PDCH Establish.Req: TSC=%u, H0, ARFCN=%u\n",
+				 lp->pdch_est_req.tsc, lp->pdch_est_req.arfcn);
+			l1ctl_tx_dm_est_req_h0(ms, lp->pdch_est_req.arfcn,
+					       RSL_CHAN_OSMO_PDCH | lp->pdch_est_req.ts_nr,
+					       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0);
+		} else {
+			/* Hopping */
+			uint8_t ma_len = 0;
+			uint16_t ma[64];
+
+			LOGPFSML(fi, LOGL_INFO,
+				 "PDCH Establish.Req: TSC=%u, H1, HSN=%u, MAIO=%u\n",
+				 lp->pdch_est_req.tsc,
+				 lp->pdch_est_req.fhp.hsn,
+				 lp->pdch_est_req.fhp.maio);
+
+			for (unsigned int i = 1, j = 0; i <= 1024; i++) {
+				unsigned int arfcn = i & 1023;
+				unsigned int k;
+
+				if (~ms->cellsel.sel_si.freq[arfcn].mask & 0x01)
+					continue;
+
+				k = lp->pdch_est_req.fhp.ma_len - (j >> 3) - 1;
+				if (lp->pdch_est_req.fhp.ma[k] & (1 << (j & 7)))
+					ma[ma_len++] = arfcn;
+				j++;
+			}
+
+			l1ctl_tx_dm_est_req_h1(ms,
+					       lp->pdch_est_req.fhp.maio,
+					       lp->pdch_est_req.fhp.hsn,
+					       &ma[0], ma_len,
+					       RSL_CHAN_OSMO_PDCH | lp->pdch_est_req.ts_nr,
+					       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0);
+		}
 		osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_TRANSFER, 0, 0);
 		break;
+	}
 	default:
 		OSMO_ASSERT(0);
 	}
