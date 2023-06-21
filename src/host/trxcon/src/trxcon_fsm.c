@@ -517,6 +517,30 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 	}
 }
 
+static void handle_tbf_cfg_req(struct trxcon_inst *trxcon, uint8_t tn, bool active)
+{
+	struct l1sched_state *sched = trxcon->sched;
+
+	if (active) {
+		if (sched->ts[tn] != NULL) /* already enabled */
+			return;
+		if (l1sched_configure_ts(sched, tn, GSM_PCHAN_PDCH) != 0)
+			return;
+		OSMO_ASSERT(sched->ts[tn] != NULL);
+
+		l1sched_activate_lchan(sched->ts[tn], L1SCHED_PDTCH);
+		l1sched_activate_lchan(sched->ts[tn], L1SCHED_PTCCH);
+		/* FIXME: set TSC for both lchans */
+	} else {
+		l1sched_del_ts(sched, tn);
+	}
+}
+
+static void trxcon_l1gprs_state_changed_cb(struct l1gprs_pdch *pdch, bool active)
+{
+	handle_tbf_cfg_req(pdch->gprs->priv, pdch->tn, active);
+}
+
 static void trxcon_st_packet_data_onenter(struct osmo_fsm_inst *fi,
 					  uint32_t prev_state)
 {
@@ -524,6 +548,7 @@ static void trxcon_st_packet_data_onenter(struct osmo_fsm_inst *fi,
 
 	OSMO_ASSERT(trxcon->gprs == NULL);
 	trxcon->gprs = l1gprs_state_alloc(trxcon, trxcon->log_prefix, trxcon);
+	l1gprs_state_set_pdch_changed_cb(trxcon->gprs, trxcon_l1gprs_state_changed_cb);
 	OSMO_ASSERT(trxcon->gprs != NULL);
 }
 

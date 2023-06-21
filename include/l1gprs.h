@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #include <osmocom/core/linuxlist.h>
 
@@ -34,6 +35,14 @@ struct l1gprs_pdch {
 	uint32_t dl_tfi_mask;
 };
 
+static inline size_t l1gprs_pdch_use_count(const struct l1gprs_pdch *pdch)
+{
+	return pdch->ul_tbf_count + pdch->dl_tbf_count;
+}
+
+
+typedef void (*l1gprs_pdch_changed_t)(struct l1gprs_pdch *pdch, bool active);
+
 struct l1gprs_state {
 	/*! PDCH state for each timeslot */
 	struct l1gprs_pdch pdch[8];
@@ -43,11 +52,14 @@ struct l1gprs_state {
 	char *log_prefix;
 	/*! Some private data for API user */
 	void *priv;
+	/*! Callback triggered to signal lower layers when a PDCH TS has to be activated/deactivated */
+	l1gprs_pdch_changed_t pdch_changed_cb;
 };
 
 void l1gprs_logging_init(int logc);
 struct l1gprs_state *l1gprs_state_alloc(void *ctx, const char *log_prefix, void *priv);
 void l1gprs_state_free(struct l1gprs_state *gprs);
+void l1gprs_state_set_pdch_changed_cb(struct l1gprs_state *gprs, l1gprs_pdch_changed_t pdch_changed_cb);
 
 int l1gprs_handle_ul_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *msg);
 int l1gprs_handle_dl_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *msg);

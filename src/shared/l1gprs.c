@@ -118,6 +118,12 @@ static void l1gprs_register_tbf(struct l1gprs_state *gprs,
 		LOGP_PDCH(pdch, LOGL_DEBUG,
 			  "Linked " LOG_TBF_FMT "\n",
 			  LOG_TBF_ARGS(tbf));
+
+		/* If just got first use: */
+		if (l1gprs_pdch_use_count(pdch) == 1) {
+			if (gprs->pdch_changed_cb)
+				gprs->pdch_changed_cb(pdch, true);
+		}
 	}
 
 	llist_add_tail(&tbf->list, &gprs->tbf_list);
@@ -154,6 +160,11 @@ static void l1gprs_update_tbf(struct l1gprs_state *gprs, struct l1gprs_tbf *tbf,
 			}
 			LOGP_PDCH(pdch, LOGL_DEBUG, "Unlinked " LOG_TBF_FMT "\n",
 				  LOG_TBF_ARGS(tbf));
+			/* If not more in use: */
+			if (l1gprs_pdch_use_count(pdch) == 0) {
+				if (gprs->pdch_changed_cb)
+					gprs->pdch_changed_cb(pdch, false);
+			}
 		} else {
 			/* Slot was not set, add it */
 			if (tbf->uplink) {
@@ -164,6 +175,11 @@ static void l1gprs_update_tbf(struct l1gprs_state *gprs, struct l1gprs_tbf *tbf,
 			}
 			LOGP_PDCH(pdch, LOGL_DEBUG, "Linked " LOG_TBF_FMT "\n",
 				  LOG_TBF_ARGS(tbf));
+			/* If just got first use: */
+			if (l1gprs_pdch_use_count(pdch) == 1) {
+				if (gprs->pdch_changed_cb)
+					gprs->pdch_changed_cb(pdch, true);
+			}
 		}
 	}
 
@@ -197,6 +213,12 @@ static void l1gprs_unregister_tbf(struct l1gprs_state *gprs, struct l1gprs_tbf *
 		LOGP_PDCH(pdch, LOGL_DEBUG,
 			  "Unlinked " LOG_TBF_FMT "\n",
 			  LOG_TBF_ARGS(tbf));
+
+		/* If not more in use: */
+		if (l1gprs_pdch_use_count(pdch) == 0) {
+			if (gprs->pdch_changed_cb)
+				gprs->pdch_changed_cb(pdch, false);
+		}
 	}
 
 	LOGP_GPRS(gprs, LOGL_INFO,
@@ -307,6 +329,11 @@ void l1gprs_state_free(struct l1gprs_state *gprs)
 
 	talloc_free(gprs->log_prefix);
 	talloc_free(gprs);
+}
+
+void l1gprs_state_set_pdch_changed_cb(struct l1gprs_state *gprs, l1gprs_pdch_changed_t pdch_changed_cb)
+{
+	gprs->pdch_changed_cb = pdch_changed_cb;
 }
 
 int l1gprs_handle_ul_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *msg)
