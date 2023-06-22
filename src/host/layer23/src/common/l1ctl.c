@@ -37,13 +37,13 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/gsm/rsl.h>
+#include <osmocom/gsm/lapdm.h>
 
 #include <osmocom/bb/common/l1ctl.h>
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/l1l2_interface.h>
-#include <osmocom/gsm/lapdm.h>
 #include <osmocom/bb/common/logging.h>
 
 #define CB_FCCH		-1
