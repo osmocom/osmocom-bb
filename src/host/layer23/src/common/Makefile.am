@@ -24,6 +24,7 @@ liblayer23_a_SOURCES = \
 	logging.c \
 	ms.c \
 	networks.c \
+	pkt_acc_proc_fsm.c \
 	sap_fsm.c \
 	sap_proto.c \
 	sap_interface.c \

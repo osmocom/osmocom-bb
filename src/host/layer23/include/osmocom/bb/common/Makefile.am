@@ -10,6 +10,7 @@ noinst_HEADERS = \
 	gps.h \
 	sysinfo.h \
 	osmocom_data.h \
+	pkt_acc_proc_fsm.h \
 	utils.h \
 	sap_proto.h \
 	sap_fsm.h \
