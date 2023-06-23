@@ -253,22 +253,44 @@ static int grr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t ch_type, ch_subch, ch_ts;
 	int rc;
 
-	/* Discard CS channel assignment */
-	if ((ia->page_mode >> 4) == 0) {
-		LOGP(DRR, LOGL_INFO, "%s(): Discard CS channel assignment\n", __func__);
+	/* 3GPP TS 44.018, section 10.5.2.25b "Dedicated mode or TBF".
+	 * As per table 9.1.18.1, only the value part (4 bits) is present in the
+	 * IMMEDIATE ASSIGNMENT message.  In struct gsm48_imm_ass it's combined
+	 * with the Page Mode IE, perhaps due to historical reasons. */
+	const uint8_t dm_or_tbf = ia->page_mode >> 4;
+
+	/* T/D flag: discard dedicated channel assignment */
+	if ((dm_or_tbf & (1 << 0)) == 0) {
+		LOGP(DRR, LOGL_INFO,
+		     "%s(): Discarding IMM ASS: dedicated channel assignment\n",
+		     __func__);
+		return 0;
+	}
+	/* NRA flag: discard No Resource Allocated */
+	if ((dm_or_tbf & (1 << 3)) != 0) {
+		LOGP(DRR, LOGL_INFO,
+		     "%s(): Discarding IMM ASS: NRA flag is set\n",
+		     __func__);
 		return 0;
 	}
 
-	if (rr->state != GSM48_RR_ST_CONN_PEND) {
-		LOGP(DRR, LOGL_INFO, "%s(): rr_state != GSM48_RR_ST_CONN_PEND\n", __func__);
-		return 0;
-	}
-	if (!grr_match_req_ref(ms, &ia->req_ref)) {
-		LOGP(DRR, LOGL_INFO, "%s(): req_ref mismatch (RA=0x%02x, T1=%u, T3=%u, T2=%u, FN=%u)\n",
-		     __func__, ia->req_ref.ra, ia->req_ref.t1,
-		     ia->req_ref.t3_high << 3 | ia->req_ref.t3_low, ia->req_ref.t2,
-		     _gsm48_req_ref2fn(&ia->req_ref));
-		return 0;
+	/* If this is an Uplink TBF assignment, check the Request Reference IE.
+	 * Checking this IE in Downlink TBF assignment makes no sense because
+	 * no CHANNEL REQUEST was sent by the MS prior to it. */
+	if ((dm_or_tbf & (1 << 1)) == 0) {
+		if (rr->state != GSM48_RR_ST_CONN_PEND) {
+			LOGP(DRR, LOGL_INFO,
+			     "%s(): rr_state != GSM48_RR_ST_CONN_PEND\n", __func__);
+			return 0;
+		}
+		if (!grr_match_req_ref(ms, &ia->req_ref)) {
+			LOGP(DRR, LOGL_INFO,
+			     "%s(): req_ref mismatch (RA=0x%02x, T1=%u, T3=%u, T2=%u, FN=%u)\n",
+			     __func__, ia->req_ref.ra, ia->req_ref.t1,
+			     ia->req_ref.t3_high << 3 | ia->req_ref.t3_low, ia->req_ref.t2,
+			     _gsm48_req_ref2fn(&ia->req_ref));
+			return 0;
+		}
 	}
 
 	if (rsl_dec_chan_nr(ia->chan_desc.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
