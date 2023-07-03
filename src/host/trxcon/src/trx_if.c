@@ -261,8 +261,10 @@ static int trx_if_cmd_poweroff(struct trx_instance *trx)
 
 static int trx_if_cmd_poweron(struct trx_instance *trx)
 {
+#if 0
 	if (trx->powered_up)
 		return -EAGAIN;
+#endif
 	return trx_ctrl_cmd(trx, 1, "POWERON", "");
 }
 
