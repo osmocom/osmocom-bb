@@ -412,6 +412,40 @@ bfi:
 					   n_errors, n_bits_total, true);
 }
 
+static struct msgb *prim_dequeue_tchh(struct l1sched_lchan_state *lchan, uint32_t fn)
+{
+	struct msgb *facch;
+	struct msgb *tch;
+	bool facch_now;
+
+	/* Can we initiate an UL FACCH/H frame transmission at this Fn? */
+	facch_now = l1sched_tchh_facch_start(lchan->type, fn, true);
+	if (!facch_now)
+		goto no_facch;
+
+	/* If there are no FACCH/H prims in the queue */
+	facch = l1sched_lchan_prim_dequeue_tch(lchan, true);
+	if (!facch) /* Just dequeue a TCH/H prim */
+		goto no_facch;
+
+	/* FACCH/H prim replaces two TCH/F prims */
+	tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
+	if (tch) {
+		/* At least one TCH/H prim is dropped */
+		msgb_free(tch);
+
+		/* Attempt to find another */
+		tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
+		if (tch) /* Drop the second TCH/H prim */
+			msgb_free(tch);
+	}
+
+	return facch;
+
+no_facch:
+	return l1sched_lchan_prim_dequeue_tch(lchan, false);
+}
+
 int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
@@ -424,8 +458,11 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->tx_burst_mask;
 	bursts_p = lchan->tx_bursts;
 
-	if (br->bid > 0)
+	if (br->bid > 0) {
+		if ((*mask & 0x01) != 0x01)
+			return -ENOENT;
 		goto send_burst;
+	}
 
 	if (*mask == 0x00) {
 		/* Align transmission of the first FACCH/H frame */
@@ -443,6 +480,13 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	/* If FACCH/H blocks are still pending */
 	if (lchan->ul_facch_blocks > 2)
 		goto send_burst;
+
+	lchan->prim = prim_dequeue_tchh(lchan, br->fn);
+	if (lchan->prim == NULL) {
+		lchan->prim = l1sched_lchan_prim_dummy(lchan);
+		if (lchan->prim == NULL)
+			return -ENOENT;
+	}
 
 	if (msgb_l2len(lchan->prim) == GSM_MACBLOCK_LEN)
 		lchan->ul_facch_blocks = 6;

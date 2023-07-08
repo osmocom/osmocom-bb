@@ -116,8 +116,9 @@ void l1sched_prim_init(struct msgb *msg,
 struct msgb *l1sched_prim_alloc(enum l1sched_prim_type type,
 				enum osmo_prim_operation op);
 
-struct msgb *l1sched_lchan_prim_dequeue(struct l1sched_lchan_state *lchan, uint32_t fn);
-void l1sched_lchan_prim_assign_dummy(struct l1sched_lchan_state *lchan);
+struct msgb *l1sched_lchan_prim_dequeue_sacch(struct l1sched_lchan_state *lchan);
+struct msgb *l1sched_lchan_prim_dequeue_tch(struct l1sched_lchan_state *lchan, bool facch);
+struct msgb *l1sched_lchan_prim_dummy(struct l1sched_lchan_state *lchan);
 void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan);
 
 int l1sched_lchan_emit_data_ind(struct l1sched_lchan_state *lchan,

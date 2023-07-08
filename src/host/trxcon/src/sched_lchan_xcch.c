@@ -98,6 +98,27 @@ int rx_data_fn(struct l1sched_lchan_state *lchan,
 					   n_errors, n_bits_total, false);
 }
 
+static struct msgb *prim_dequeue_xcch(struct l1sched_lchan_state *lchan)
+{
+	struct msgb *msg;
+
+	if (L1SCHED_CHAN_IS_SACCH(lchan->type))
+		return l1sched_lchan_prim_dequeue_sacch(lchan);
+	if ((msg = msgb_dequeue(&lchan->tx_prims)) == NULL)
+		return NULL;
+
+	/* Check the prim payload length */
+	if (msgb_l2len(msg) != GSM_MACBLOCK_LEN) {
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Primitive has odd length %u (expected %u), so dropping...\n",
+			    msgb_l2len(msg), GSM_MACBLOCK_LEN);
+		msgb_free(msg);
+		return NULL;
+	}
+
+	return msg;
+}
+
 int tx_data_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
@@ -110,17 +131,18 @@ int tx_data_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->tx_burst_mask;
 	bursts_p = lchan->tx_bursts;
 
-	if (br->bid > 0)
+	if (br->bid > 0) {
+		if ((*mask & 0x01) != 0x01)
+			return -ENOENT;
 		goto send_burst;
-
-	/* Check the prim payload length */
-	if (msgb_l2len(lchan->prim) != GSM_MACBLOCK_LEN) {
-		LOGP_LCHAND(lchan, LOGL_ERROR,
-			    "Primitive has odd length %u (expected %u), so dropping...\n",
-			    msgb_l2len(lchan->prim), GSM_MACBLOCK_LEN);
-		l1sched_lchan_prim_drop(lchan);
-		return -EINVAL;
 	}
+
+	*mask = *mask << 4;
+
+	lchan->prim = prim_dequeue_xcch(lchan);
+	if (lchan->prim == NULL)
+		lchan->prim = l1sched_lchan_prim_dummy(lchan);
+	OSMO_ASSERT(lchan->prim != NULL);
 
 	/* Encode payload */
 	rc = gsm0503_xcch_encode(bursts_p, msgb_l2(lchan->prim));
@@ -155,9 +177,6 @@ send_burst:
 	if ((*mask & 0x0f) == 0x0f) {
 		/* Confirm data sending (pass ownership of the prim) */
 		l1sched_lchan_emit_data_cnf(lchan, br->fn);
-
-		/* Reset mask */
-		*mask = 0x00;
 	}
 
 	return 0;

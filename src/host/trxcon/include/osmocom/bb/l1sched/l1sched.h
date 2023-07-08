@@ -30,8 +30,6 @@
 #define L1SCHED_CH_FLAG_PDCH	(1 << 0)
 /* Should a channel be activated automatically */
 #define L1SCHED_CH_FLAG_AUTO	(1 << 1)
-/* Is continuous burst transmission assumed */
-#define L1SCHED_CH_FLAG_CBTX	(1 << 2)
 
 #define MAX_A5_KEY_LEN		(128 / 8)
 #define TRX_TS_COUNT		8

@@ -101,6 +101,24 @@ int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
 	return 0;
 }
 
+static struct msgb *prim_dequeue_pdtch(struct l1sched_lchan_state *lchan, uint32_t fn)
+{
+	const struct l1sched_prim *prim;
+	struct msgb *msg;
+
+	msg = msgb_dequeue(&lchan->tx_prims);
+	if (msg == NULL)
+		return NULL;
+	prim = l1sched_prim_from_msgb(msg);
+
+	if (OSMO_LIKELY(prim->data_req.frame_nr == fn))
+		return msg;
+	LOGP_LCHAND(lchan, LOGL_ERROR,
+		    "%s(): dropping Tx primitive (current Fn=%u, prim Fn=%u)\n",
+		    __func__, fn, prim->data_req.frame_nr);
+	msgb_free(msg);
+	return NULL;
+}
 
 int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 		struct l1sched_burst_req *br)
@@ -114,8 +132,17 @@ int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->tx_burst_mask;
 	bursts_p = lchan->tx_bursts;
 
-	if (br->bid > 0)
+	if (br->bid > 0) {
+		if ((*mask & 0x01) != 0x01)
+			return -ENOENT;
 		goto send_burst;
+	}
+
+	*mask = *mask << 4;
+
+	lchan->prim = prim_dequeue_pdtch(lchan, br->fn);
+	if (lchan->prim == NULL)
+		return -ENOENT;
 
 	/* Encode payload */
 	rc = gsm0503_pdtch_encode(bursts_p, msgb_l2(lchan->prim), msgb_l2len(lchan->prim));
@@ -150,9 +177,6 @@ send_burst:
 	if ((*mask & 0x0f) == 0x0f) {
 		/* Confirm data / traffic sending (pass ownership of the prim) */
 		l1sched_lchan_emit_data_cnf(lchan, br->fn);
-
-		/* Reset mask */
-		*mask = 0x00;
 	}
 
 	return 0;

@@ -151,7 +151,7 @@ static struct msgb *prim_compose_mr(struct l1sched_lchan_state *lchan)
  * @param  lchan lchan to assign a primitive
  * @return       SACCH primitive to be transmitted
  */
-static struct msgb *prim_dequeue_sacch(struct l1sched_lchan_state *lchan)
+struct msgb *l1sched_lchan_prim_dequeue_sacch(struct l1sched_lchan_state *lchan)
 {
 	struct msgb *msg_nmr = NULL;
 	struct msgb *msg_mr = NULL;
@@ -228,7 +228,7 @@ static struct msgb *prim_dequeue_sacch(struct l1sched_lchan_state *lchan)
  * @return            either a FACCH, or a TCH primitive if found,
  *                    otherwise NULL
  */
-static struct msgb *prim_dequeue_tch(struct l1sched_lchan_state *lchan, bool facch)
+struct msgb *l1sched_lchan_prim_dequeue_tch(struct l1sched_lchan_state *lchan, bool facch)
 {
 	struct msgb *msg;
 
@@ -249,146 +249,6 @@ static struct msgb *prim_dequeue_tch(struct l1sched_lchan_state *lchan, bool fac
 }
 
 /**
- * Dequeues either a TCH/F, or a FACCH/F prim (preferred).
- * If a FACCH/F prim is found, one TCH/F prim is being
- * dropped (i.e. replaced).
- *
- * @param  lchan logical channel state
- * @return       either a FACCH/F, or a TCH/F primitive,
- *               otherwise NULL
- */
-static struct msgb *prim_dequeue_tch_f(struct l1sched_lchan_state *lchan)
-{
-	struct msgb *facch;
-	struct msgb *tch;
-
-	/* Attempt to find a pair of both FACCH/F and TCH/F frames */
-	facch = prim_dequeue_tch(lchan, true);
-	tch = prim_dequeue_tch(lchan, false);
-
-	/* Prioritize FACCH/F, if found */
-	if (facch) {
-		/* One TCH/F prim is replaced */
-		if (tch)
-			msgb_free(tch);
-		return facch;
-	} else if (tch) {
-		/* Only TCH/F prim was found */
-		return tch;
-	} else {
-		/* Nothing was found */
-		return NULL;
-	}
-}
-
-/**
- * Dequeues either a TCH/H, or a FACCH/H prim (preferred).
- * If a FACCH/H prim is found, two TCH/H prims are being
- * dropped (i.e. replaced).
- *
- * According to GSM 05.02, the following blocks can be used
- * to carry FACCH/H data (see clause 7, table 1 of 9):
- *
- * UL FACCH/H0:
- * B0(0,2,4,6,8,10), B1(8,10,13,15,17,19), B2(17,19,21,23,0,2)
- *
- * UL FACCH/H1:
- * B0(1,3,5,7,9,11), B1(9,11,14,16,18,20), B2(18,20,22,24,1,3)
- *
- * where the numbers within brackets are fn % 26.
- *
- * @param  lchan      logical channel state
- * @param  fn         the current frame number
- * @return            either a FACCH/H, or a TCH/H primitive,
- *                    otherwise NULL
- */
-static struct msgb *prim_dequeue_tch_h(struct l1sched_lchan_state *lchan, uint32_t fn)
-{
-	struct msgb *facch;
-	struct msgb *tch;
-	bool facch_now;
-
-	/* May we initiate an UL FACCH/H frame transmission now? */
-	facch_now = l1sched_tchh_facch_start(lchan->type, fn, true);
-	if (!facch_now) /* Just dequeue a TCH/H prim */
-		goto no_facch;
-
-	/* If there are no FACCH/H prims in the queue */
-	facch = prim_dequeue_tch(lchan, true);
-	if (!facch) /* Just dequeue a TCH/H prim */
-		goto no_facch;
-
-	/* FACCH/H prim replaces two TCH/F prims */
-	tch = prim_dequeue_tch(lchan, false);
-	if (tch) {
-		/* At least one TCH/H prim is dropped */
-		msgb_free(tch);
-
-		/* Attempt to find another */
-		tch = prim_dequeue_tch(lchan, false);
-		if (tch) /* Drop the second TCH/H prim */
-			msgb_free(tch);
-	}
-
-	return facch;
-
-no_facch:
-	return prim_dequeue_tch(lchan, false);
-}
-
-/**
- * Dequeues a primitive from the Tx queue of the given lchan.
- *
- * @param  lchan      logical channel state
- * @param  fn         the current frame number (used for FACCH/H)
- * @return            a primitive or NULL if not found
- */
-struct msgb *l1sched_lchan_prim_dequeue(struct l1sched_lchan_state *lchan, uint32_t fn)
-{
-	/* SACCH is unorthodox, see 3GPP TS 04.08, section 3.4.1 */
-	if (L1SCHED_CHAN_IS_SACCH(lchan->type))
-		return prim_dequeue_sacch(lchan);
-
-	/* There is nothing to dequeue */
-	if (llist_empty(&lchan->tx_prims))
-		return NULL;
-
-	switch (lchan->type) {
-	/* TCH/F requires FACCH/F prioritization */
-	case L1SCHED_TCHF:
-		return prim_dequeue_tch_f(lchan);
-
-	/* FACCH/H prioritization is a bit more complex */
-	case L1SCHED_TCHH_0:
-	case L1SCHED_TCHH_1:
-		return prim_dequeue_tch_h(lchan, fn);
-
-	/* PDCH is timing critical, we need to check TDMA Fn */
-	case L1SCHED_PDTCH:
-	{
-		struct msgb *msg = msgb_dequeue(&lchan->tx_prims);
-		const struct l1sched_prim *prim;
-
-		if (msg == NULL)
-			return NULL;
-		prim = l1sched_prim_from_msgb(msg);
-
-		if (OSMO_LIKELY(prim->data_req.frame_nr == fn))
-			return msg;
-		LOGP_LCHAND(lchan, LOGL_ERROR,
-			    "%s(): dropping Tx primitive (current Fn=%u, prim Fn=%u)\n",
-			    __func__, fn, prim->data_req.frame_nr);
-		msgb_free(msg);
-		return NULL;
-	}
-
-	/* Other kinds of logical channels */
-	default:
-		return msgb_dequeue(&lchan->tx_prims);
-	}
-}
-
-/**
  * Drops the current primitive of specified logical channel
  *
  * @param lchan a logical channel to drop prim from
@@ -400,14 +260,13 @@ void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan)
 }
 
 /**
- * Assigns a dummy primitive to a lchan depending on its type.
- * Could be used when there is nothing to transmit, but
- * CBTX (Continuous Burst Transmission) is assumed.
+ * Allocate a dummy DATA.req for the given logical channel.
+ * To be used when no suitable DATA.req is present in the Tx queue.
  *
- * @param  lchan lchan to assign a primitive
- * @return       zero in case of success, otherwise a error code
+ * @param  lchan lchan to allocate a dummy primitive for
+ * @return       an msgb with DATA.req primitive, or NULL
  */
-void l1sched_lchan_prim_assign_dummy(struct l1sched_lchan_state *lchan)
+struct msgb *l1sched_lchan_prim_dummy(struct l1sched_lchan_state *lchan)
 {
 	const struct l1sched_lchan_desc *lchan_desc;
 	enum l1sched_lchan_type chan = lchan->type;
@@ -428,8 +287,6 @@ void l1sched_lchan_prim_assign_dummy(struct l1sched_lchan_state *lchan)
 		/* Pending part is to be randomized */
 	};
 
-	/* Make sure that there is no existing primitive */
-	OSMO_ASSERT(lchan->prim == NULL);
 	/* Not applicable for SACCH! */
 	OSMO_ASSERT(!L1SCHED_CHAN_IS_SACCH(lchan->type));
 
@@ -446,7 +303,7 @@ void l1sched_lchan_prim_assign_dummy(struct l1sched_lchan_state *lchan)
 		prim_len = l1sched_bad_frame_ind(prim_buffer, lchan);
 	} else if (L1SCHED_CHAN_IS_TCH(chan) && L1SCHED_TCH_MODE_IS_DATA(tch_mode)) {
 		/* FIXME: should we do anything for CSD? */
-		return;
+		return NULL;
 	} else {
 		/* Copy LAPDm fill frame's header */
 		memcpy(prim_buffer, lapdm_fill_frame, sizeof(lapdm_fill_frame));
@@ -466,7 +323,7 @@ void l1sched_lchan_prim_assign_dummy(struct l1sched_lchan_state *lchan)
 
 	/* Nothing to allocate / assign */
 	if (!prim_len)
-		return;
+		return NULL;
 
 	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST);
 	OSMO_ASSERT(msg != NULL);
@@ -479,10 +336,7 @@ void l1sched_lchan_prim_assign_dummy(struct l1sched_lchan_state *lchan)
 
 	memcpy(msgb_put(msg, prim_len), &prim_buffer[0], prim_len);
 
-	/* Assign the current prim */
-	lchan->prim = msg;
-
-	LOGP_LCHAND(lchan, LOGL_DEBUG, "Transmitting a dummy / silence frame\n");
+	return msg;
 }
 
 int l1sched_lchan_emit_data_ind(struct l1sched_lchan_state *lchan,

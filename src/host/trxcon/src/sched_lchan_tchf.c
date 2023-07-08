@@ -213,6 +213,30 @@ bfi:
 					   n_errors, n_bits_total, true);
 }
 
+static struct msgb *prim_dequeue_tchf(struct l1sched_lchan_state *lchan)
+{
+	struct msgb *facch;
+	struct msgb *tch;
+
+	/* Attempt to find a pair of FACCH/F and TCH/F frames */
+	facch = l1sched_lchan_prim_dequeue_tch(lchan, true);
+	tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
+
+	/* Prioritize FACCH/F, if found */
+	if (facch) {
+		/* One TCH/F prim is replaced */
+		if (tch)
+			msgb_free(tch);
+		return facch;
+	} else if (tch) {
+		/* Only TCH/F prim was found */
+		return tch;
+	} else {
+		/* Nothing was found */
+		return NULL;
+	}
+}
+
 int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
@@ -225,13 +249,23 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	mask = &lchan->tx_burst_mask;
 	bursts_p = lchan->tx_bursts;
 
-	if (br->bid > 0)
+	if (br->bid > 0) {
+		if ((*mask & 0x01) != 0x01)
+			return -ENOENT;
 		goto send_burst;
+	}
 
 	/* Shift the burst buffer by 4 bursts leftwards for interleaving */
 	memcpy(&bursts_p[0], &bursts_p[464], 464);
 	memset(&bursts_p[464], 0, 464);
 	*mask = *mask << 4;
+
+	lchan->prim = prim_dequeue_tchf(lchan);
+	if (lchan->prim == NULL) {
+		lchan->prim = l1sched_lchan_prim_dummy(lchan);
+		if (lchan->prim == NULL)
+			return -ENOENT;
+	}
 
 	/* populate the buffer with bursts */
 	switch (lchan->tch_mode) {

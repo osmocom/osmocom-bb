@@ -78,6 +78,11 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	uint8_t payload[36];
 	int i, rc;
 
+	if (lchan->prim == NULL) {
+		lchan->prim = msgb_dequeue(&lchan->tx_prims);
+		if (lchan->prim == NULL)
+			return 0;
+	}
 	prim = l1sched_prim_from_msgb(lchan->prim);
 
 	/* Delay sending according to offset value */

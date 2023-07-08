@@ -121,27 +121,10 @@ void l1sched_pull_burst(struct l1sched_state *sched, struct l1sched_burst_req *b
 	if (lchan == NULL || !lchan->active)
 		return;
 
-	/* If no primitive is being processed, try obtaining one from Tx queue */
-	if (lchan->prim == NULL) {
-		/* Align to the first burst of a block */
-		if (frame->ul_bid != 0)
-			return;
-		lchan->prim = l1sched_lchan_prim_dequeue(lchan, br->fn);
-		if (lchan->prim == NULL) {
-			/* If CBTX (Continuous Burst Transmission) is required */
-			if (l1sched_lchan_desc[chan].flags & L1SCHED_CH_FLAG_CBTX)
-				l1sched_lchan_prim_assign_dummy(lchan);
-			if (lchan->prim == NULL)
-				return;
-		}
-	}
-
-	/* TODO: report TX buffers health to the higher layers */
-
 	/* Handover RACH needs to be handled regardless of the
 	 * current channel type and the associated handler. */
-	if (l1sched_prim_type_from_msgb(lchan->prim) == L1SCHED_PRIM_T_RACH &&
-	    lchan->type != L1SCHED_RACH)
+	struct msgb *msg = llist_first_entry_or_null(&lchan->tx_prims, struct msgb, list);
+	if (msg && l1sched_prim_type_from_msgb(msg) == L1SCHED_PRIM_T_RACH)
 		handler = l1sched_lchan_desc[L1SCHED_RACH].tx_fn;
 
 	/* Poke lchan handler */
