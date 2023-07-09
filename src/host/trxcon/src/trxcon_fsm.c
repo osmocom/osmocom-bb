@@ -271,6 +271,7 @@ static void trxcon_st_fbsb_search_action(struct osmo_fsm_inst *fi,
 
 	switch (event) {
 	case TRXCON_EV_FBSB_SEARCH_RES:
+	case TRXCON_EV_RX_DATA_IND:
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_BCCH_CCCH, 0, 0);
 		l1ctl_tx_fbsb_conf(trxcon, trxcon->l1p.band_arfcn, trxcon->sched->bsic);
 		break;
@@ -667,7 +668,8 @@ static const struct osmo_fsm_state trxcon_fsm_states[] = {
 		.name = "FBSB_SEARCH",
 		.out_state_mask = S(TRXCON_ST_RESET)
 				| S(TRXCON_ST_BCCH_CCCH),
-		.in_event_mask  = S(TRXCON_EV_FBSB_SEARCH_RES),
+		.in_event_mask  = S(TRXCON_EV_FBSB_SEARCH_RES)
+				| S(TRXCON_EV_RX_DATA_IND),
 		.action = &trxcon_st_fbsb_search_action,
 	},
 	[TRXCON_ST_BCCH_CCCH] = {
