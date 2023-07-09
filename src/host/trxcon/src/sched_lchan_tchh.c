@@ -414,36 +414,23 @@ bfi:
 
 static struct msgb *prim_dequeue_tchh(struct l1sched_lchan_state *lchan, uint32_t fn)
 {
-	struct msgb *facch;
-	struct msgb *tch;
-	bool facch_now;
+	struct msgb *msg_facch;
+	struct msgb *msg_tch;
 
-	/* Can we initiate an UL FACCH/H frame transmission at this Fn? */
-	facch_now = l1sched_tchh_facch_start(lchan->type, fn, true);
-	if (!facch_now)
-		goto no_facch;
+	/* dequeue a pair of TCH and FACCH frames */
+	msg_tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
+	if (l1sched_tchh_facch_start(lchan->type, fn, true))
+		msg_facch = l1sched_lchan_prim_dequeue_tch(lchan, true);
+	else
+		msg_facch = NULL;
 
-	/* If there are no FACCH/H prims in the queue */
-	facch = l1sched_lchan_prim_dequeue_tch(lchan, true);
-	if (!facch) /* Just dequeue a TCH/H prim */
-		goto no_facch;
-
-	/* FACCH/H prim replaces two TCH/F prims */
-	tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
-	if (tch) {
-		/* At least one TCH/H prim is dropped */
-		msgb_free(tch);
-
-		/* Attempt to find another */
-		tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
-		if (tch) /* Drop the second TCH/H prim */
-			msgb_free(tch);
+	/* prioritize FACCH over TCH */
+	if (msg_facch != NULL) {
+		msgb_free(msg_tch); /* drop 1st TCH/HS block */
+		return msg_facch;
 	}
 
-	return facch;
-
-no_facch:
-	return l1sched_lchan_prim_dequeue_tch(lchan, false);
+	return msg_tch;
 }
 
 int tx_tchh_fn(struct l1sched_lchan_state *lchan,
@@ -478,8 +465,11 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	*mask = *mask << 2;
 
 	/* If FACCH/H blocks are still pending */
-	if (lchan->ul_facch_blocks > 2)
+	if (lchan->ul_facch_blocks > 2) {
+		struct msgb *msg = l1sched_lchan_prim_dequeue_tch(lchan, false);
+		msgb_free(msg); /* drop 2nd TCH/HS block */
 		goto send_burst;
+	}
 
 	lchan->prim = prim_dequeue_tchh(lchan, br->fn);
 	if (lchan->prim == NULL) {
