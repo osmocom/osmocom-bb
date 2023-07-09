@@ -230,15 +230,20 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	*mask = *mask << 4;
 
 	lchan->prim = prim_dequeue_tchf(lchan);
-	if (lchan->prim == NULL)
-		lchan->prim = l1sched_lchan_prim_dummy_lapdm(lchan);
-	OSMO_ASSERT(lchan->prim != NULL);
 
 	/* populate the buffer with bursts */
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
+		if (lchan->prim == NULL)
+			lchan->prim = l1sched_lchan_prim_dummy_lapdm(lchan);
+		/* fall-through */
 	case GSM48_CMODE_SPEECH_V1:
 	case GSM48_CMODE_SPEECH_EFR:
+		if (lchan->prim == NULL) {
+			/* transmit a dummy speech block with inverted CRC3 */
+			gsm0503_tch_fr_encode(bursts_p, NULL, 0, 1);
+			goto send_burst;
+		}
 		rc = gsm0503_tch_fr_encode(bursts_p,
 					   msgb_l2(lchan->prim),
 					   msgb_l2len(lchan->prim), 1);
@@ -246,8 +251,14 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 	case GSM48_CMODE_SPEECH_AMR:
 	{
 		bool amr_fn_is_cmr = !sched_tchf_ul_amr_cmi_map[br->fn % 26];
-		const uint8_t *data = msgb_l2(lchan->prim);
-		size_t data_len = msgb_l2len(lchan->prim);
+		const uint8_t *data = lchan->prim ? msgb_l2(lchan->prim) : NULL;
+		size_t data_len = lchan->prim ? msgb_l2len(lchan->prim) : 0;
+
+		if (lchan->prim == NULL) {
+			/* TODO: It's not clear what to do for TCH/AFS.
+			 * TODO: Send dummy FACCH maybe? */
+			goto send_burst; /* send something */
+		}
 
 		if (data_len != GSM_MACBLOCK_LEN) { /* TCH/AFS: speech */
 			if (!l1sched_lchan_amr_prim_is_valid(lchan, amr_fn_is_cmr))

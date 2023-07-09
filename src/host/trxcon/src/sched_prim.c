@@ -349,8 +349,8 @@ int l1sched_lchan_emit_data_cnf(struct l1sched_lchan_state *lchan, uint32_t fn)
 	struct msgb *msg;
 
 	/* take ownership of the prim */
-	OSMO_ASSERT(lchan->prim != NULL);
-	msg = lchan->prim;
+	if ((msg = lchan->prim) == NULL)
+		return -ENODEV;
 	lchan->prim = NULL;
 
 	/* convert from DATA.req to DATA.cnf */
