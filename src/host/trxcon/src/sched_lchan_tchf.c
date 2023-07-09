@@ -215,26 +215,20 @@ bfi:
 
 static struct msgb *prim_dequeue_tchf(struct l1sched_lchan_state *lchan)
 {
-	struct msgb *facch;
-	struct msgb *tch;
+	struct msgb *msg_facch;
+	struct msgb *msg_tch;
 
-	/* Attempt to find a pair of FACCH/F and TCH/F frames */
-	facch = l1sched_lchan_prim_dequeue_tch(lchan, true);
-	tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
+	/* dequeue a pair of TCH and FACCH frames */
+	msg_tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
+	msg_facch = l1sched_lchan_prim_dequeue_tch(lchan, true);
 
-	/* Prioritize FACCH/F, if found */
-	if (facch) {
-		/* One TCH/F prim is replaced */
-		if (tch)
-			msgb_free(tch);
-		return facch;
-	} else if (tch) {
-		/* Only TCH/F prim was found */
-		return tch;
-	} else {
-		/* Nothing was found */
-		return NULL;
+	/* prioritize FACCH over TCH */
+	if (msg_facch != NULL) {
+		msgb_free(msg_tch); /* drop one TCH/FS block */
+		return msg_facch;
 	}
+
+	return msg_tch;
 }
 
 int tx_tchf_fn(struct l1sched_lchan_state *lchan,
