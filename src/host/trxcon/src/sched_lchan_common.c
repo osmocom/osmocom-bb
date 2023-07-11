@@ -145,13 +145,11 @@ size_t l1sched_bad_frame_ind(uint8_t *l2, struct l1sched_lchan_state *lchan)
 bool l1sched_lchan_amr_prim_is_valid(struct l1sched_lchan_state *lchan, bool is_cmr)
 {
 	enum osmo_amr_type ft_codec;
-	enum osmo_amr_quality bfi;
 	uint8_t cmr_codec;
 	int ft, cmr, len;
-	int8_t sti, cmi;
 
 	len = osmo_amr_rtp_dec(msgb_l2(lchan->prim), msgb_l2len(lchan->prim),
-			       &cmr_codec, &cmi, &ft_codec, &bfi, &sti);
+			       &cmr_codec, NULL, &ft_codec, NULL, NULL);
 	if (len < 0) {
 		LOGP_LCHAND(lchan, LOGL_ERROR, "Cannot send invalid AMR payload (%u): %s\n",
 			    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
