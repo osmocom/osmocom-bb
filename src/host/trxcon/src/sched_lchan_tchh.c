@@ -457,54 +457,20 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 		break;
 	case GSM48_CMODE_SPEECH_AMR:
 	{
-		int len;
-		uint8_t cmr_codec;
-		int ft, cmr, i;
-		enum osmo_amr_type ft_codec;
-		enum osmo_amr_quality bfi;
-		int8_t sti, cmi;
-		bool amr_fn_is_cmr;
-		/* the first FN 0,8,17 defines that CMI is included in frame,
-		 * the first FN 4,13,21 defines that CMR is included in frame.
-		 */
-		amr_fn_is_cmr = !sched_tchh_ul_amr_cmi_map[br->fn % 26];
+		bool amr_fn_is_cmr = !sched_tchh_ul_amr_cmi_map[br->fn % 26];
+		const uint8_t *data = msgb_l2(lchan->prim);
+		size_t data_len = msgb_l2len(lchan->prim);
 
-		len = osmo_amr_rtp_dec(msgb_l2(lchan->prim), msgb_l2len(lchan->prim),
-				       &cmr_codec, &cmi, &ft_codec, &bfi, &sti);
-		if (len < 0) {
-			LOGP_LCHAND(lchan, LOGL_ERROR, "Cannot send invalid AMR payload (%u): %s\n",
-				    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
-			goto free_bad_msg;
+		if (data_len != GSM_MACBLOCK_LEN) { /* TCH/AHS: speech */
+			if (!l1sched_lchan_amr_prim_is_valid(lchan, amr_fn_is_cmr))
+				goto free_bad_msg;
+			/* pull the AMR header - sizeof(struct amr_hdr) */
+			data_len -= 2;
+			data += 2;
 		}
-		ft = -1;
-		cmr = -1;
-		for (i = 0; i < lchan->amr.codecs; i++) {
-			if (lchan->amr.codec[i] == ft_codec)
-				ft = i;
-			if (lchan->amr.codec[i] == cmr_codec)
-				cmr = i;
-		}
-		if (ft < 0) {
-			LOGP_LCHAND(lchan, LOGL_ERROR,
-				    "Codec (FT = %d) of RTP frame not in list\n", ft_codec);
-			goto free_bad_msg;
-		}
-		if (amr_fn_is_cmr && lchan->amr.ul_ft != ft) {
-			LOGP_LCHAND(lchan, LOGL_ERROR,
-				    "Codec (FT = %d) of RTP cannot be changed now, but in next frame\n",
-				    ft_codec);
-			goto free_bad_msg;
-		}
-		lchan->amr.ul_ft = ft;
-		if (cmr < 0) {
-			LOGP_LCHAND(lchan, LOGL_ERROR,
-				    "Codec (CMR = %d) of RTP frame not in list\n", cmr_codec);
-		} else {
-			lchan->amr.ul_cmr = cmr;
-		}
+
 		rc = gsm0503_tch_ahs_encode(bursts_p,
-					    msgb_l2(lchan->prim) + 2,
-					    msgb_l2len(lchan->prim) - 2,
+					    data, data_len,
 					    amr_fn_is_cmr,
 					    lchan->amr.codec,
 					    lchan->amr.codecs,

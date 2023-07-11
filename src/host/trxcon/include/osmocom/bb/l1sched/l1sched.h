@@ -392,6 +392,7 @@ extern const uint8_t l1sched_nb_training_bits[8][26];
 
 const char *l1sched_burst_mask2str(const uint8_t *mask, int bits);
 size_t l1sched_bad_frame_ind(uint8_t *l2, struct l1sched_lchan_state *lchan);
+bool l1sched_lchan_amr_prim_is_valid(struct l1sched_lchan_state *lchan, bool is_cmr);
 
 /* Interleaved TCH/H block TDMA frame mapping */
 bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,

@@ -141,3 +141,48 @@ size_t l1sched_bad_frame_ind(uint8_t *l2, struct l1sched_lchan_state *lchan)
 		return 0;
 	}
 }
+
+bool l1sched_lchan_amr_prim_is_valid(struct l1sched_lchan_state *lchan, bool is_cmr)
+{
+	enum osmo_amr_type ft_codec;
+	enum osmo_amr_quality bfi;
+	uint8_t cmr_codec;
+	int ft, cmr, len;
+	int8_t sti, cmi;
+
+	len = osmo_amr_rtp_dec(msgb_l2(lchan->prim), msgb_l2len(lchan->prim),
+			       &cmr_codec, &cmi, &ft_codec, &bfi, &sti);
+	if (len < 0) {
+		LOGP_LCHAND(lchan, LOGL_ERROR, "Cannot send invalid AMR payload (%u): %s\n",
+			    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
+		return false;
+	}
+	ft = -1;
+	cmr = -1;
+	for (unsigned int i = 0; i < lchan->amr.codecs; i++) {
+		if (lchan->amr.codec[i] == ft_codec)
+			ft = i;
+		if (lchan->amr.codec[i] == cmr_codec)
+			cmr = i;
+	}
+	if (ft < 0) {
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Codec (FT = %d) of RTP frame not in list\n", ft_codec);
+		return false;
+	}
+	if (is_cmr && lchan->amr.ul_ft != ft) {
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Codec (FT = %d) of RTP cannot be changed now, but in next frame\n",
+			    ft_codec);
+		return false;
+	}
+	lchan->amr.ul_ft = ft;
+	if (cmr < 0) {
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "Codec (CMR = %d) of RTP frame not in list\n", cmr_codec);
+	} else {
+		lchan->amr.ul_cmr = cmr;
+	}
+
+	return true;
+}
