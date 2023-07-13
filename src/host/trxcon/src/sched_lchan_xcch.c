@@ -139,19 +139,22 @@ int tx_data_fn(struct l1sched_lchan_state *lchan,
 
 	*mask = *mask << 4;
 
-	lchan->prim = prim_dequeue_xcch(lchan);
-	if (lchan->prim == NULL)
-		lchan->prim = l1sched_lchan_prim_dummy_lapdm(lchan);
-	OSMO_ASSERT(lchan->prim != NULL);
+	struct msgb *msg = prim_dequeue_xcch(lchan);
+	if (msg == NULL)
+		msg = l1sched_lchan_prim_dummy_lapdm(lchan);
+	OSMO_ASSERT(msg != NULL);
 
 	/* Encode payload */
-	rc = gsm0503_xcch_encode(bursts_p, msgb_l2(lchan->prim));
+	rc = gsm0503_xcch_encode(bursts_p, msgb_l2(msg));
 	if (rc) {
 		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%u): %s\n",
-			    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
-		l1sched_lchan_prim_drop(lchan);
+			    msgb_l2len(msg), msgb_hexdump_l2(msg));
+		msgb_free(msg);
 		return -EINVAL;
 	}
+
+	/* Confirm data sending (pass ownership of the msgb/prim) */
+	l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
 
 send_burst:
 	/* Determine which burst should be sent */
@@ -172,12 +175,6 @@ send_burst:
 	br->burst_len = GSM_NBITS_NB_GMSK_BURST;
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG, "Scheduled fn=%u burst=%u\n", br->fn, br->bid);
-
-	/* If we have sent the last (4/4) burst */
-	if ((*mask & 0x0f) == 0x0f) {
-		/* Confirm data sending (pass ownership of the prim) */
-		l1sched_lchan_emit_data_cnf(lchan, br->fn);
-	}
 
 	return 0;
 }

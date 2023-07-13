@@ -223,8 +223,6 @@ struct l1sched_lchan_state {
 
 	/*! Queue of Tx primitives */
 	struct llist_head tx_prims;
-	/*! Tx primitive being sent */
-	struct msgb *prim;
 
 	/*! Mode for TCH channels (see GSM48_CMODE_*) */
 	uint8_t	tch_mode;

@@ -116,16 +116,17 @@ void l1sched_prim_init(struct msgb *msg,
 struct msgb *l1sched_prim_alloc(enum l1sched_prim_type type,
 				enum osmo_prim_operation op);
 
-bool l1sched_lchan_amr_prim_is_valid(struct l1sched_lchan_state *lchan, bool is_cmr);
+bool l1sched_lchan_amr_prim_is_valid(struct l1sched_lchan_state *lchan,
+				     struct msgb *msg, bool is_cmr);
 struct msgb *l1sched_lchan_prim_dequeue_sacch(struct l1sched_lchan_state *lchan);
 struct msgb *l1sched_lchan_prim_dequeue_tch(struct l1sched_lchan_state *lchan, bool facch);
 struct msgb *l1sched_lchan_prim_dummy_lapdm(const struct l1sched_lchan_state *lchan);
-void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan);
 
 int l1sched_lchan_emit_data_ind(struct l1sched_lchan_state *lchan,
 				const uint8_t *data, size_t data_len,
 				int n_errors, int n_bits_total, bool traffic);
-int l1sched_lchan_emit_data_cnf(struct l1sched_lchan_state *lchan, uint32_t fn);
+int l1sched_lchan_emit_data_cnf(struct l1sched_lchan_state *lchan,
+				struct msgb *msg, uint32_t fn);
 
 int l1sched_prim_from_user(struct l1sched_state *sched, struct msgb *msg);
 int l1sched_prim_to_user(struct l1sched_state *sched, struct msgb *msg);

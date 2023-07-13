@@ -524,9 +524,6 @@ static void l1sched_reset_lchan(struct l1sched_lchan_state *lchan)
 	lchan->rx_bursts = NULL;
 	lchan->tx_bursts = NULL;
 
-	/* Forget the current prim */
-	l1sched_lchan_prim_drop(lchan);
-
 	/* Flush the queue of pending Tx prims */
 	while ((msg = msgb_dequeue(&lchan->tx_prims)) != NULL)
 		msgb_free(msg);

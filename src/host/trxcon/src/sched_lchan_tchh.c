@@ -381,40 +381,40 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 		goto send_burst;
 	}
 
-	lchan->prim = prim_dequeue_tchh(lchan, br->fn);
+	struct msgb *msg = prim_dequeue_tchh(lchan, br->fn);
 
 	/* populate the buffer with bursts */
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
 		if (!l1sched_tchh_facch_start(lchan->type, br->fn, 1))
 			goto send_burst; /* XXX: should not happen */
-		if (lchan->prim == NULL)
-			lchan->prim = l1sched_lchan_prim_dummy_lapdm(lchan);
+		if (msg == NULL)
+			msg = l1sched_lchan_prim_dummy_lapdm(lchan);
 		/* fall-through */
 	case GSM48_CMODE_SPEECH_V1:
-		if (lchan->prim == NULL) {
+		if (msg == NULL) {
 			/* transmit a dummy speech block with inverted CRC3 */
 			gsm0503_tch_hr_encode(bursts_p, NULL, 0);
 			goto send_burst;
 		}
 		rc = gsm0503_tch_hr_encode(bursts_p,
-					   msgb_l2(lchan->prim),
-					   msgb_l2len(lchan->prim));
+					   msgb_l2(msg),
+					   msgb_l2len(msg));
 		break;
 	case GSM48_CMODE_SPEECH_AMR:
 	{
 		bool amr_fn_is_cmr = !sched_tchh_ul_amr_cmi_map[br->fn % 26];
-		const uint8_t *data = lchan->prim ? msgb_l2(lchan->prim) : NULL;
-		size_t data_len = lchan->prim ? msgb_l2len(lchan->prim) : 0;
+		const uint8_t *data = msg ? msgb_l2(msg) : NULL;
+		size_t data_len = msg ? msgb_l2len(msg) : 0;
 
-		if (lchan->prim == NULL) {
+		if (msg == NULL) {
 			/* TODO: It's not clear what to do for TCH/AHS.
 			 * TODO: Send dummy FACCH maybe? */
 			goto send_burst; /* send garbage */
 		}
 
 		if (data_len != GSM_MACBLOCK_LEN) { /* TCH/AHS: speech */
-			if (!l1sched_lchan_amr_prim_is_valid(lchan, amr_fn_is_cmr))
+			if (!l1sched_lchan_amr_prim_is_valid(lchan, msg, amr_fn_is_cmr))
 				goto free_bad_msg;
 			/* pull the AMR header - sizeof(struct amr_hdr) */
 			data_len -= 2;
@@ -439,14 +439,17 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 
 	if (rc) {
 		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%u): %s\n",
-			    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
+			    msgb_l2len(msg), msgb_hexdump_l2(msg));
 free_bad_msg:
-		l1sched_lchan_prim_drop(lchan);
+		msgb_free(msg);
 		return -EINVAL;
 	}
 
-	if (msgb_l2len(lchan->prim) == GSM_MACBLOCK_LEN)
+	if (msgb_l2len(msg) == GSM_MACBLOCK_LEN)
 		lchan->ul_facch_blocks = 6;
+
+	/* Confirm data / traffic sending (pass ownership of the msgb/prim) */
+	l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
 
 send_burst:
 	/* Determine which burst should be sent */
@@ -471,14 +474,6 @@ send_burst:
 	/* In case of a FACCH/H frame, one block less */
 	if (lchan->ul_facch_blocks)
 		lchan->ul_facch_blocks--;
-
-	if ((*mask & 0x0f) == 0x0f) {
-		/* Confirm data / traffic sending (pass ownership of the prim) */
-		if (!lchan->ul_facch_blocks)
-			l1sched_lchan_emit_data_cnf(lchan, br->fn);
-		else /* do not confirm dropped prims */
-			l1sched_lchan_prim_drop(lchan);
-	}
 
 	return 0;
 }

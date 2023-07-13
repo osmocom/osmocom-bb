@@ -73,28 +73,27 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 	       struct l1sched_burst_req *br)
 {
 	const uint8_t bsic = lchan->ts->sched->bsic;
-	struct l1sched_prim *prim;
 	uint8_t *burst_ptr = br->burst;
 	uint8_t payload[36];
 	int i, rc;
 
-	if (lchan->prim == NULL) {
-		lchan->prim = msgb_dequeue(&lchan->tx_prims);
-		if (lchan->prim == NULL)
-			return 0;
-	}
-	prim = l1sched_prim_from_msgb(lchan->prim);
+	if (llist_empty(&lchan->tx_prims))
+		return 0;
+
+	struct msgb *msg = llist_first_entry(&lchan->tx_prims, struct msgb, list);
+	struct l1sched_prim *prim = l1sched_prim_from_msgb(msg);
 
 	/* Delay sending according to offset value */
 	if (prim->rach_req.offset-- > 0)
 		return 0;
+	llist_del(&msg->list);
 
 	/* Check requested synch. sequence */
 	if (prim->rach_req.synch_seq >= RACH_SYNCH_SEQ_NUM) {
 		LOGP_LCHAND(lchan, LOGL_ERROR,
 			    "Unknown RACH synch. sequence=0x%02x\n",
 			    prim->rach_req.synch_seq);
-		l1sched_lchan_prim_drop(lchan);
+		msgb_free(msg);
 		return -ENOTSUP;
 	}
 
@@ -106,7 +105,7 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 			    "Could not encode %s-bit RACH burst (ra=%u bsic=%u)\n",
 			    prim->rach_req.is_11bit ? "11" : "8",
 			    prim->rach_req.ra, bsic);
-		l1sched_lchan_prim_drop(lchan);
+		msgb_free(msg);
 		return rc;
 	}
 
@@ -130,8 +129,8 @@ int tx_rach_fn(struct l1sched_lchan_state *lchan,
 		    prim->rach_req.is_11bit ? "11" : "8",
 		    get_value_string(rach_synch_seq_names, prim->rach_req.synch_seq), br->fn);
 
-	/* Confirm RACH request (pass ownership of the prim) */
-	l1sched_lchan_emit_data_cnf(lchan, br->fn);
+	/* Confirm RACH request (pass ownership of the msgb/prim) */
+	l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
 
 	return 0;
 }

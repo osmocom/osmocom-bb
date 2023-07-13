@@ -93,17 +93,18 @@ const char *l1sched_burst_mask2str(const uint8_t *mask, int bits)
 	return buf;
 }
 
-bool l1sched_lchan_amr_prim_is_valid(struct l1sched_lchan_state *lchan, bool is_cmr)
+bool l1sched_lchan_amr_prim_is_valid(struct l1sched_lchan_state *lchan,
+				     struct msgb *msg, bool is_cmr)
 {
 	enum osmo_amr_type ft_codec;
 	uint8_t cmr_codec;
 	int ft, cmr, len;
 
-	len = osmo_amr_rtp_dec(msgb_l2(lchan->prim), msgb_l2len(lchan->prim),
+	len = osmo_amr_rtp_dec(msgb_l2(msg), msgb_l2len(msg),
 			       &cmr_codec, NULL, &ft_codec, NULL, NULL);
 	if (len < 0) {
 		LOGP_LCHAND(lchan, LOGL_ERROR, "Cannot send invalid AMR payload (%u): %s\n",
-			    msgb_l2len(lchan->prim), msgb_hexdump_l2(lchan->prim));
+			    msgb_l2len(msg), msgb_hexdump_l2(msg));
 		return false;
 	}
 	ft = -1;

@@ -249,17 +249,6 @@ struct msgb *l1sched_lchan_prim_dequeue_tch(struct l1sched_lchan_state *lchan, b
 }
 
 /**
- * Drops the current primitive of specified logical channel
- *
- * @param lchan a logical channel to drop prim from
- */
-void l1sched_lchan_prim_drop(struct l1sched_lchan_state *lchan)
-{
-	msgb_free(lchan->prim);
-	lchan->prim = NULL;
-}
-
-/**
  * Allocate a DATA.req with dummy LAPDm func=UI frame for the given logical channel.
  * To be used when no suitable DATA.req is present in the Tx queue.
  *
@@ -343,15 +332,12 @@ int l1sched_lchan_emit_data_ind(struct l1sched_lchan_state *lchan,
 	return l1sched_prim_to_user(lchan->ts->sched, msg);
 }
 
-int l1sched_lchan_emit_data_cnf(struct l1sched_lchan_state *lchan, uint32_t fn)
+int l1sched_lchan_emit_data_cnf(struct l1sched_lchan_state *lchan,
+				struct msgb *msg, uint32_t fn)
 {
 	struct l1sched_prim *prim;
-	struct msgb *msg;
 
-	/* take ownership of the prim */
-	if ((msg = lchan->prim) == NULL)
-		return -ENODEV;
-	lchan->prim = NULL;
+	OSMO_ASSERT(msg != NULL);
 
 	/* convert from DATA.req to DATA.cnf */
 	prim = l1sched_prim_from_msgb(msg);
