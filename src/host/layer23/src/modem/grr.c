@@ -688,7 +688,7 @@ static void grr_st_packet_transfer_action(struct osmo_fsm_inst *fi,
 		break;
 	case GRR_EV_PDCH_RELEASE_REQ:
 		modem_sync_to_cell(ms);
-		osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_IDLE, 0, 0);
+		osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_NOT_READY, 0, 0);
 		break;
 	default:
 		OSMO_ASSERT(0);
@@ -717,8 +717,7 @@ static const struct osmo_fsm_state grr_fsm_states[] = {
 	},
 	[GRR_ST_PACKET_TRANSFER] = {
 		.name = "PACKET_TRANSFER",
-		.out_state_mask = S(GRR_ST_PACKET_NOT_READY)
-				| S(GRR_ST_PACKET_IDLE),
+		.out_state_mask = S(GRR_ST_PACKET_NOT_READY),
 		.in_event_mask  = S(GRR_EV_PDCH_UL_TBF_CFG_REQ)
 				| S(GRR_EV_PDCH_DL_TBF_CFG_REQ)
 				| S(GRR_EV_PDCH_BLOCK_REQ)
