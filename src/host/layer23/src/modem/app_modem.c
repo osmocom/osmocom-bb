@@ -165,17 +165,38 @@ static int modem_l23_subscr_signal_cb(unsigned int subsys, unsigned int signal,
 	return 0;
 }
 
+int modem_sync_to_cell(struct osmocom_ms *ms)
+{
+	struct gsm322_cellsel *cs = &ms->cellsel;
+
+	if (cs->sync_pending) {
+		LOGP(DCS, LOGL_INFO, "Sync to ARFCN=%s, but there is a sync "
+			"already pending\n", gsm_print_arfcn(cs->arfcn));
+		return 0;
+	}
+
+	cs->sync_pending = true;
+	l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
+	return l1ctl_tx_fbsb_req(ms, cs->arfcn,
+			L1CTL_FBSB_F_FB01SB, 100, 0,
+			cs->ccch_mode, dbm2rxlev(-85));
+}
+
 static int global_signal_cb(unsigned int subsys, unsigned int signal,
 			    void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
+	struct gsm322_cellsel *cs;
+	struct osmobb_fbsb_res *fr;
 
 	if (subsys != SS_L1CTL)
 		return 0;
 
 	switch (signal) {
 	case S_L1CTL_RESET:
+		LOGP(DCS, LOGL_NOTICE, "S_L1CTL_RESET\n");
 		ms = signal_data;
+		ms->cellsel.arfcn = ms->test_arfcn;
 		if (ms->started)
 			break;
 		layer3_app_reset();
@@ -196,6 +217,22 @@ static int global_signal_cb(unsigned int subsys, unsigned int signal,
 		return l1ctl_tx_fbsb_req(ms, ms->test_arfcn,
 					 L1CTL_FBSB_F_FB01SB, 100, 0,
 					 CCCH_MODE_NONE, dbm2rxlev(-85));
+	case S_L1CTL_FBSB_RESP:
+		LOGP(DCS, LOGL_NOTICE, "S_L1CTL_FBSB_RESP\n");
+		fr = signal_data;
+		ms = fr->ms;
+		cs = &ms->cellsel;
+		cs->sync_pending = false;
+		break;
+	case S_L1CTL_FBSB_ERR:
+		LOGP(DCS, LOGL_NOTICE, "S_L1CTL_FBSB_ERR\n");
+		fr = signal_data;
+		ms = fr->ms;
+		cs = &ms->cellsel;
+		cs->sync_pending = false;
+		/* Retry: */
+		modem_sync_to_cell(ms);
+		break;
 	}
 
 	return 0;

@@ -4,6 +4,7 @@
 
 int modem_start(void);
 int modem_gprs_attach_if_needed(struct osmocom_ms *ms);
+int modem_sync_to_cell(struct osmocom_ms *ms);
 
 enum modem_state {
 	MODEM_ST_IDLE,

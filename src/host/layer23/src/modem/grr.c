@@ -482,6 +482,9 @@ static bool grr_cell_is_usable(const struct osmocom_ms *ms)
 	const struct gsm322_cellsel *cs = &ms->cellsel;
 	const struct gsm48_sysinfo *si = &cs->sel_si;
 
+	if (cs->sync_pending) /* FBSB in process */
+		return false;
+
 	if (!si->si1 || !si->si3 || !si->si4 || !si->si13)
 		return false;
 	if (!si->gprs.supported)
@@ -684,10 +687,7 @@ static void grr_st_packet_transfer_action(struct osmo_fsm_inst *fi,
 		handle_pdch_block_ind(ms, (struct msgb *)data);
 		break;
 	case GRR_EV_PDCH_RELEASE_REQ:
-		l1ctl_tx_reset_req(ms, L1CTL_RES_T_FULL);
-		l1ctl_tx_fbsb_req(ms, ms->test_arfcn,
-				  L1CTL_FBSB_F_FB01SB, 100, 0,
-				  ms->cellsel.ccch_mode, dbm2rxlev(-85));
+		modem_sync_to_cell(ms);
 		osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_IDLE, 0, 0);
 		break;
 	default:
