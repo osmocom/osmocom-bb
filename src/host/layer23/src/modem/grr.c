@@ -516,6 +516,10 @@ static void grr_st_packet_not_ready_action(struct osmo_fsm_inst *fi,
 static void grr_st_packet_idle_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
 {
 	struct osmocom_ms *ms = fi->priv;
+	struct osmo_gprs_rlcmac_prim *prim;
+
+	prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_ready_ind();
+	osmo_gprs_rlcmac_prim_lower_up(prim);
 
 	modem_gprs_attach_if_needed(ms);
 }
