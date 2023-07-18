@@ -43,6 +43,7 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/apn.h>
 #include <osmocom/bb/common/ms.h>
+#include <osmocom/bb/common/vty.h>
 #include <osmocom/bb/modem/gmm.h>
 #include <osmocom/bb/modem/sm.h>
 #include <osmocom/bb/modem/modem.h>
@@ -131,18 +132,44 @@ static int modem_gmm_prim_down_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *use
 {
 	const char *pdu_name = osmo_gprs_gmm_prim_name(gmm_prim);
 	int rc = 0;
+	uint32_t old_tlli, new_tlli;
+	struct osmocom_ms *ms, *ms_found = NULL;
 
 	osmo_static_assert(sizeof(struct osmo_gprs_gmm_gmmrr_prim) == sizeof(struct osmo_gprs_rlcmac_gmmrr_prim),
 			   _gmmrr_prim_size);
 
 	switch (gmm_prim->oph.sap) {
 	case OSMO_GPRS_GMM_SAP_GMMRR:
+		OSMO_ASSERT(gmm_prim->oph.primitive == OSMO_GPRS_GMM_GMMRR_ASSIGN);
+		/* Update app TLLI reference. This usually happens as a result of a RAU ACCEPT */
+		old_tlli = gmm_prim->gmmrr.tlli;
+		new_tlli = gmm_prim->gmmrr.assign_req.new_tlli;
+		llist_for_each_entry(ms, &ms_list, entity) {
+			if (old_tlli != ms->gmmlayer.tlli)
+				continue;
+			ms_found = ms;
+			break;
+		}
+		if (ms_found) {
+			if (new_tlli != OSMO_GPRS_GMM_TLLI_UNASSIGNED) {
+				LOGP(DGMM, LOGL_INFO, "%s(): Rx %s Update TLLI 0x%08x -> 0x%08x\n",
+				     __func__, pdu_name, old_tlli, new_tlli);
+				ms_found->gmmlayer.tlli = new_tlli;
+			} else {
+				LOGP(DGMM, LOGL_ERROR, "%s(): Rx %s with TLLI=0x%08x is being released, GMM should be restarted?\n",
+				     __func__, pdu_name, old_tlli);
+			}
+		} else {
+			if (old_tlli != OSMO_GPRS_GMM_TLLI_UNASSIGNED)
+				LOGP(DGMM, LOGL_ERROR, "%s(): Unexpected Rx %s with unknown TLLI=0x%08xn",
+				     __func__, pdu_name, old_tlli);
+		}
+
 		/* Forward it to lower layers, pass ownership over to RLCMAC: */
 		/* Optimization: GMM-GMMRR-ASSIGN-REQ is 1-to-1 ABI compatible with
 				 RLCMAC-GMMRR-ASSIGN-REQ, we just need to adapt the header.
 				 See osmo_static_assert(_gmmrr_prim_size) above.
 		*/
-		OSMO_ASSERT(gmm_prim->oph.primitive == OSMO_GPRS_GMM_GMMRR_ASSIGN);
 		gmm_prim->oph.sap = OSMO_GPRS_RLCMAC_SAP_GMMRR;
 		gmm_prim->oph.primitive = OSMO_GPRS_RLCMAC_GMMRR_ASSIGN;
 		osmo_gprs_rlcmac_prim_upper_down((struct osmo_gprs_rlcmac_prim *)gmm_prim);
