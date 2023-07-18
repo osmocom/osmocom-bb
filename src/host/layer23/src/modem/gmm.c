@@ -110,6 +110,7 @@ static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMSM_ESTABLISH, PRIM_OP_CONFIRM):
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMSM_RELEASE,   PRIM_OP_INDICATION):
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMSM_UNITDATA,  PRIM_OP_INDICATION):
+		case OSMO_PRIM(OSMO_GPRS_GMM_GMMSM_MODIFY,    PRIM_OP_INDICATION):
 			osmo_gprs_sm_prim_gmm_lower_up(gmm_prim);
 			rc = 1; /* Tell RLCMAC that we take ownership of the prim. */
 			break;
