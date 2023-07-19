@@ -819,7 +819,8 @@ DEFUN(cfg_ms_imei, cfg_ms_imei_cmd, "imei IMEI [SV]",
 
 	OSMO_STRLCPY_ARRAY(set->imei, argv[0]);
 	OSMO_STRLCPY_ARRAY(set->imeisv, argv[0]);
-	OSMO_STRLCPY_ARRAY(set->imeisv + 15, sv);
+	osmo_strlcpy(set->imeisv + GSM23003_IMEI_NUM_DIGITS, sv,
+		     sizeof(set->imeisv) - GSM23003_IMEI_NUM_DIGITS);
 
 	return CMD_SUCCESS;
 }
