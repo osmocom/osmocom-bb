@@ -74,6 +74,7 @@ static int modem_llc_handle_ll_sndcp(struct osmo_gprs_llc_prim *llc_prim)
 	case OSMO_GPRS_LLC_LL_DATA:
 	case OSMO_GPRS_LLC_LL_UNITDATA:
 	case OSMO_GPRS_LLC_LL_STATUS:
+	case OSMO_GPRS_LLC_LL_ASSIGN:
 		/* Forward it to upper layers, pass owneserip over to SNDCP: */
 		osmo_gprs_sndcp_prim_lower_up(llc_prim);
 		rc = 1; /* Tell LLC that we take ownership of the prim. */
