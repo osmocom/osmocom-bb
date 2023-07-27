@@ -38,6 +38,9 @@ struct osmobb_pdp_ctx {
 	uint8_t qos_len;
 	uint8_t pco[OSMO_GPRS_SM_PCO_MAXLEN];
 	uint8_t pco_len;
+	enum osmo_gprs_sm_pdp_addr_ietf_type pdp_addr_ietf_type;
+	struct osmo_sockaddr pdp_addr_v4;
+	struct osmo_sockaddr pdp_addr_v6;
 };
 
 struct osmobb_apn {

@@ -79,11 +79,14 @@ static int modem_sm_handle_pdp_act_cnf(struct osmocom_ms *ms, struct osmo_gprs_s
 	ms->subscr.gprs.ptmsi = sm_prim->smreg.pdp_act_cnf.acc.gmm.allocated_ptmsi;
 	ms->gmmlayer.tlli = sm_prim->smreg.pdp_act_cnf.acc.gmm.allocated_tlli;
 
+	apn->pdp.pdp_addr_ietf_type = sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_ietf_type;
+
 	netdev = osmo_tundev_get_netdev(apn->tun);
 	switch (sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_ietf_type) {
 	case OSMO_GPRS_SM_PDP_ADDR_IETF_IPV4:
 		LOGPAPN(LOGL_INFO, apn, "Rx %s: IPv4=%s\n", pdu_name,
 			osmo_sockaddr_ntop(&sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v4.u.sa, buf_addr));
+		memcpy(&apn->pdp.pdp_addr_v4, &sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v4, sizeof(struct osmo_sockaddr));
 		rc = osmo_netdev_add_addr(netdev, &sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v4, 30);
 		if (rc < 0) {
 			LOGPAPN(LOGL_ERROR, apn, "Rx %s: Failed setting IPv4=%s\n", pdu_name,
@@ -94,6 +97,7 @@ static int modem_sm_handle_pdp_act_cnf(struct osmocom_ms *ms, struct osmo_gprs_s
 	case OSMO_GPRS_SM_PDP_ADDR_IETF_IPV6:
 		LOGPAPN(LOGL_INFO, apn, "Rx %s: IPv6=%s [FIXME: IPv6 not yet supported!]\n", pdu_name,
 			osmo_sockaddr_ntop(&sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v6.u.sa, buf_addr));
+		memcpy(&apn->pdp.pdp_addr_v6, &sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v6, sizeof(struct osmo_sockaddr));
 		rc = osmo_netdev_add_addr(netdev, &sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v6, 64);
 		if (rc < 0) {
 			LOGPAPN(LOGL_ERROR, apn, "Rx %s: Failed setting IPv6=%s\n", pdu_name,
@@ -105,6 +109,8 @@ static int modem_sm_handle_pdp_act_cnf(struct osmocom_ms *ms, struct osmo_gprs_s
 		LOGPAPN(LOGL_INFO, apn, "Rx %s: IPv4=%s IPv6=%s [FIXME: IPv6 not yet supported!]\n", pdu_name,
 			osmo_sockaddr_ntop(&sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v4.u.sa, buf_addr),
 			osmo_sockaddr_ntop(&sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v6.u.sa, buf_addr2));
+		memcpy(&apn->pdp.pdp_addr_v4, &sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v4, sizeof(struct osmo_sockaddr));
+		memcpy(&apn->pdp.pdp_addr_v6, &sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v6, sizeof(struct osmo_sockaddr));
 		rc = osmo_netdev_add_addr(netdev, &sm_prim->smreg.pdp_act_cnf.acc.pdp_addr_v4, 30);
 		if (rc < 0) {
 			LOGPAPN(LOGL_ERROR, apn, "Rx %s: Failed setting IPv4=%s\n", pdu_name,

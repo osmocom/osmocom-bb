@@ -121,6 +121,28 @@ static int modem_tun_data_ind_cb(struct osmo_tundev *tun, struct msgb *msg)
 	LOGPAPN(LOGL_DEBUG, apn, "system wants to transmit IPv%c pkt to %s (%zu bytes)\n",
 		iph->version == 4 ? '4' : '6', osmo_sockaddr_ntop(&dst.u.sa, addrstr), pkt_len);
 
+	switch (apn->pdp.pdp_addr_ietf_type) {
+	case OSMO_GPRS_SM_PDP_ADDR_IETF_IPV4:
+		if (iph->version != 4) {
+			LOGPAPN(LOGL_NOTICE, apn,
+				"system wants to transmit IPv%u pkt to %s (%zu bytes) on IPv4-only PDP Ctx, discarding!\n",
+				iph->version, osmo_sockaddr_ntop(&dst.u.sa, addrstr), pkt_len);
+			goto free_ret;
+		}
+		break;
+	case OSMO_GPRS_SM_PDP_ADDR_IETF_IPV6:
+		if (iph->version != 6) {
+			LOGPAPN(LOGL_NOTICE, apn,
+				"system wants to transmit IPv%u pkt to %s (%zu bytes) on IPv6-only PDP Ctx, discarding!\n",
+				iph->version, osmo_sockaddr_ntop(&dst.u.sa, addrstr), pkt_len);
+			goto free_ret;
+		}
+		break;
+	default: /* OSMO_GPRS_SM_PDP_ADDR_IETF_IPV4V6 */
+		/* Allow any */
+		break;
+	}
+
 	rc = modem_sndcp_sn_unitdata_req(apn, msgb_data(msg), pkt_len);
 
 free_ret:
