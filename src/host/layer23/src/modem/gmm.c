@@ -60,8 +60,9 @@ static int modem_gmm_prim_up_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *user_
 		switch (OSMO_PRIM_HDR(&gmm_prim->oph)) {
 		case OSMO_PRIM(OSMO_GPRS_GMM_GMMREG_ATTACH, PRIM_OP_CONFIRM):
 			if (gmm_prim->gmmreg.attach_cnf.accepted) {
-				LOGP(DGMM, LOGL_NOTICE, "%s(): Rx %s: Attach success P-TMSI=0x%08x\n",
-				     __func__, pdu_name, gmm_prim->gmmreg.attach_cnf.acc.allocated_ptmsi);
+				LOGP(DGMM, LOGL_NOTICE, "%s(): Rx %s: Attach success P-TMSI=0x%08x TLLI=0x%08x\n",
+				     __func__, pdu_name, gmm_prim->gmmreg.attach_cnf.acc.allocated_ptmsi,
+				     gmm_prim->gmmreg.attach_cnf.acc.allocated_tlli);
 				ms->subscr.gprs.ptmsi = gmm_prim->gmmreg.attach_cnf.acc.allocated_ptmsi;
 				ms->gmmlayer.tlli = gmm_prim->gmmreg.attach_cnf.acc.allocated_tlli;
 				app_data.modem_state = MODEM_ST_ATTACHED;
