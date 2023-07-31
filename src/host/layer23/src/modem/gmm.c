@@ -162,7 +162,7 @@ static int modem_gmm_prim_down_cb(struct osmo_gprs_gmm_prim *gmm_prim, void *use
 			}
 		} else {
 			if (old_tlli != OSMO_GPRS_GMM_TLLI_UNASSIGNED)
-				LOGP(DGMM, LOGL_ERROR, "%s(): Unexpected Rx %s with unknown TLLI=0x%08x\n",
+				LOGP(DGMM, LOGL_NOTICE, "%s(): Rx %s with unknown TLLI=0x%08x, probably the MS is still attaching\n",
 				     __func__, pdu_name, old_tlli);
 		}
 
