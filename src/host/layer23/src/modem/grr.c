@@ -95,9 +95,10 @@ static bool grr_match_req_ref(struct osmocom_ms *ms,
 static int forward_to_rlcmac(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
+	const uint32_t fn = *(uint32_t *)(&msg->cb[0]);
 
 	/* Forward SI13 to RLC/MAC layer */
-	rlcmac_prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_data_ind(0 /* TODO: fn */, msgb_l3(msg));
+	rlcmac_prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_data_ind(fn, msgb_l3(msg));
 	return osmo_gprs_rlcmac_prim_lower_up(rlcmac_prim);
 }
 
@@ -204,9 +205,10 @@ static int grr_rx_bcch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	const struct gsm48_system_information_type_header *si_hdr = msgb_l3(msg);
 	const uint8_t si_type = si_hdr->system_information;
+	const uint32_t fn = *(uint32_t *)(&msg->cb[0]);
 
-	LOGP(DRR, LOGL_INFO, "BCCH message (type=0x%02x): %s\n",
-	     si_type, gsm48_rr_msg_name(si_type));
+	LOGP(DRR, LOGL_INFO, "BCCH message (type=0x%02x, fn=%u): %s\n",
+	     si_type, fn, gsm48_rr_msg_name(si_type));
 
 	switch (si_type) {
 	case GSM48_MT_RR_SYSINFO_1:
@@ -419,6 +421,9 @@ int modem_grr_rslms_cb(struct msgb *msg, struct lapdm_entity *le, void *ctx)
 {
 	const struct abis_rsl_common_hdr *rslh = msgb_l2(msg);
 	int rc;
+
+	/* Obtain FN from message context: */
+	*(uint32_t *)(&msg->cb[0]) = le->datalink[DL_SAPI0].mctx.fn;
 
 	switch (rslh->msg_discr & 0xfe) {
 	case ABIS_RSL_MDISC_RLL:
