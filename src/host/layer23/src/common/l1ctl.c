@@ -317,7 +317,7 @@ static int rx_ph_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			PRIM_OP_INDICATION, msg);
 	pp.u.data.chan_nr = dl->chan_nr;
 	pp.u.data.link_id = dl->link_id;
-	pp.u.data.fn = dl->frame_nr;
+	pp.u.data.fn = tm.fn;
 
 	/* send it up into LAPDm */
 	return lapdm_phsap_up(&pp.oph, le);
