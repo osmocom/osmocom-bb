@@ -48,9 +48,9 @@
 #define LOG_TBF_CFG_REQ_ARGS(req) \
 	(req)->tbf_ref, (req)->slotmask, ntohl((req)->start_fn)
 
-#define LOG_TBF_FMT "%cL-TBF#%03d"
+#define LOG_TBF_FMT "%cL-TBF#%03d(slotmask=0x%02x)"
 #define LOG_TBF_ARGS(tbf) \
-	(tbf)->uplink ? 'U' : 'D', tbf->tbf_ref
+	(tbf)->uplink ? 'U' : 'D', (tbf)->tbf_ref, (tbf)->slotmask
 
 #define TDMA_FN_INVALID 0xffffffff
 
@@ -548,7 +548,7 @@ int l1gprs_handle_ul_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *m
 		tbf = l1gprs_find_tbf(gprs, true, req->tbf_ref);
 		if (tbf == NULL) {
 			LOGP_GPRS(gprs, LOGL_ERROR, "%s(): " LOG_TBF_FMT " not found\n",
-				  __func__, 'U', req->tbf_ref);
+				  __func__, 'U', req->tbf_ref, req->slotmask);
 			return -ENOENT;
 		}
 		l1gprs_unregister_tbf(gprs, tbf);
@@ -609,7 +609,7 @@ int l1gprs_handle_dl_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *m
 		tbf = l1gprs_find_tbf(gprs, false, req->tbf_ref);
 		if (tbf == NULL) {
 			LOGP_GPRS(gprs, LOGL_ERROR, "%s(): " LOG_TBF_FMT " not found\n",
-				  __func__, 'D', req->tbf_ref);
+				  __func__, 'D', req->tbf_ref, req->slotmask);
 			return -ENOENT;
 		}
 		l1gprs_unregister_tbf(gprs, tbf);
