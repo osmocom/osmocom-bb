@@ -625,6 +625,7 @@ int l1gprs_handle_ul_block_req(struct l1gprs_state *gprs,
 	const struct l1ctl_gprs_ul_block_req *l1br = (void *)msg->l1h;
 	const struct l1gprs_pdch *pdch = NULL;
 	size_t data_len;
+	uint32_t fn;
 
 	OSMO_ASSERT(l1br != NULL);
 
@@ -634,10 +635,11 @@ int l1gprs_handle_ul_block_req(struct l1gprs_state *gprs,
 			  msgb_l1len(msg), sizeof(*l1br));
 		return -EINVAL;
 	}
+	fn = ntohl(l1br->hdr.fn);
 	if (OSMO_UNLIKELY(l1br->hdr.tn >= ARRAY_SIZE(gprs->pdch))) {
 		LOGP_GPRS(gprs, LOGL_ERROR,
-			  "Rx malformed UL BLOCK.req (tn=%u)\n",
-			  l1br->hdr.tn);
+			  "Rx malformed UL BLOCK.req (fn=%u, tn=%u)\n",
+			  fn, l1br->hdr.tn);
 		return -EINVAL;
 	}
 
@@ -646,17 +648,18 @@ int l1gprs_handle_ul_block_req(struct l1gprs_state *gprs,
 
 	LOGP_PDCH(pdch, LOGL_DEBUG,
 		  "Rx UL BLOCK.req (fn=%u, len=%zu): %s\n",
-		  ntohl(l1br->hdr.fn), data_len, osmo_hexdump(l1br->data, data_len));
+		  fn, data_len, osmo_hexdump(l1br->data, data_len));
 
 	if ((pdch->ul_tbf_count == 0) && (pdch->dl_tbf_count == 0)) {
 		LOGP_PDCH(pdch, LOGL_ERROR,
-			  "Rx UL BLOCK.req, but this PDCH has no configured TBFs\n");
+			  "Rx UL BLOCK.req (fn=%u, len=%zu), but this PDCH has no configured TBFs\n",
+			  fn, data_len);
 		return -EINVAL;
 	}
 
 	*req = (struct l1gprs_prim_ul_block_req) {
 		.hdr = {
-			.fn = ntohl(l1br->hdr.fn),
+			.fn = fn,
 			.tn = l1br->hdr.tn,
 		},
 		.data = &l1br->data[0],
