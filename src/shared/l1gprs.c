@@ -127,18 +127,56 @@ static void l1gprs_register_tbf(struct l1gprs_state *gprs,
 		  LOG_TBF_ARGS(tbf));
 }
 
-static void l1gprs_unregister_tbf(struct l1gprs_state *gprs,
-				  bool uplink, uint8_t tbf_ref)
+static void l1gprs_update_tbf(struct l1gprs_state *gprs, struct l1gprs_tbf *tbf, uint8_t slotmask)
 {
-	struct l1gprs_tbf *tbf;
+	OSMO_ASSERT(tbf->slotmask != 0x00);
+	OSMO_ASSERT(slotmask != 0x00);
 
-	tbf = l1gprs_find_tbf(gprs, uplink, tbf_ref);
-	if (tbf == NULL) {
-		LOGP_GPRS(gprs, LOGL_ERROR,
-			  "%s(): " LOG_TBF_FMT " not found\n",
-			  __func__, uplink ? 'U' : 'D', tbf_ref);
-		return;
+	if (tbf->slotmask == slotmask)
+		return; /* No change at all, skip */
+
+	/* Update the PDCH states */
+	for (unsigned int tn = 0; tn < ARRAY_SIZE(gprs->pdch); tn++) {
+		struct l1gprs_pdch *pdch = &gprs->pdch[tn];
+
+		if ((tbf->slotmask & (1 << tn)) == (slotmask & (1 << tn)))
+			continue; /* No change, skip */
+
+		if (tbf->slotmask & (1 << tn)) {
+			/* slot previously set, remove it */
+			if (tbf->uplink) {
+				OSMO_ASSERT(pdch->ul_tbf_count > 0);
+				pdch->ul_tbf_count--;
+			} else {
+				OSMO_ASSERT(pdch->dl_tbf_count > 0);
+				pdch->dl_tbf_count--;
+				pdch->dl_tfi_mask &= ~(1 << tbf->dl_tfi);
+			}
+			LOGP_PDCH(pdch, LOGL_DEBUG, "Unlinked " LOG_TBF_FMT "\n",
+				  LOG_TBF_ARGS(tbf));
+		} else {
+			/* Slot was not set, add it */
+			if (tbf->uplink) {
+				pdch->ul_tbf_count++;
+			} else {
+				pdch->dl_tbf_count++;
+				pdch->dl_tfi_mask |= (1 << tbf->dl_tfi);
+			}
+			LOGP_PDCH(pdch, LOGL_DEBUG, "Linked " LOG_TBF_FMT "\n",
+				  LOG_TBF_ARGS(tbf));
+		}
 	}
+
+	LOGP_GPRS(gprs, LOGL_INFO,
+		  LOG_TBF_FMT " slotmask updated 0x%02x -> 0x%02x\n",
+		  LOG_TBF_ARGS(tbf), tbf->slotmask, slotmask);
+
+	tbf->slotmask = slotmask;
+}
+
+static void l1gprs_unregister_tbf(struct l1gprs_state *gprs, struct l1gprs_tbf *tbf)
+{
+	OSMO_ASSERT(tbf->slotmask != 0x00);
 
 	/* Update the PDCH states */
 	for (unsigned int tn = 0; tn < ARRAY_SIZE(gprs->pdch); tn++) {
@@ -289,11 +327,22 @@ int l1gprs_handle_ul_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *m
 		  "Rx Uplink TBF config: tbf_ref=%u, slotmask=0x%02x\n",
 		  req->tbf_ref, req->slotmask);
 
+	tbf = l1gprs_find_tbf(gprs, true, req->tbf_ref);
+
 	if (req->slotmask != 0x00) {
-		tbf = l1gprs_tbf_alloc(gprs, true, req->tbf_ref, req->slotmask);
-		l1gprs_register_tbf(gprs, tbf);
+		if (tbf) {
+			l1gprs_update_tbf(gprs, tbf, req->slotmask);
+		} else {
+			tbf = l1gprs_tbf_alloc(gprs, true, req->tbf_ref, req->slotmask);
+			l1gprs_register_tbf(gprs, tbf);
+		}
 	} else {
-		l1gprs_unregister_tbf(gprs, true, req->tbf_ref);
+		if (tbf == NULL) {
+			LOGP_GPRS(gprs, LOGL_ERROR, "%s(): " LOG_TBF_FMT " not found\n",
+				  __func__, 'U', req->tbf_ref);
+			return -ENOENT;
+		}
+		l1gprs_unregister_tbf(gprs, tbf);
 	}
 
 	return 0;
@@ -324,12 +373,23 @@ int l1gprs_handle_dl_tbf_cfg_req(struct l1gprs_state *gprs, const struct msgb *m
 		return -EINVAL;
 	}
 
+	tbf = l1gprs_find_tbf(gprs, false, req->tbf_ref);
+
 	if (req->slotmask != 0x00) {
-		tbf = l1gprs_tbf_alloc(gprs, false, req->tbf_ref, req->slotmask);
-		tbf->dl_tfi = req->dl_tfi;
-		l1gprs_register_tbf(gprs, tbf);
+		if (tbf) {
+			l1gprs_update_tbf(gprs, tbf, req->slotmask);
+		} else {
+			tbf = l1gprs_tbf_alloc(gprs, false, req->tbf_ref, req->slotmask);
+			tbf->dl_tfi = req->dl_tfi;
+			l1gprs_register_tbf(gprs, tbf);
+		}
 	} else {
-		l1gprs_unregister_tbf(gprs, false, req->tbf_ref);
+		if (tbf == NULL) {
+			LOGP_GPRS(gprs, LOGL_ERROR, "%s(): " LOG_TBF_FMT " not found\n",
+				  __func__, 'D', req->tbf_ref);
+			return -ENOENT;
+		}
+		l1gprs_unregister_tbf(gprs, tbf);
 	}
 
 	return 0;
