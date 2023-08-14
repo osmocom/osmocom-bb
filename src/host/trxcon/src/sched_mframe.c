@@ -2087,15 +2087,15 @@ static const struct l1sched_tdma_multiframe layouts[] = {
 	},
 };
 
-const struct l1sched_tdma_multiframe *l1sched_mframe_layout(
-	enum gsm_phys_chan_config config, int tn)
+const struct l1sched_tdma_multiframe *
+l1sched_mframe_layout(enum gsm_phys_chan_config config, uint8_t tn)
 {
-	int i, ts_allowed;
-
-	for (i = 0; i < ARRAY_SIZE(layouts); i++) {
-		ts_allowed = layouts[i].slotmask & (0x01 << tn);
-		if (layouts[i].chan_config == config && ts_allowed)
-			return &layouts[i];
+	for (unsigned int i = 0; i < ARRAY_SIZE(layouts); i++) {
+		if (layouts[i].chan_config != config)
+			continue;
+		if (~layouts[i].slotmask & (1 << tn))
+			continue;
+		return &layouts[i];
 	}
 
 	return NULL;
