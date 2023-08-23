@@ -4875,32 +4875,7 @@ static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 /* receive ACCH at RR layer */
 static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct gsm_settings *set = &ms->settings;
-	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
-	uint8_t ind_ta, ind_tx_power;
-
-	if (msgb_l2len(msg) < sizeof(*rllh) + 2 + 2) {
-		LOGP(DRR, LOGL_ERROR, "Missing TA and TX_POWER IEs\n");
-		return -EINVAL;
-	}
-
-	ind_ta = rllh->data[1];
-	ind_tx_power = rllh->data[3];
-	LOGP(DRR, LOGL_INFO, "DL SACCH indicates ta %d (actual ta %d)\n",
-		ind_ta, ind_ta - set->alter_delay);
-	LOGP(DRR, LOGL_INFO, "DL SACCH indicates tx_power %d\n",
-		ind_tx_power);
-	if (ind_ta != rr->cd_now.ind_ta
-	 || ind_tx_power != rr->cd_now.ind_tx_power) {
-		LOGP(DRR, LOGL_INFO, "Applying new ta and tx_power\n");
-		l1ctl_tx_param_req(ms, ind_ta - set->alter_delay,
-			(set->alter_tx_power) ? set->alter_tx_power_value
-						: ind_tx_power);
-		rr->cd_now.ind_ta = ind_ta;
-		rr->cd_now.ind_tx_power = ind_tx_power;
-	}
 
 	switch (sih->system_information) {
 	case GSM48_MT_RR_SYSINFO_5:
@@ -4921,9 +4896,12 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 /* unit data from layer 2 to RR layer */
 static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm_settings *set = &ms->settings;
 	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
 	struct tlv_parsed tv;
+	int ind_ta = -1, ind_tx_power = -1;
 	uint8_t ch_type, ch_subch, ch_ts;
 
 	DEBUGP(DRSL, "RSLms UNIT DATA IND chan_nr=0x%02x link_id=0x%02x\n",
@@ -4932,6 +4910,24 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	if (rsl_tlv_parse(&tv, rllh->data, msgb_l2len(msg) - sizeof(*rllh)) < 0) {
 		LOGP(DRSL, LOGL_ERROR, "%s(): rsl_tlv_parse() failed\n", __func__);
 		return -EINVAL;
+	}
+
+	/* Update TX power and timing advance, if included in message. */
+	if (TLVP_PRES_LEN(&tv, RSL_IE_TIMING_ADVANCE, 1)) {
+		ind_ta = *TLVP_VAL(&tv, RSL_IE_TIMING_ADVANCE);
+		LOGP(DRR, LOGL_INFO, "DL SACCH indicates ta %d (actual ta %d)\n", ind_ta, ind_ta - set->alter_delay);
+	}
+	if (TLVP_PRES_LEN(&tv, RSL_IE_MS_POWER, 1)) {
+		ind_tx_power = *TLVP_VAL(&tv, RSL_IE_MS_POWER);
+		LOGP(DRR, LOGL_INFO, "DL SACCH indicates tx_power %d\n", ind_tx_power);
+	}
+	if ((ind_ta >= 0 && ind_ta != rr->cd_now.ind_ta) ||
+	    (ind_tx_power >= 0 && ind_tx_power != rr->cd_now.ind_tx_power)) {
+		LOGP(DRR, LOGL_INFO, "Applying new ta and tx_power\n");
+		l1ctl_tx_param_req(ms, ind_ta - set->alter_delay,
+			(set->alter_tx_power) ? set->alter_tx_power_value : ind_tx_power);
+		rr->cd_now.ind_ta = ind_ta;
+		rr->cd_now.ind_tx_power = ind_tx_power;
 	}
 
 	if (!TLVP_PRESENT(&tv, RSL_IE_L3_INFO)) {
