@@ -1403,9 +1403,8 @@ uint32_t mm_conn_new_ref = 0x80000001;
 /* new MM connection state */
 static void new_conn_state(struct gsm48_mm_conn *conn, int state)
 {
-	LOGP(DMM, LOGL_INFO, "(ref %x) new state %s -> %s\n", conn->ref,
-		gsm48_mmxx_state_names[conn->state],
-		gsm48_mmxx_state_names[state]);
+	LOGP(DMM, LOGL_INFO, "(ref 0x%x proto %d) new state %s -> %s\n", conn->ref, conn->protocol,
+	     gsm48_mmxx_state_names[conn->state], gsm48_mmxx_state_names[state]);
 	conn->state = state;
 }
 
@@ -1424,13 +1423,35 @@ struct gsm48_mm_conn *mm_conn_by_id(struct gsm48_mmlayer *mm,
 }
 
 /* find MM connection by reference */
-struct gsm48_mm_conn *mm_conn_by_ref(struct gsm48_mmlayer *mm,
-					uint32_t ref)
+struct gsm48_mm_conn *mm_conn_by_ref_and_class(struct gsm48_mmlayer *mm,
+					       uint32_t ref, uint16_t cls)
 {
 	struct gsm48_mm_conn *conn;
+	uint8_t protocol;
+
+	switch (cls) {
+	case GSM48_MMCC_CLASS:
+		protocol = GSM48_PDISC_CC;
+		break;
+	case GSM48_MMSS_CLASS:
+		protocol = GSM48_PDISC_NC_SS;
+		break;
+	case GSM48_MMSMS_CLASS:
+		protocol = GSM48_PDISC_SMS;
+		break;
+	case GSM48_MMGCC_CLASS:
+		protocol = GSM48_PDISC_GROUP_CC;
+		break;
+	case GSM48_MMBCC_CLASS:
+		protocol = GSM48_PDISC_BCAST_CC;
+		break;
+	default:
+		LOGP(DMM, LOGL_ERROR, "Invalid message class 0x%03x. Please fix!", cls);
+		return NULL;
+	}
 
 	llist_for_each_entry(conn, &mm->mm_conn, list) {
-		if (conn->ref == ref)
+		if (conn->ref == ref && conn->protocol == protocol)
 			return conn;
 	}
 	return NULL;
@@ -3428,7 +3449,7 @@ static int gsm48_mm_data(struct osmocom_ms *ms, struct msgb *msg)
 	int msg_type = mmh->msg_type;
 
 	/* get connection, if not exist (anymore), release */
-	conn = mm_conn_by_ref(mm, mmh->ref);
+	conn = mm_conn_by_ref_and_class(mm, mmh->ref, (mmh->msg_type & GSM48_MMXX_MASK));
 	if (!conn) {
 		LOGP(DMM, LOGL_INFO, "MMXX_DATA_REQ with unknown (already "
 			"released) ref=%x, sending MMXX_REL_IND\n", mmh->ref);
@@ -3457,7 +3478,7 @@ static int gsm48_mm_release_active(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mm_conn *conn;
 
 	/* get connection, if not exist (anymore), release */
-	conn = mm_conn_by_ref(mm, mmh->ref);
+	conn = mm_conn_by_ref_and_class(mm, mmh->ref, (mmh->msg_type & GSM48_MMXX_MASK));
 	if (conn)
 		mm_conn_free(conn);
 
@@ -3481,7 +3502,7 @@ static int gsm48_mm_release_wait_add(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mm_conn *conn;
 
 	/* get connection, if not exist (anymore), release */
-	conn = mm_conn_by_ref(mm, mmh->ref);
+	conn = mm_conn_by_ref_and_class(mm, mmh->ref, (mmh->msg_type & GSM48_MMXX_MASK));
 	if (conn)
 		mm_conn_free(conn);
 
@@ -3496,7 +3517,7 @@ static int gsm48_mm_release_wait_active(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mm_conn *conn;
 
 	/* get connection, if not exist (anymore), release */
-	conn = mm_conn_by_ref(mm, mmh->ref);
+	conn = mm_conn_by_ref_and_class(mm, mmh->ref, (mmh->msg_type & GSM48_MMXX_MASK));
 	if (conn)
 		mm_conn_free(conn);
 
@@ -3525,7 +3546,7 @@ static int gsm48_mm_release_wait_rr(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mm_conn *conn;
 
 	/* get connection, if not exist (anymore), release */
-	conn = mm_conn_by_ref(mm, mmh->ref);
+	conn = mm_conn_by_ref_and_class(mm, mmh->ref, (mmh->msg_type & GSM48_MMXX_MASK));
 	if (conn)
 		mm_conn_free(conn);
 
@@ -3820,7 +3841,7 @@ int gsm48_mmxx_downmsg(struct osmocom_ms *ms, struct msgb *msg)
 	int i, rc;
 
 	/* keep up to date with the transaction ID */
-	conn = mm_conn_by_ref(mm, mmh->ref);
+	conn = mm_conn_by_ref_and_class(mm, mmh->ref, (mmh->msg_type & GSM48_MMXX_MASK));
 	if (conn)
 		conn->transaction_id = mmh->transaction_id;
 
