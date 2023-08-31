@@ -697,6 +697,7 @@ struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
 
 	l1gprs_check_pending_tbfs(gprs, ind->hdr.fn);
 
+#if 0
 	if (pdch->ul_tbf_count + pdch->dl_tbf_count == 0) {
 		if (pdch->pending_ul_tbf_count + pdch->pending_dl_tbf_count > 0)
 			LOGP_PDCH(pdch, LOGL_DEBUG,
@@ -708,6 +709,7 @@ struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
 				  ind->hdr.fn);
 		return NULL;
 	}
+#endif
 
 	msg = l1gprs_l1ctl_msgb_alloc(L1CTL_GPRS_DL_BLOCK_IND);
 	if (OSMO_UNLIKELY(msg == NULL)) {
@@ -731,6 +733,8 @@ struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
 
 	if (ind->data_len == 0)
 		return msg;
+	if (pdch->ul_tbf_count + pdch->dl_tbf_count == 0)
+		return msg; /* HACK: ensure constant stream of RTS.ind in the modem app */
 	if (BLOCK_IND_IS_PTCCH(ind)) {
 		memcpy(msgb_put(msg, ind->data_len), ind->data, ind->data_len);
 		return msg;
