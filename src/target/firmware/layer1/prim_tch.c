@@ -81,6 +81,18 @@ static void tch_get_params(struct gsm_time *time, uint8_t chan_nr,
 		case GSM48_CMODE_SPEECH_EFR:
 			*tch_mode = *tch_f_hn ? TCH_EFR_MODE : SIG_ONLY_MODE;
 			break;
+		case GSM48_CMODE_DATA_14k5:
+			*tch_mode = *tch_f_hn ? TCH_144_MODE : SIG_ONLY_MODE;
+			break;
+		case GSM48_CMODE_DATA_12k0:
+			*tch_mode = *tch_f_hn ? TCH_96_MODE : SIG_ONLY_MODE;
+			break;
+		case GSM48_CMODE_DATA_6k0:
+			*tch_mode = *tch_f_hn ? TCH_48F_MODE : TCH_48H_MODE;
+			break;
+		case GSM48_CMODE_DATA_3k6:
+			*tch_mode = *tch_f_hn ? TCH_24F_MODE : TCH_24H_MODE;
+			break;
 		default:
 			*tch_mode = SIG_ONLY_MODE;
 		}

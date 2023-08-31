@@ -109,6 +109,10 @@ uint8_t l1a_tch_mode_set(uint8_t mode)
 	switch (mode) {
 	case GSM48_CMODE_SPEECH_V1:
 	case GSM48_CMODE_SPEECH_EFR:
+	case GSM48_CMODE_DATA_14k5:
+	case GSM48_CMODE_DATA_12k0:
+	case GSM48_CMODE_DATA_6k0:
+	case GSM48_CMODE_DATA_3k6:
 		l1s.tch_mode = mode;
 		break;
 	default:
