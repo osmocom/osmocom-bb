@@ -24,7 +24,8 @@ ENV_e88flash_OBJS=board/compal/start.rom.o board/compal/header.o board/compal/ex
 #
 
 # List of all supported boards (meant to be overridden on command line)
-BOARDS?=compal_e88 compal_e86 compal_e99 se_j100 se_k2x0 gta0x gtm900b fcdev3b pirelli_dpl10
+BOARDS?=compal_e88 compal_e86 compal_e99 se_j100 se_k2x0 gta0x gtm900b fcdev3b \
+	pirelli_dpl10 tr800
 
 # Framebuffer support, board specific drivers
 FB_OBJS=fb/framebuffer.o fb/font.o fb/helvR08.o fb/helvB14.o fb/c64.o \
@@ -62,6 +63,13 @@ BOARD_fcdev3b_OBJS=$(calypso_COMMON_OBJS) board/fcdev3b/init.o \
 	board/gta0x/afcparams.o \
 	board/common/readcal_tiffs.o battery/dummy.o $(FB_dummy_OBJS)
 BOARD_fcdev3b_ENVIRONMENTS=highram
+
+# iWOW TR-800 aka FreeCalypso Tango
+BOARD_tr800_OBJS=$(calypso_COMMON_OBJS) board/tr800/init.o \
+	board/tr800/rffe_leo_quadband.o board/gta0x/rf_tables.o \
+	board/tr800/afcparams.o \
+	board/common/readcal_tiffs.o battery/dummy.o $(FB_dummy_OBJS)
+BOARD_tr800_ENVIRONMENTS=highram
 
 # Pirelli DP-L10
 BOARD_pirelli_dpl10_OBJS=$(calypso_COMMON_OBJS) board/pirelli_dpl10/init.o \
