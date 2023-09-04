@@ -368,9 +368,9 @@ static int prim_enqeue(struct l1sched_state *sched, struct msgb *msg,
 	if (OSMO_UNLIKELY(lchan == NULL || !lchan->active)) {
 		LOGP_SCHEDD(sched, LOGL_ERROR,
 			    "No [active] lchan for primitive " L1SCHED_PRIM_STR_FMT " "
-			    "(chan_nr=%02x, link_id=%02x, len=%u): %s\n",
+			    "(fn=%u, chan_nr=%02x, link_id=%02x, len=%u): %s\n",
 			    L1SCHED_PRIM_STR_ARGS(prim),
-			    chdr->chan_nr, chdr->link_id,
+			    chdr->frame_nr, chdr->chan_nr, chdr->link_id,
 			    msgb_l2len(msg), msgb_hexdump_l2(msg));
 		msgb_free(msg);
 		return -ENODEV;
@@ -378,9 +378,9 @@ static int prim_enqeue(struct l1sched_state *sched, struct msgb *msg,
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG,
 		    "Enqueue primitive " L1SCHED_PRIM_STR_FMT " "
-		    "(chan_nr=%02x, link_id=%02x, len=%u): %s\n",
+		    "(fn=%u, chan_nr=%02x, link_id=%02x, len=%u): %s\n",
 		    L1SCHED_PRIM_STR_ARGS(prim),
-		    chdr->chan_nr, chdr->link_id,
+		    chdr->frame_nr, chdr->chan_nr, chdr->link_id,
 		    msgb_l2len(msg), msgb_hexdump_l2(msg));
 
 	msgb_enqueue(&lchan->tx_prims, msg);
