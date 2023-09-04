@@ -25,6 +25,7 @@ enum grr_fsm_event {
 	GRR_EV_PDCH_DL_TBF_CFG_REQ,
 	GRR_EV_PDCH_BLOCK_REQ,
 	GRR_EV_PDCH_BLOCK_IND,
+	GRR_EV_PDCH_RTS_IND,
 };
 
 extern struct osmo_fsm grr_fsm_def;

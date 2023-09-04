@@ -22,6 +22,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
+#include <osmocom/gsm/gsm0502.h>
 
 #include <osmocom/bb/virtphy/l1ctl_sap.h>
 #include <osmocom/bb/virtphy/virt_l1_sched.h>
@@ -75,6 +76,7 @@ void l1ctl_tx_gprs_dl_block_ind(struct l1_model_ms *ms, const struct msgb *msg,
 {
 	struct l1gprs_prim_dl_block_ind ind;
 	struct msgb *nmsg;
+	uint8_t usf = 0xff;
 
 	if (ms->gprs == NULL)
 		return;
@@ -93,7 +95,14 @@ void l1ctl_tx_gprs_dl_block_ind(struct l1_model_ms *ms, const struct msgb *msg,
 		.data_len = msgb_length(msg),
 	};
 
-	nmsg = l1gprs_handle_dl_block_ind(ms->gprs, &ind);
+	nmsg = l1gprs_handle_dl_block_ind(ms->gprs, &ind, &usf);
 	if (nmsg != NULL)
+		l1ctl_sap_tx_to_l23_inst(ms, nmsg);
+	/* Every fn % 13 == 12 we have either a PTCCH or an IDLE slot, thus
+	 * every fn % 13 ==  8 we add 5 frames, or 4 frames othrwise.  The
+	 * resulting value is first fn of the next block. */
+	const uint32_t rts_fn = GSM_TDMA_FN_SUM(fn, (fn % 13 == 8) ? 5 : 4);
+	nmsg = l1gprs_handle_rts_ind(ms->gprs, rts_fn, tn, usf);
+	if (msg != NULL)
 		l1ctl_sap_tx_to_l23_inst(ms, nmsg);
 }

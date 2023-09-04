@@ -607,6 +607,7 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 		const struct trxcon_param_rx_data_ind *ind = data;
 		struct l1gprs_prim_dl_block_ind block_ind;
 		struct msgb *msg;
+		uint8_t usf = 0xff;
 
 		block_ind = (struct l1gprs_prim_dl_block_ind) {
 			.hdr = {
@@ -627,7 +628,14 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 		else
 			block_ind.meas.ber10k = 10000 * ind->n_errors / ind->n_bits_total;
 
-		msg = l1gprs_handle_dl_block_ind(trxcon->gprs, &block_ind);
+		msg = l1gprs_handle_dl_block_ind(trxcon->gprs, &block_ind, &usf);
+		if (msg != NULL)
+			trxcon_l1ctl_send(trxcon, msg);
+		/* Every fn % 13 == 12 we have either a PTCCH or an IDLE slot, thus
+		 * every fn % 13 ==  8 we add 5 frames, or 4 frames othrwise.  The
+		 * resulting value is first fn of the next block. */
+		const uint32_t rts_fn = GSM_TDMA_FN_SUM(ind->frame_nr, (ind->frame_nr % 13 == 8) ? 5 : 4);
+		msg = l1gprs_handle_rts_ind(trxcon->gprs, rts_fn, ind->chan_nr & 0x07, usf);
 		if (msg != NULL)
 			trxcon_l1ctl_send(trxcon, msg);
 		break;

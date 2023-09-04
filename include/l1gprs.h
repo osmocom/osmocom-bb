@@ -112,4 +112,5 @@ int l1gprs_handle_ul_block_req(struct l1gprs_state *gprs,
 			       struct l1gprs_prim_ul_block_req *req,
 			       const struct msgb *msg);
 struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
-					const struct l1gprs_prim_dl_block_ind *ind);
+					const struct l1gprs_prim_dl_block_ind *ind, uint8_t *usf);
+struct msgb *l1gprs_handle_rts_ind(struct l1gprs_state *gprs, uint32_t fn, uint8_t tn, uint8_t usf);

@@ -469,16 +469,15 @@ static void handle_pdch_block_ind(struct osmocom_ms *ms, struct msgb *msg)
 		}
 	};
 	osmo_gprs_rlcmac_prim_lower_up(prim);
+}
 
-	/* Do not send RTS.ind if we got PTCCH/D */
-	if (fn % 104 == 12)
-		return;
+static void handle_pdch_rts_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	const struct l1ctl_gprs_rts_ind *ind = (void *)msg->l1h;
+	const uint32_t fn = osmo_load32be(&ind->fn);
+	struct osmo_gprs_rlcmac_prim *prim;
 
-	/* Every fn % 13 == 12 we have either a PTCCH or an IDLE slot, thus
-	 * every fn % 13 ==  8 we add 5 frames, or 4 frames othrwise.  The
-	 * resulting value is first fn of the next block. */
-	const uint32_t rts_fn = GSM_TDMA_FN_SUM(fn, (fn % 13 == 8) ? 5 : 4);
-	prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_pdch_rts_ind(ind->hdr.tn, rts_fn, ind->usf);
+	prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_pdch_rts_ind(ind->tn, fn, ind->usf);
 	osmo_gprs_rlcmac_prim_lower_up(prim);
 }
 
@@ -693,6 +692,9 @@ static void grr_st_packet_transfer_action(struct osmo_fsm_inst *fi,
 	case GRR_EV_PDCH_BLOCK_IND:
 		handle_pdch_block_ind(ms, (struct msgb *)data);
 		break;
+	case GRR_EV_PDCH_RTS_IND:
+		handle_pdch_rts_ind(ms, (struct msgb *)data);
+		break;
 	case GRR_EV_PDCH_RELEASE_REQ:
 		modem_sync_to_cell(ms);
 		osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_NOT_READY, 0, 0);
@@ -729,6 +731,7 @@ static const struct osmo_fsm_state grr_fsm_states[] = {
 				| S(GRR_EV_PDCH_DL_TBF_CFG_REQ)
 				| S(GRR_EV_PDCH_BLOCK_REQ)
 				| S(GRR_EV_PDCH_BLOCK_IND)
+				| S(GRR_EV_PDCH_RTS_IND)
 				| S(GRR_EV_PDCH_RELEASE_REQ),
 		.action = &grr_st_packet_transfer_action,
 		.onenter = &grr_st_packet_transfer_onenter,
@@ -747,6 +750,7 @@ static const struct value_string grr_fsm_event_names[] = {
 	OSMO_VALUE_STRING(GRR_EV_PDCH_DL_TBF_CFG_REQ),
 	OSMO_VALUE_STRING(GRR_EV_PDCH_BLOCK_REQ),
 	OSMO_VALUE_STRING(GRR_EV_PDCH_BLOCK_IND),
+	OSMO_VALUE_STRING(GRR_EV_PDCH_RTS_IND),
 	{ 0, NULL }
 };
 

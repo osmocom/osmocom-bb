@@ -674,7 +674,8 @@ int l1gprs_handle_ul_block_req(struct l1gprs_state *gprs,
 	(((ind)->hdr.fn % 104) == 12)
 
 struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
-					const struct l1gprs_prim_dl_block_ind *ind)
+					const struct l1gprs_prim_dl_block_ind *ind,
+					uint8_t *usf)
 {
 	const struct l1gprs_pdch *pdch = NULL;
 	struct l1ctl_gprs_dl_block_ind *l1bi;
@@ -743,6 +744,7 @@ struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
 	case OSMO_GPRS_CS3:
 	case OSMO_GPRS_CS4:
 		l1bi->usf = ind->data[0] & 0x07;
+		*usf = l1bi->usf;
 		/* Determine whether to include the payload or not */
 		if (l1gprs_pdch_filter_dl_block(pdch, ind->data))
 			memcpy(msgb_put(msg, ind->data_len), ind->data, ind->data_len);
@@ -755,6 +757,49 @@ struct msgb *l1gprs_handle_dl_block_ind(struct l1gprs_state *gprs,
 		LOGP_PDCH(pdch, LOGL_NOTICE, "Coding Scheme %d is not supported\n", cs);
 		break;
 	}
+
+	return msg;
+}
+
+struct msgb *l1gprs_handle_rts_ind(struct l1gprs_state *gprs, uint32_t fn, uint8_t tn, uint8_t usf)
+{
+	const struct l1gprs_pdch *pdch = NULL;
+	struct l1ctl_gprs_rts_ind *l1bi;
+	struct msgb *msg;
+
+	pdch = &gprs->pdch[tn];
+
+	LOGP_PDCH(pdch, LOGL_DEBUG,
+		  "Rx RTS.ind (%s, fn=%u, usf=%u)\n",
+		  ((fn % 104) == 12) ? "PTCCH" : "PDTCH",
+		  fn, usf);
+
+	l1gprs_check_pending_tbfs(gprs, fn);
+
+	if (pdch->ul_tbf_count + pdch->dl_tbf_count == 0) {
+		if (pdch->pending_ul_tbf_count + pdch->pending_dl_tbf_count > 0)
+			LOGP_PDCH(pdch, LOGL_DEBUG,
+				  "Rx RTS.ind (fn=%u, usf=%u), but this PDCH has no active TBFs yet\n",
+				  fn, usf);
+		else
+			LOGP_PDCH(pdch, LOGL_ERROR,
+				  "Rx RTS.ind (fn=%u, usf=%u), but this PDCH has no configured TBFs\n",
+				  fn, usf);
+		return NULL;
+	}
+
+	msg = l1gprs_l1ctl_msgb_alloc(L1CTL_GPRS_RTS_IND);
+	if (OSMO_UNLIKELY(msg == NULL)) {
+		LOGP_GPRS(gprs, LOGL_ERROR, "l1gprs_l1ctl_msgb_alloc() failed\n");
+		return NULL;
+	}
+
+	l1bi = (void *)msgb_put(msg, sizeof(*l1bi));
+	*l1bi = (struct l1ctl_gprs_rts_ind) {
+		.fn = htonl(fn),
+		.tn = tn,
+		.usf = usf,
+	};
 
 	return msg;
 }

@@ -986,6 +986,35 @@ static int rx_l1_gprs_dl_block_ind(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* Receive L1CTL_GPRS_RTS_IND */
+static int rx_l1_gprs_rts_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	const struct l1ctl_gprs_rts_ind *ind = (void *)msg->l1h;
+
+	if (msgb_l1len(msg) < sizeof(*ind)) {
+		LOGP(DL1C, LOGL_ERROR,
+		     "Rx malformed GPRS RTS.ind (len=%u < %zu)\n",
+		     msgb_l1len(msg), sizeof(*ind));
+		return -EINVAL;
+	}
+	if (OSMO_UNLIKELY(ind->tn >= 8)) {
+		LOGP(DL1C, LOGL_ERROR,
+		     "Rx malformed GPRS RTS.ind (tn=%u)\n",
+		     ind->tn);
+		return -EINVAL;
+	}
+
+	DEBUGP(DL1C, "Rx RTS.ind (fn=%u, tn=%u, usf=%u)\n",
+	       ntohl(ind->fn), ind->tn, ind->usf);
+
+	/* distribute or drop */
+	if (ms->l1_entity.l1_gprs_rts_ind)
+		return ms->l1_entity.l1_gprs_rts_ind(ms, msg);
+
+	msgb_free(msg);
+	return 0;
+}
+
 /* Transmit L1CTL_GPRS_UL_BLOCK_REQ */
 int l1ctl_tx_gprs_ul_block_req(struct osmocom_ms *ms, uint32_t fn, uint8_t tn,
 			       const uint8_t *data, size_t data_len)
@@ -1131,6 +1160,9 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_GPRS_DL_BLOCK_IND:
 		rc = rx_l1_gprs_dl_block_ind(ms, msg);
+		break;
+	case L1CTL_GPRS_RTS_IND:
+		rc = rx_l1_gprs_rts_ind(ms, msg);
 		break;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG: %u\n", hdr->msg_type);
