@@ -12,6 +12,8 @@ enum {
 	DNB,
 	DMM,
 	DCC,
+	DGCC,
+	DBCC,
 	DSS,
 	DSMS,
 	DMNCC,

@@ -64,6 +64,18 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[1;33m",
 		.enabled = 1, .loglevel = LOGL_NOTICE,
 	},
+	[DGCC] = {
+		.name = "DGCC",
+		.description = "Group Call Control",
+		.color = "\033[1;33m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
+	[DBCC] = {
+		.name = "DBCC",
+		.description = "Broadcast Call Control",
+		.color = "\033[1;33m",
+		.enabled = 1, .loglevel = LOGL_NOTICE,
+	},
 	[DSS] = {
 		.name = "DSS",
 		.description = "Supplenmentary Services",
