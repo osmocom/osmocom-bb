@@ -83,6 +83,7 @@ struct osmobb_tch_mode_conf {
 	struct osmocom_ms *ms;
 	uint8_t tch_mode;
 	uint8_t audio_mode;
+	uint8_t tch_flags;
 };
 
 struct osmobb_neigh_pm_ind {

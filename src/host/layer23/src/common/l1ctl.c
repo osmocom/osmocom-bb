@@ -443,8 +443,8 @@ int l1ctl_tx_ccch_mode_req(struct osmocom_ms *ms, uint8_t ccch_mode)
 }
 
 /* Transmit L1CTL_TCH_MODE_REQ */
-int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode,
-			  uint8_t audio_mode, uint8_t tch_loop_mode)
+int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode, uint8_t audio_mode, uint8_t tch_flags,
+			  uint8_t tch_loop_mode)
 {
 	struct msgb *msg;
 	struct l1ctl_tch_mode_req *req;
@@ -458,6 +458,7 @@ int l1ctl_tx_tch_mode_req(struct osmocom_ms *ms, uint8_t tch_mode,
 	req = (struct l1ctl_tch_mode_req *) msgb_put(msg, sizeof(*req));
 	req->tch_mode = tch_mode;
 	req->audio_mode = audio_mode;
+	req->tch_flags = tch_flags;
 	req->tch_loop_mode = tch_loop_mode;
 	/* TODO: Set AMR codec in req if req->tch_mode==GSM48_CMODE_SPEECH_AMR */
 
@@ -536,9 +537,8 @@ int l1ctl_tx_rach_req(struct osmocom_ms *ms,
 }
 
 /* Transmit L1CTL_DM_EST_REQ */
-int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
-                           uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode,
-			   uint8_t audio_mode)
+int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn, uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode,
+			   uint8_t audio_mode, uint8_t tch_flags)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -561,14 +561,13 @@ int l1ctl_tx_dm_est_req_h0(struct osmocom_ms *ms, uint16_t band_arfcn,
 	req->h0.band_arfcn = htons(band_arfcn);
 	req->tch_mode = tch_mode;
 	req->audio_mode = audio_mode;
+	req->tch_flags = tch_flags;
 
 	return osmo_send_l1(ms, msg);
 }
 
-int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
-                           uint16_t *ma, uint8_t ma_len,
-                           uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode,
-			   uint8_t audio_mode)
+int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn, uint16_t *ma, uint8_t ma_len,
+			   uint8_t chan_nr, uint8_t tsc, uint8_t tch_mode, uint8_t audio_mode, uint8_t tch_flags)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -596,6 +595,7 @@ int l1ctl_tx_dm_est_req_h1(struct osmocom_ms *ms, uint8_t maio, uint8_t hsn,
 		req->h1.ma[i] = htons(ma[i]);
 	req->tch_mode = tch_mode;
 	req->audio_mode = audio_mode;
+	req->tch_flags = tch_flags;
 
 	return osmo_send_l1(ms, msg);
 }
@@ -831,6 +831,7 @@ static int rx_l1_tch_mode_conf(struct osmocom_ms *ms, struct msgb *msg)
 
 	mc.tch_mode = conf->tch_mode;
 	mc.audio_mode = conf->audio_mode;
+	mc.tch_flags = conf->tch_flags;
 	mc.ms = ms;
 	osmo_signal_dispatch(SS_L1CTL, S_L1CTL_TCH_MODE_CONF, &mc);
 

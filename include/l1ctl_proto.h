@@ -146,6 +146,7 @@ struct l1ctl_tch_mode_conf {
 		uint8_t start_codec;
 		uint8_t codecs_bitmask;
 	} amr;
+	uint8_t tch_flags;
 } __attribute__((packed));
 
 /* data on the CCCH was found. This is following the header */
@@ -219,7 +220,10 @@ struct l1ctl_tch_mode_req {
 		uint8_t start_codec;
 		uint8_t codecs_bitmask;
 	} amr;
+	uint8_t tch_flags;
 } __attribute__((packed));
+
+#define L1CTL_TCH_FLAG_RXONLY	(1<<0)  /* TX disabled */
 
 /* the l1_info_ul header is in front */
 struct l1ctl_rach_req {
@@ -265,6 +269,7 @@ struct l1ctl_dm_est_req {
 	};
 	uint8_t tch_mode;
 	uint8_t audio_mode;
+	uint8_t tch_flags;
 } __attribute__((packed));
 
 struct l1ctl_dm_freq_req {

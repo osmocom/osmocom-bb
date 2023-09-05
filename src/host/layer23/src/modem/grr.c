@@ -485,7 +485,7 @@ static void handle_pdch_establish_req(struct osmo_fsm_inst *fi,
 			 lp->pdch_est_req.tsc, lp->pdch_est_req.arfcn);
 		l1ctl_tx_dm_est_req_h0(ms, lp->pdch_est_req.arfcn,
 				       RSL_CHAN_OSMO_PDCH | lp->pdch_est_req.ts_nr,
-				       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0);
+				       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0, 0);
 	} else {
 		/* Hopping */
 		uint8_t ma_len = 0;
@@ -515,7 +515,7 @@ static void handle_pdch_establish_req(struct osmo_fsm_inst *fi,
 				       lp->pdch_est_req.fhp.hsn,
 				       &ma[0], ma_len,
 				       RSL_CHAN_OSMO_PDCH | lp->pdch_est_req.ts_nr,
-				       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0);
+				       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0, 0);
 	}
 
 	osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_TRANSFER, 0, 0);

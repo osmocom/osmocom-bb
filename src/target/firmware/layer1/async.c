@@ -125,6 +125,13 @@ uint8_t l1a_audio_mode_set(uint8_t mode)
 	return mode;
 }
 
+/* Set TCH flags */
+uint8_t l1a_tch_flags_set(uint8_t flags)
+{
+	l1s.tch_flags = flags;
+	return flags;
+}
+
 /* Initialize asynchronous part of Layer1 */
 void l1a_init(void)
 {

@@ -47,6 +47,9 @@ uint8_t l1a_tch_mode_set(uint8_t mode);
 /* Set Audio routing mode */
 uint8_t l1a_audio_mode_set(uint8_t mode);
 
+/* Set TCH flags */
+uint8_t l1a_tch_flags_set(uint8_t flags);
+
 /* Execute pending L1A completions */
 void l1a_compl_execute(void);
 

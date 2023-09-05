@@ -90,8 +90,7 @@ static void stop_rr_t3124(struct gsm48_rrlayer *rr);
 static int gsm48_rcv_rsl(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_rr_dl_est(struct osmocom_ms *ms);
 static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms);
-static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
-	uint8_t mode);
+static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr, uint8_t mode, uint8_t tch_flags);
 static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg);
 int gsm414_rcv_test(struct osmocom_ms *ms, const struct msgb *msg);
 
@@ -3040,16 +3039,13 @@ static int gsm48_rr_activate_channel(struct osmocom_ms *ms,
 		return -EINVAL;
 	}
 
-	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d, "
-		"audio-mode %d, cipher %d\n", ch_type, ch_subch, ch_ts,
-		cd->mode, rr->audio_mode, rr->cipher_type + 1);
+	LOGP(DRR, LOGL_INFO, " Channel type %d, subch %d, ts %d, mode %d, audio-mode %d, flags 0x%02x, cipher %d\n",
+	     ch_type, ch_subch, ch_ts, cd->mode, rr->audio_mode, cd->tch_flags, rr->cipher_type + 1);
 	if (cd->h)
-		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn,
-			ma, ma_len, cd->chan_nr, cd->tsc, cd->mode,
-			rr->audio_mode);
+		l1ctl_tx_dm_est_req_h1(ms, cd->maio, cd->hsn, ma, ma_len, cd->chan_nr, cd->tsc, cd->mode,
+				       rr->audio_mode, cd->tch_flags);
 	else
-		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc,
-			cd->mode, rr->audio_mode);
+		l1ctl_tx_dm_est_req_h0(ms, cd->arfcn, cd->chan_nr, cd->tsc, cd->mode, rr->audio_mode, cd->tch_flags);
 	rr->dm_est = 1;
 
 	/* old SI 5/6 are not valid on a new dedicated channel */
@@ -3079,7 +3075,7 @@ static int gsm48_rr_channel_after_time(struct osmocom_ms *ms,
 		l1ctl_tx_crypto_req(ms, rr->cd_now.chan_nr,
 			rr->cipher_type + 1, subscr->key, 8);
 
-	gsm48_rr_set_mode(ms, cd->chan_nr, cd->mode);
+	gsm48_rr_set_mode(ms, cd->chan_nr, cd->mode, cd->tch_flags);
 
 	return 0;
 }
@@ -3473,8 +3469,7 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
  */
 
 /* set channel mode in case of TCH */
-static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
-	uint8_t mode)
+static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr, uint8_t mode, uint8_t tch_flags)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;
@@ -3501,9 +3496,9 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 #endif
 
 	/* Apply indicated channel mode */
-	LOGP(DRR, LOGL_INFO, "setting TCH mode to %s, audio mode to %d\n",
-	     get_value_string(gsm48_chan_mode_names, mode), rr->audio_mode);
-	l1ctl_tx_tch_mode_req(ms, mode, rr->audio_mode, rr->tch_loop_mode);
+	LOGP(DRR, LOGL_INFO, "setting TCH mode to %s, audio mode to %d, tch flags to %d\n",
+	     get_value_string(gsm48_chan_mode_names, mode), rr->audio_mode, tch_flags);
+	l1ctl_tx_tch_mode_req(ms, mode, rr->audio_mode, tch_flags, rr->tch_loop_mode);
 
 	return 0;
 }
@@ -3687,7 +3682,7 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 		goto ack;
 
 	/* Attempt to apply this mode */
-	rc = gsm48_rr_set_mode(ms, cd->chan_nr, cm->mode);
+	rc = gsm48_rr_set_mode(ms, cd->chan_nr, cm->mode, cd->tch_flags);
 	if (rc)
 		goto ack;
 
@@ -5832,5 +5827,5 @@ int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode)
 	 && ch_type != RSL_CHAN_Lm_ACCHs)
 		return 0;
 
-	return l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, mode, rr->tch_loop_mode);
+	return l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, mode, rr->cd_now.tch_flags, rr->tch_loop_mode);
 }

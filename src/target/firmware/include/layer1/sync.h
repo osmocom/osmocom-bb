@@ -82,6 +82,7 @@ struct l1s_state {
 	uint8_t		tch_mode;
 	uint8_t		tch_sync;
 	uint8_t		audio_mode;
+	uint8_t		tch_flags;
 
 	/* 3GPP TS 44.014, section 5.1 (Calypso DSP specific numbers) */
 	enum l1ctl_tch_loop_mode tch_loop_mode;

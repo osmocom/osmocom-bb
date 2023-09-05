@@ -478,6 +478,12 @@ skip_tx_traffic:
 	);
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
 
+	/* If transmission is off, use dummy task for DSP and do not open TX window. */
+	if ((l1s.tch_flags & L1CTL_TCH_FLAG_RXONLY)) {
+		dsp_load_tx_task(TCHD_DSP_TASK, 0, tsc); /* burst_id unused for TCH */
+		return 0;
+	}
+
 	dsp_load_tx_task(
 		dsp_task_iq_swap(TCHT_DSP_TASK, arfcn, 1),
 		0, tsc		/* burst_id unused for TCH */
@@ -742,6 +748,10 @@ static int l1s_tch_a_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		0, tsc		/* burst_id unused for TCHA */
 	);
 	l1s_rx_win_ctrl(arfcn, L1_RXWIN_NB, 0);
+
+	/* If transmission is off, schedule no task for DSP and do not open TX window. */
+	if ((l1s.tch_flags & L1CTL_TCH_FLAG_RXONLY))
+		return 0;
 
 	dsp_load_tx_task(
 		dsp_task_iq_swap(TCHA_DSP_TASK, arfcn, 1),

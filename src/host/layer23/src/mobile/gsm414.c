@@ -137,7 +137,7 @@ static int handle_close_tch_loop(struct osmocom_ms *ms, const struct msgb *msg)
 
 	/* Instruct the L1 to enable received TCH loopback mode
 	 * FIXME: delay applying this mode, so we can send the ACK first */
-	l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, rr->audio_mode, rr->tch_loop_mode);
+	l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, rr->audio_mode, rr->cd_now.tch_flags, rr->tch_loop_mode);
 
 	/* Craft and send the ACKnowledgement */
 	nmsg = alloc_gsm414_msg(GSM414_MT_CLOSE_TCH_LOOP_ACK);
@@ -178,7 +178,7 @@ static int handle_open_tch_loop(struct osmocom_ms *ms, const struct msgb *msg)
 	     rsl_chan_nr_str(rr->cd_now.chan_nr), loop_mode_name(rr->tch_loop_mode));
 
 	/* Instruct the L1 to disable the TCH loopback mode */
-	l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, rr->audio_mode, L1CTL_TCH_LOOP_OPEN);
+	l1ctl_tx_tch_mode_req(ms, rr->cd_now.mode, rr->audio_mode, rr->cd_now.tch_flags, L1CTL_TCH_LOOP_OPEN);
 
 	/* Only the loop mode C needs to be ACKnowledged */
 	bool needs_ack = rr->tch_loop_mode == L1CTL_TCH_LOOP_C;

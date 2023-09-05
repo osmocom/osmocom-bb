@@ -101,6 +101,7 @@ struct gsm48_rr_cd {
 	uint8_t			start; /* start time available */
 	struct gsm_time		start_tm; /* start time */
 	uint8_t			mode; /* mode of channel */
+	uint8_t			tch_flags; /* E.g. L1CTL_TCH_FLAG_RXONLY */
 	uint8_t			cipher; /* ciphering of channel */
 };
 
