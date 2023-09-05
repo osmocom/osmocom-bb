@@ -103,6 +103,6 @@ void l1ctl_tx_gprs_dl_block_ind(struct l1_model_ms *ms, const struct msgb *msg,
 	 * resulting value is first fn of the next block. */
 	const uint32_t rts_fn = GSM_TDMA_FN_SUM(fn, (fn % 13 == 8) ? 5 : 4);
 	nmsg = l1gprs_handle_rts_ind(ms->gprs, rts_fn, tn, usf);
-	if (msg != NULL)
+	if (nmsg != NULL)
 		l1ctl_sap_tx_to_l23_inst(ms, nmsg);
 }
