@@ -514,7 +514,7 @@ int l1ctl_tx_crypto_req(struct osmocom_ms *ms, uint8_t chan_nr,
 /* Transmit L1CTL_RACH_REQ */
 int l1ctl_tx_rach_req(struct osmocom_ms *ms,
 		      uint8_t chan_nr, uint8_t link_id,
-		      uint8_t ra, uint16_t offset, uint8_t combined)
+		      uint8_t ra, uint16_t offset, uint8_t combined, uint8_t uic)
 {
 	struct msgb *msg;
 	struct l1ctl_info_ul *ul;
@@ -524,7 +524,7 @@ int l1ctl_tx_rach_req(struct osmocom_ms *ms,
 	if (!msg)
 		return -1;
 
-	DEBUGP(DL1C, "RACH Req. offset=%d combined=%d\n", offset, combined);
+	DEBUGP(DL1C, "RACH Req. offset=%d combined=%d uic=0x%02x\n", offset, combined, uic);
 	ul = (struct l1ctl_info_ul *) msgb_put(msg, sizeof(*ul));
 	ul->chan_nr = chan_nr;
 	ul->link_id = link_id;
@@ -532,6 +532,7 @@ int l1ctl_tx_rach_req(struct osmocom_ms *ms,
 	req->ra = ra;
 	req->offset = htons(offset);
 	req->combined = combined;
+	req->uic = uic;
 
 	return osmo_send_l1(ms, msg);
 }

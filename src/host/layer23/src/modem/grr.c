@@ -653,7 +653,7 @@ static void grr_st_packet_access_onenter(struct osmo_fsm_inst *fi, uint32_t prev
 		 rr->cr_ra, rr->n_chan_req);
 
 	l1ctl_tx_rach_req(ms, RSL_CHAN_RACH, 0x00, rr->cr_ra, 0,
-			  ms->cellsel.ccch_mode == CCCH_MODE_COMBINED);
+			  ms->cellsel.ccch_mode == CCCH_MODE_COMBINED, 0xff);
 }
 
 static void grr_st_packet_access_action(struct osmo_fsm_inst *fi,

@@ -20,7 +20,7 @@ void l1s_nb_test(uint8_t base_fn);
 
 void l1s_fbsb_req(uint8_t base_fn, struct l1ctl_fbsb_req *req);
 void l1a_freq_req(uint32_t fn_sched);
-void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra);
+void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra, uint8_t uic);
 
 /* Primitives raw scheduling sets */
 extern const struct tdma_sched_item nb_sched_set[];

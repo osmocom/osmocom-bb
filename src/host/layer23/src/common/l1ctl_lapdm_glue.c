@@ -52,7 +52,8 @@ int l1ctl_ph_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 				       RSL_CHAN_RACH, 0x00,
 				       pp->u.rach_req.ra,
 				       pp->u.rach_req.offset,
-				       pp->u.rach_req.is_combined_ccch);
+				       pp->u.rach_req.is_combined_ccch,
+				       0xff);
 		break;
 	default:
 		rc = -EINVAL;

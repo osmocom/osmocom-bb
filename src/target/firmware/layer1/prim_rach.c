@@ -62,7 +62,11 @@ static int l1s_tx_rach_cmd(__unused uint8_t p1, __unused uint8_t p2, __unused ui
 
 	l1s_tx_apc_helper(l1s.serving_cell.arfcn);
 
-	data[0] = l1s.serving_cell.bsic << 2;
+	/* If an invalid UIC is given, use BSIC. */
+	if (l1s.rach.uic > 0x3f)
+		data[0] = l1s.serving_cell.bsic << 2;
+	else
+		data[0] = l1s.rach.uic << 2;
 	data[1] = l1s.rach.ra;
 
 	info_ptr = &dsp_api.ndb->d_rach;
@@ -128,7 +132,7 @@ static uint8_t rach_to_t3_comb[27] = {
 	45, 46};
 
 /* schedule access burst */
-void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra)
+void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra, uint8_t uic)
 {
 	uint32_t fn_sched;
 	unsigned long flags;
@@ -158,6 +162,7 @@ void l1a_rach_req(uint16_t offset, uint8_t combined, uint8_t ra)
 	} else
 		fn_sched = l1s.current_time.fn + offset;
 	l1s.rach.ra = ra;
+	l1s.rach.uic = uic;
 	fn_sched %= GSM_MAX_FN;
 	sched_gsmtime(rach_sched_set_ul, fn_sched, 0);
 	local_irq_restore(flags);

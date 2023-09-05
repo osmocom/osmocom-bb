@@ -117,6 +117,7 @@ struct l1s_state {
 
 	struct {
 		uint8_t		ra;
+		uint8_t		uic;
 	} rach;
 
 	struct {

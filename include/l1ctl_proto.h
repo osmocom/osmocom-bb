@@ -230,6 +230,7 @@ struct l1ctl_rach_req {
 	uint8_t ra;
 	uint8_t combined;
 	uint16_t offset;
+	uint8_t uic;
 } __attribute__((packed));
 
 
