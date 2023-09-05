@@ -34,6 +34,7 @@ struct trxcon_inst {
 	struct {
 		uint16_t band_arfcn;
 		uint8_t tx_power;
+		uint8_t tsc; /* only valid for DCCH/PDCH */
 		int8_t ta;
 	} l1p;
 

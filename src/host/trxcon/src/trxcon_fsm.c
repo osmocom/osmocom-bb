@@ -369,6 +369,9 @@ static void handle_dch_est_req(struct osmo_fsm_inst *fi,
 		return;
 	}
 
+	/* Store TSC for subsequent PDCH timeslot activation(s) */
+	trxcon->l1p.tsc = req->tsc;
+
 	if (config == GSM_PCHAN_PDCH)
 		osmo_fsm_inst_state_chg(fi, TRXCON_ST_PACKET_DATA, 0, 0);
 	else
@@ -522,15 +525,20 @@ static void handle_tbf_cfg_req(struct trxcon_inst *trxcon, uint8_t tn, bool acti
 	struct l1sched_state *sched = trxcon->sched;
 
 	if (active) {
+		struct l1sched_lchan_state *lchan;
+		struct l1sched_ts *ts;
+
 		if (sched->ts[tn] != NULL) /* already enabled */
 			return;
 		if (l1sched_configure_ts(sched, tn, GSM_PCHAN_PDCH) != 0)
 			return;
 		OSMO_ASSERT(sched->ts[tn] != NULL);
+		ts = sched->ts[tn];
 
-		l1sched_activate_lchan(sched->ts[tn], L1SCHED_PDTCH);
-		l1sched_activate_lchan(sched->ts[tn], L1SCHED_PTCCH);
-		/* FIXME: set TSC for both lchans */
+		l1sched_activate_lchan(ts, L1SCHED_PDTCH);
+		l1sched_activate_lchan(ts, L1SCHED_PTCCH);
+		llist_for_each_entry(lchan, &ts->lchans, list)
+			lchan->tsc = trxcon->l1p.tsc;
 	} else {
 		l1sched_del_ts(sched, tn);
 	}
