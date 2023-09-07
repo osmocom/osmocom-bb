@@ -161,6 +161,10 @@ struct gsm_settings {
 	uint8_t			ch_cap; /* channel capability */
 	int8_t			min_rxlev_dbm; /* min dBm to access */
 
+	/* support for ASCI */
+	bool			vgcs; /* support of VGCS */
+	bool			vbs; /* support of VBS */
+
 	/* radio */
 	uint16_t		dsc_max;
 	uint8_t			force_rekey;

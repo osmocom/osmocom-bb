@@ -1075,6 +1075,8 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	if (!l23_vty_hide_default || set->any_timeout != MOB_C7_DEFLT_ANY_TIMEOUT)
 		vty_out(vty, " c7-any-timeout %d%s",
 			set->any_timeout, VTY_NEWLINE);
+	SUP_WRITE(vgcs, "vgcs");
+	SUP_WRITE(vbs, "vbs");
 
 	vty_out(vty, " audio%s", VTY_NEWLINE);
 	vty_out(vty, "  io-handler %s%s",
@@ -2052,6 +2054,15 @@ DEFUN(cfg_ms_sup_no_skip_max_per_band, cfg_ms_sup_no_skip_max_per_band_cmd,
 	return CMD_SUCCESS;
 }
 
+SUP_EN(cfg_ms_sup_vbs, cfg_ms_sup_vbs_cmd, vbs, "vbs",
+	"Voice Broadcast Service (VBS)", 0);
+SUP_DI(cfg_ms_sup_no_vbs, cfg_ms_sup_no_vbs_cmd, vbs,
+	"vbs", "Voice Broadcast Service (VBS)", 0);
+SUP_EN(cfg_ms_sup_vgcs, cfg_ms_sup_vgcs_cmd, vgcs, "vgcs",
+	"Voice Group Call Service (VGCS)", 0);
+SUP_DI(cfg_ms_sup_no_vgcs, cfg_ms_sup_no_vgcs_cmd, vgcs,
+	"vgcs", "Voice Group Call Service (VBS)", 0);
+
 /* per audio config */
 DEFUN(cfg_ms_audio, cfg_ms_audio_cmd, "audio",
 	"Configure audio settings")
@@ -2380,6 +2391,10 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_skip_max_per_band_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_vbs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_vbs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_vgcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_vgcs_cmd);
 	install_element(MS_NODE, &cfg_ms_script_load_run_cmd);
 	install_element(MS_NODE, &cfg_ms_no_script_load_run_cmd);
 

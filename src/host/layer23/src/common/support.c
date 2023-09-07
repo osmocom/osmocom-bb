@@ -34,9 +34,9 @@ void gsm_support_init(struct osmocom_ms *ms)
 	/* revision level */
 	sup->rev_lev = 1; /* phase 2 mobile station */
 	/* support of VGCS */
-	sup->vgcs = 0; /* no */
+	sup->vgcs = true; /* yes */
 	/* support of VBS */
-	sup->vbs = 0; /* no */
+	sup->vbs = true; /* yes */
 	/* support of SMS */
 	sup->sms_ptp = 1; /* no */
 	/* screening indicator */
