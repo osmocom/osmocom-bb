@@ -240,6 +240,8 @@ struct gsm48_mm_conn {
 	int			state;
 };
 
+int gsm48_encode_mi_lv(struct osmocom_ms *ms, struct msgb *msg, uint8_t mi_type, bool emergency_imsi);
+int gsm48_encode_mi_tlv(struct osmocom_ms *ms, struct msgb *msg, uint8_t mi_type, bool emergency_imsi);
 uint8_t gsm48_current_pwr_lev(struct gsm_settings *set, uint16_t arfcn);
 int gsm48_mm_init(struct osmocom_ms *ms);
 int gsm48_mm_exit(struct osmocom_ms *ms);

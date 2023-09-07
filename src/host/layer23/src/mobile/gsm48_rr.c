@@ -921,11 +921,9 @@ int gsm48_rr_tx_rr_status(struct osmocom_ms *ms, uint8_t cause)
 /* send chiperhing mode complete */
 static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 {
-	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm48_rr_hdr *nrrh;
-	uint8_t buf[11], *tlv;
 
 	LOGP(DRR, LOGL_INFO, "CIPHERING MODE COMPLETE (cr %d)\n", cr);
 
@@ -938,13 +936,8 @@ static int gsm48_rr_tx_cip_mode_cpl(struct osmocom_ms *ms, uint8_t cr)
 	gh->msg_type = GSM48_MT_RR_CIPH_M_COMPL;
 
 	/* MI */
-	if (cr) {
-		gsm48_generate_mid_from_imsi(buf, set->imeisv);
-		/* alter MI type */
-	        buf[2] = (buf[2] & ~GSM_MI_TYPE_MASK) | GSM_MI_TYPE_IMEISV;
-		tlv = msgb_put(nmsg, 2 + buf[1]);
-		memcpy(tlv, buf, 2 + buf[1]);
-	}
+	if (cr)
+		gsm48_encode_mi_tlv(ms, nmsg, GSM_MI_TYPE_IMEISV, false);
 
 	gsm48_send_rsl(ms, RSL_MT_DATA_REQ, nmsg, 0);
 
@@ -3208,12 +3201,11 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
-	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm48_pag_rsp *pr;
-	uint8_t mi[11];
 	uint16_t ma[64];
 	uint8_t ma_len;
 
@@ -3290,21 +3282,18 @@ static int gsm48_rr_dl_est(struct osmocom_ms *ms)
 		if (ms->subscr.tmsi != GSM_RESERVED_TMSI
 		 && (osmo_lai_cmp(&ms->subscr.lai, &cs->sel_cgi.lai) == 0)
 		 && rr->paging_mi_type == GSM_MI_TYPE_TMSI) {
-			gsm48_generate_mid_from_tmsi(mi, subscr->tmsi);
+			gsm48_encode_mi_lv(ms, nmsg, GSM_MI_TYPE_TMSI, false);
 			LOGP(DRR, LOGL_INFO, "sending paging response with "
 				"TMSI\n");
 		} else if (subscr->imsi[0]) {
-			gsm48_generate_mid_from_imsi(mi, subscr->imsi);
+			gsm48_encode_mi_lv(ms, nmsg, GSM_MI_TYPE_IMSI, false);
 			LOGP(DRR, LOGL_INFO, "sending paging response with "
 				"IMSI\n");
 		} else {
-			mi[1] = 1;
-			mi[2] = 0xf0 | GSM_MI_TYPE_NONE;
+			gsm48_encode_mi_lv(ms, nmsg, GSM_MI_TYPE_NONE, false);
 			LOGP(DRR, LOGL_INFO, "sending paging response without "
 				"TMSI/IMSI\n");
 		}
-		msgb_put(nmsg, 1 + mi[1]);
-		memcpy(pr->data, mi + 1, 1 + mi[1]);
 	}
 
 #ifdef TEST_FREQUENCY_MOD
