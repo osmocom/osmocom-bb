@@ -60,6 +60,7 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate);
 static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_mm_loc_upd_periodic(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
+static int gsm48_mm_group_rel_req(struct osmocom_ms *ms, struct msgb *msg);
 
 /*
  * notes
@@ -144,6 +145,9 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  * During LIMITED SERVICE state: (4.2.2.3)
  *  - reject MM connection except for emergency calls
  *  - perform location update, if new LAI is entered
+ *  - indicate GCC/BCC calls with channel description only
+ *  - reject joining to GCC/BCC calls without channel description
+ *  - accept joining to GCC/BCC calls with channel description
  *
  *
  * The LOCATION UPDATE NEEDED state is entered if:
@@ -176,6 +180,9 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  *  - accept MM connection for emergency calls
  *  - trigger location update on any other MM connection
  *  - respond to paging (with IMSI only, because in U2 TMSI is not valid)
+ *  - indicate GCC/BCC calls with channel description only
+ *  - reject joining to GCC/BCC calls without channel description
+ *  - accept joining to GCC/BCC calls with channel description
  *
  *
  * The NORMAL SERVICE state is entered if:
@@ -185,12 +192,52 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  *  - and SIM LAI == cell
  *
  * During NORMAL SERVICE state: (4.2.2.1)
- *  - on expirery of T3211 or T3213: Perform location updated
- *  - on expirery of T3212: Perform location updated
+ *  - on expirery of T3211 or T3213: Perform location update
+ *  - on expirery of T3212: Perform location update
  *  - on change of LAI: Perform location update
  *  - perform IMSI detach
  *  - perform MM connections
  *  - respond to paging
+ *  - indicate GCC/BCC calls with and without channel description
+ *  - accept joining to GCC/BCC calls without channel description
+ *    -> The GCC/BCC layer waits for channel description before joining.
+ *  - accept joining to GCC/BCC calls with channel description
+ *
+ *
+ * The RECEIVING GROUP CALL (NORMAL SERVICE) is entered if:
+ *  - the upper layer requests to join to GCC/BCC call
+ *  - and service state is NORMAL SERVICE
+ *
+ * During RECEIVING GROUP CALL (NORMAL SERVICE) state: (4.2.2.7)
+ *  - reject all MM connections
+ *  - indicate notifications and paging to GCC or BCC layer
+ *    -> If supported by RR layer.
+ *  The following events are not be supported here:
+ *  - perform IMSI detach (This is delayed until the call has ended.)
+ *  - on expirery of T3211 or T3213: Perform location update
+ *  - on expirery of T3212: Perform location update
+ *  - accept MM connections
+ *  - on change of LAI: Perform location update
+ *  - accept joining to GCC/BCC calls without channel description
+ *  - accept joining to GCC/BCC calls with channel description
+ *
+ *
+ * The RECEIVING GROUP CALL (LIMITED SERVICE) is entered if:
+ *  - the upper layer requests to join to GCC/BCC call
+ *  - and service state is LIMITED SERVICE or ATTEMPTING TO UPDATE
+ *
+ * During RECEIVING GROUP CALL (LIMITED SERVICE) state: (4.2.2.8)
+ *  - reject all MM connections
+ *  - indicate notifications and paging to GCC or BCC layer
+ *    -> If supported by RR layer.
+ *  The following events are not be supported here:
+ *  - reject MM connection except for emergency calls
+ *  - on expirery of T3212: Perform location updated
+ *  - reject joining to GCC/BCC calls without channel description
+ *  - accept joining to GCC/BCC calls with channel description
+ *
+ *
+ * A group call is only accepted, if there is no other MM connection ongoing.
  *
  *
  * gsm48_mm_set_plmn_search() is used enter PLMN SEARCH or PLMN SEARCH NORMAL
@@ -223,6 +270,33 @@ static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
  *
  * gsm48_mm_cell_selected() is used to select the Service state.
  *
+ *
+ * New primitives are invented for group/broadcast calls. They are not
+ * specified in any recommendation. They are:
+ *
+ * - MMxCC_NOTIF_IND: The MM layer indicates new/updated/ceased calls. This is
+ *   completely independent from the state of the MM layer.
+ * - MMxCC_GROUP_REQ: The GCC/BCC layer requests group channel in receive mode.
+ *   This mode has no MM connection. Speical flags (mm->vgcs*) are used to
+ *   define that mode and store the reference (callref + group|broadcast). This
+ *   reference is used for messages towards GCC/BCC layer. The state is IDLE
+ *   and the sub-state defines group receive mode at normal service or at
+ *   limited service state.
+ * - MMxCC_GROUP_CNF: The MM layer confirms group channel.
+ * - MMxCC_UPLINK_REQ: The GCC/BCC layer requests uplink (group transmit mode).
+ *   The MM layer changes to group transmit mode.
+ * - MMxCC_UPLINK_CNF: The MM layer confirms uplink. (Uplink was granted.)
+ * - MMxCC_UPLINK_REL_REQ: The GCC/BCC layer requests release of uplink.
+ * - MMxCC_UPLINK_REL_IND: The MM layer indicates/confirms release of uplink
+ *
+ * Existing primitives are used with group calls:
+ *
+ * MMxCC_REL_IND: Failed to establish group receive mode.
+ * MMxCC_ERR_IND: Abort received from RR layer in group receive or transmit mode.
+ * MMxCC_REL_REQ: Leave group call (receive mode or transmit mode).
+ *
+ * The group call is released at MM layer, if one of the primitives above are
+ * received or transmitted.
  */
 
 /*
@@ -578,6 +652,8 @@ static const struct value_string gsm48_mmevent_names[] = {
 	{ GSM48_MM_EVENT_USER_PLMN_SEL,	"MM_EVENT_USER_PLMN_SEL" },
 	{ GSM48_MM_EVENT_LOST_COVERAGE,	"MM_EVENT_LOST_COVERAGE" },
 	{ GSM48_MM_EVENT_NOTIFICATION,	"MM_EVENT_NOTIFICATION" },
+	{ GSM48_MM_EVENT_UPLINK_FREE,	"MM_EVENT_UPLINK_FREE" },
+	{ GSM48_MM_EVENT_UPLINK_BUSY,	"MM_EVENT_UPLINK_BUSY" },
 	{ 0,				NULL }
 };
 
@@ -662,6 +738,26 @@ static const struct value_string gsm48_mmxx_msg_names[] = {
 	{ GSM48_MMSMS_ERR_IND,		"MMSMS_ERR_IND" },
 	{ GSM48_MMSMS_PROMPT_IND,	"MMSMS_PROMPT_IND" },
 	{ GSM48_MMSMS_PROMPT_REJ,	"MMSMS_PROMPT_REJ" },
+	{ GSM48_MMGCC_EST_REQ,		"MMGCC_EST_REQ" },
+	{ GSM48_MMGCC_EST_CNF,		"MMGCC_EST_CNF" },
+	{ GSM48_MMGCC_REL_REQ,		"MMGCC_REL_REQ" },
+	{ GSM48_MMGCC_REL_IND,		"MMGCC_REL_IND" },
+	{ GSM48_MMGCC_DATA_REQ,		"MMGCC_DATA_REQ" },
+	{ GSM48_MMGCC_DATA_IND,		"MMGCC_DATA_IND" },
+	{ GSM48_MMGCC_UNIT_DATA_REQ,	"MMGCC_UNIT_DATA_REQ" },
+	{ GSM48_MMGCC_UNIT_DATA_IND,	"MMGCC_UNIT_DATA_IND" },
+	{ GSM48_MMGCC_REEST_REQ,	"MMBCC_REEST_REQ" },
+	{ GSM48_MMGCC_REEST_CNF,	"MMBCC_REEST_CNF" },
+	{ GSM48_MMGCC_ERR_IND,		"MMGCC_ERR_IND" },
+	{ GSM48_MMGCC_NOTIF_IND,	"MMGCC_NOTIF_IND" },
+	{ GSM48_MMGCC_GROUP_REQ,	"MMGCC_GROUP_REQ" },
+	{ GSM48_MMGCC_GROUP_CNF,	"MMGCC_GROUP_CNF" },
+	{ GSM48_MMGCC_UPLINK_REQ,	"MMGCC_UPLINK_REQ" },
+	{ GSM48_MMGCC_UPLINK_CNF,	"MMGCC_UPLINK_CNF" },
+	{ GSM48_MMGCC_UPLINK_REL_REQ,	"MMGCC_UPLINK_REL_REQ" },
+	{ GSM48_MMGCC_UPLINK_REL_IND,	"MMGCC_UPLINK_REL_CNF" },
+	{ GSM48_MMGCC_UPLINK_FREE_IND,	"MMGCC_UPLINK_FREE_IND" },
+	{ GSM48_MMGCC_UPLINK_BUSY_IND,	"MMGCC_UPLINK_BUSY_IND" },
 	{ GSM48_MMBCC_EST_REQ,		"MMBCC_EST_REQ" },
 	{ GSM48_MMBCC_EST_CNF,		"MMBCC_EST_CNF" },
 	{ GSM48_MMBCC_REL_REQ,		"MMBCC_REL_REQ" },
@@ -673,17 +769,15 @@ static const struct value_string gsm48_mmxx_msg_names[] = {
 	{ GSM48_MMBCC_REEST_REQ,	"MMBCC_REEST_REQ" },
 	{ GSM48_MMBCC_REEST_CNF,	"MMBCC_REEST_CNF" },
 	{ GSM48_MMBCC_ERR_IND,		"MMBCC_ERR_IND" },
-	{ GSM48_MMGCC_EST_REQ,		"MMGCC_EST_REQ" },
-	{ GSM48_MMGCC_EST_CNF,		"MMGCC_EST_CNF" },
-	{ GSM48_MMGCC_REL_REQ,		"MMGCC_REL_REQ" },
-	{ GSM48_MMGCC_REL_IND,		"MMGCC_REL_IND" },
-	{ GSM48_MMGCC_DATA_REQ,		"MMGCC_DATA_REQ" },
-	{ GSM48_MMGCC_DATA_IND,		"MMGCC_DATA_IND" },
-	{ GSM48_MMGCC_UNIT_DATA_REQ,	"MMGCC_UNIT_DATA_REQ" },
-	{ GSM48_MMGCC_UNIT_DATA_IND,	"MMGCC_UNIT_DATA_IND" },
-	{ GSM48_MMGCC_REEST_REQ,	"MMGCC_REEST_REQ" },
-	{ GSM48_MMGCC_REEST_CNF,	"MMGCC_REEST_CNF" },
-	{ GSM48_MMGCC_ERR_IND,		"MMGCC_ERR_IND" },
+	{ GSM48_MMBCC_NOTIF_IND,	"MMBCC_NOTIF_IND" },
+	{ GSM48_MMBCC_GROUP_REQ,	"MMBCC_GROUP_REQ" },
+	{ GSM48_MMBCC_GROUP_CNF,	"MMBCC_GROUP_CNF" },
+	{ GSM48_MMBCC_UPLINK_REQ,	"MMBCC_UPLINK_REQ" },
+	{ GSM48_MMBCC_UPLINK_CNF,	"MMBCC_UPLINK_CNF" },
+	{ GSM48_MMBCC_UPLINK_REL_REQ,	"MMBCC_UPLINK_REL_REQ" },
+	{ GSM48_MMBCC_UPLINK_REL_IND,	"MMBCC_UPLINK_REL_CNF" },
+	{ GSM48_MMBCC_UPLINK_FREE_IND,	"MMBCC_UPLINK_FREE_IND" },
+	{ GSM48_MMBCC_UPLINK_BUSY_IND,	"MMBCC_UPLINK_BUSY_IND" },
 	{ 0,				NULL }
 };
 
@@ -913,8 +1007,8 @@ const char *gsm48_mm_state_names[] = {
 	"wait for RR connection active",
 	"MM idle",
 	"wait for additional outgoing MM connection",
-	"MM_CONN_ACTIVE_VGCS",
-	"WAIT_RR_CONN_VGCS",
+	"MM connection active (group transmit mode)",
+	"wait for RR connection (group transmit mode)",
 	"location updating pending",
 	"IMSI detach pending",
 	"RR connection release not allowed"
@@ -930,8 +1024,8 @@ const char *gsm48_mm_substate_names[] = {
 	"location updating needed",
 	"PLMN search",
 	"PLMN search (normal)",
-	"RX_VGCS_NORMAL",
-	"RX_VGCS_LIMITED"
+	"receiving group call (normal service)",
+	"receiving group call (limiteed service)"
 };
 
 /* change state from LOCATION UPDATE NEEDED to ATTEMPTING TO UPDATE */
@@ -1002,6 +1096,11 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 			l23_vty_ms_notify(ms, NULL);
 			l23_vty_ms_notify(ms, "Trying to register with network %s, %s...\n",
 				   gsm_get_mcc(plmn->plmn.mcc), gsm_get_mnc(&plmn->plmn));
+			break;
+		case GSM48_MM_SST_RX_VGCS_NORMAL:
+		case GSM48_MM_SST_RX_VGCS_LIMITED:
+			l23_vty_ms_notify(ms, NULL);
+			l23_vty_ms_notify(ms, "Listening to %s call.\n", (mm->vgcs.group_call) ? "group" : "broadcast");
 			break;
 		}
 	}
@@ -1126,6 +1225,7 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &cs->sel_si;
+	bool vgcs = mm->vgcs.enabled;
 
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY
 	 && cs->state != GSM322_C7_CAMPED_ANY_CELL) {
@@ -1176,7 +1276,8 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 				GSM48_MM_SST_ATTEMPT_UPDATE);
 		else
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_NORMAL_SERVICE);
+				     (vgcs) ? GSM48_MM_SST_RX_VGCS_NORMAL
+					    : GSM48_MM_SST_NORMAL_SERVICE);
 
 		return 0;
 	}
@@ -1188,13 +1289,15 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 			/* location update not allowed */
 			LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed PLMN.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_LIMITED_SERVICE);
+				     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
+					    : GSM48_MM_SST_LIMITED_SERVICE);
 		} else
 		if (gsm322_is_forbidden_la(ms, &cs->sel_cgi.lai)) {
 			/* location update not allowed */
 			LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed LA.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_LIMITED_SERVICE);
+				     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
+					    : GSM48_MM_SST_LIMITED_SERVICE);
 		} else
 		/* 4.4.4.9 if cell is barred, don't start */
 		if ((!subscr->acc_barr && s->cell_barr)
@@ -1202,19 +1305,22 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 					(s->class_barr ^ 0xffff)))) {
 			LOGP(DMM, LOGL_INFO, "Loc. upd. no access.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_LIMITED_SERVICE);
+				     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
+					    : GSM48_MM_SST_LIMITED_SERVICE);
 		} else {
 			/* location update allowed */
 			LOGP(DMM, LOGL_INFO, "Loc. upd. allowed.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_LOC_UPD_NEEDED);
+				     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
+					    : GSM48_MM_SST_LIMITED_SERVICE);
 		}
 	} else {
 		/* location update not allowed */
 		LOGP(DMM, LOGL_INFO, "We are camping on any cell as returning "
 			"to MM IDLE\n");
 		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-			GSM48_MM_SST_LIMITED_SERVICE);
+			     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
+				    : GSM48_MM_SST_LIMITED_SERVICE);
 	}
 
 	return 0;
@@ -1241,6 +1347,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm_settings *set = &ms->settings;
+	bool vgcs = mm->vgcs.enabled;
 
 	/* no SIM is inserted */
 	if (!subscr->sim_valid) {
@@ -1260,7 +1367,8 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 
 			LOGP(DMM, LOGL_INFO, "Valid in location area.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_NORMAL_SERVICE);
+				     (vgcs) ? GSM48_MM_SST_RX_VGCS_NORMAL
+					    : GSM48_MM_SST_NORMAL_SERVICE);
 
 			/* send message to PLMN search process */
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_SUCCESS);
@@ -1275,7 +1383,8 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 
 			LOGP(DMM, LOGL_INFO, "Attachment not required.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_NORMAL_SERVICE);
+				     (vgcs) ? GSM48_MM_SST_RX_VGCS_NORMAL
+					    : GSM48_MM_SST_NORMAL_SERVICE);
 
 			/* send message to PLMN search process */
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_SUCCESS);
@@ -1297,7 +1406,8 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 
 		LOGP(DMM, LOGL_INFO, "Selected cell is forbidden.\n");
 		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-			GSM48_MM_SST_LIMITED_SERVICE);
+			     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
+				    : GSM48_MM_SST_LIMITED_SERVICE);
 
 		/* send message to PLMN search process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
@@ -1318,7 +1428,8 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 
 		LOGP(DMM, LOGL_INFO, "Selected cell not found.\n");
 		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-			GSM48_MM_SST_LIMITED_SERVICE);
+			     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
+				    : GSM48_MM_SST_LIMITED_SERVICE);
 
 		/* send message to PLMN search process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
@@ -2029,6 +2140,32 @@ static int gsm48_mm_imsi_detach_release(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm48_mm_imsi_detach_sent(ms, msg);
 }
 
+/* Detach during VGCS. Queue and return idle. */
+static int gsm48_mm_imsi_detach_vgcs(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct msgb *nmsg;
+	struct gsm48_mmxx_hdr *nmmh;
+	int msg_type;
+
+	/* remember to detach later */
+	mm->delay_detach = 1;
+
+	/* Release group call. */
+	gsm48_mm_group_rel_req(ms, msg);
+
+	/* Release message to GCC/BCC layer */
+	msg_type = (mm->vgcs.group_call) ? GSM48_MMGCC_REL_IND : GSM48_MMBCC_REL_IND;
+	nmsg = gsm48_mmxx_msgb_alloc(msg_type, mm->vgcs.callref, 0xff, 0);
+	if (!nmsg)
+		return -ENOMEM;
+	nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+	nmmh->cause = GSM48_CC_CAUSE_NORMAL_UNSPEC;
+
+	gsm48_mmxx_upmsg(ms, nmsg);
+	return 0;
+}
+
 /* ignore ongoing IMSI detach */
 static int gsm48_mm_imsi_detach_ignore(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -2145,6 +2282,8 @@ static int gsm48_mm_sysinfo(struct osmocom_ms *ms, struct msgb *msg)
 	if (mm->state == GSM48_MM_ST_MM_IDLE
 	 && (mm->substate == GSM48_MM_SST_NO_CELL_AVAIL
 	  || mm->substate == GSM48_MM_SST_LIMITED_SERVICE
+	  || mm->substate == GSM48_MM_SST_RX_VGCS_NORMAL
+	  || mm->substate == GSM48_MM_SST_RX_VGCS_LIMITED
 	  || mm->substate == GSM48_MM_SST_PLMN_SEARCH
 	  || mm->substate == GSM48_MM_SST_PLMN_SEARCH_NORMAL))
 		return 0;
@@ -2276,6 +2415,7 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &cs->sel_si;
+	bool vgcs = mm->vgcs.enabled;
 	struct msgb *nmsg;
 
 	/* in case we already have a location update going on */
@@ -2315,7 +2455,8 @@ static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg)
 
 		/* go straight to normal service state */
 		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				GSM48_MM_SST_NORMAL_SERVICE);
+			     (vgcs) ? GSM48_MM_SST_RX_VGCS_NORMAL
+				    : GSM48_MM_SST_NORMAL_SERVICE);
 
 #if 0
 		/* don't send message, if we got not triggered by PLMN search */
@@ -3397,6 +3538,7 @@ static int gsm48_mm_abort_mm_con(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
+	uint32_t msg_type = rrh->msg_type;
 	int cause;
 
 	/* stop RR release timer */
@@ -3416,11 +3558,13 @@ static int gsm48_mm_abort_mm_con(struct osmocom_ms *ms, struct msgb *msg)
 		cause = 47;
 	}
 
+	LOGP(DMM, LOGL_INFO, "Aborting connection with cause %d\n", cause);
+
 	/* stop MM connection timer */
 	stop_mm_t3230(mm);
 
 	/* release all connections */
-	gsm48_mm_release_mm_conn(ms, 1, cause, 1, 0);
+	gsm48_mm_release_mm_conn(ms, 1, cause, (msg_type == GSM48_RR_ABORT_IND), 0);
 
 	/* return to MM IDLE */
 	return gsm48_mm_return_idle(ms, NULL);
@@ -3464,27 +3608,32 @@ static int gsm48_mm_data(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mmxx_hdr *mmh = (struct gsm48_mmxx_hdr *)msg->data;
 	struct gsm48_mm_conn *conn;
 	int msg_type = mmh->msg_type;
+	uint8_t sapi;
 
-	/* get connection, if not exist (anymore), release */
-	conn = mm_conn_by_ref_and_class(mm, mmh->ref, (mmh->msg_type & GSM48_MMXX_MASK));
-	if (!conn) {
-		LOGP(DMM, LOGL_INFO, "MMXX_DATA_REQ with unknown (already "
-			"released) ref=%x, sending MMXX_REL_IND\n", mmh->ref);
-		mmh->msg_type = GSM48_MMXX_REL_IND | (msg_type & GSM48_MMXX_MASK);
-		mmh->cause = 31;
+	if (mm->state == GSM48_MM_ST_MM_CONN_ACTIVE_VGCS) {
+		/* Group transmit mode has no MM connection. */
+		sapi = 0;
+	} else {
+		/* get connection, if not exist (anymore), release */
+		conn = mm_conn_by_ref_and_class(mm, mmh->ref, (mmh->msg_type & GSM48_MMXX_MASK));
+		if (!conn) {
+			LOGP(DMM, LOGL_INFO, "MMXX_DATA_REQ with unknown (already "
+				"released) ref=%x, sending MMXX_REL_IND\n", mmh->ref);
+			mmh->msg_type = GSM48_MMXX_REL_IND | (msg_type & GSM48_MMXX_MASK);
+			mmh->cause = 31;
 
-		/* mirror message with REL_IND + cause */
-		return gsm48_mmxx_upmsg(ms, msg);
+			/* mirror message with REL_IND + cause */
+			return gsm48_mmxx_upmsg(ms, msg);
+		}
+		/* set SAPI, if upper layer does not do it correctly */
+		sapi = conn->sapi;
 	}
-
-	/* set SAPI, if upper layer does not do it correctly */
-	mmh->sapi = conn->sapi;
 
 	/* pull MM header */
 	msgb_pull(msg, sizeof(struct gsm48_mmxx_hdr));
 
 	/* push RR header and send down */
-	return gsm48_mm_to_rr(ms, msg, GSM48_RR_DATA_REQ, conn->sapi, 0);
+	return gsm48_mm_to_rr(ms, msg, GSM48_RR_DATA_REQ, sapi, 0);
 }
 
 /* release of MM connection (active state) */
@@ -3591,6 +3740,336 @@ static int gsm48_mm_abort_rr(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm48_mm_return_idle(ms, NULL);
 }
 
+/* The RR indicates notification of ongoing VGCS/VBS calls. */
+static int gsm48_mm_notification(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mm_event *mme = (struct gsm48_mm_event *)msg->data;
+	uint32_t ref = osmo_load32be(mme->notification.gcr) >> 5;
+	uint16_t msg_type = (mme->notification.gcr[3] & 0x10) ? GSM48_MMGCC_NOTIF_IND : GSM48_MMBCC_NOTIF_IND;
+	struct gsm48_mmxx_hdr *mmh;
+	struct msgb *nmsg;
+
+	/* Notification message to GCC/BCC layer */
+	nmsg = gsm48_mmxx_msgb_alloc(msg_type, ref, 0xff, 0);
+	if (!nmsg)
+		return -ENOMEM;
+	mmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+	mmh->notify = (mme->notification.gone) ? MMXX_NOTIFY_RELEASE : MMXX_NOTIFY_SETUP;
+	mmh->ch_desc_present = mme->notification.ch_desc_present;
+	memcpy(&mmh->ch_desc, &mme->notification.ch_desc, sizeof(mmh->ch_desc));
+
+	gsm48_mmxx_upmsg(ms, nmsg);
+	return 0;
+}
+
+/* The RR indicates uplink busy. */
+static int gsm48_mm_uplink_free(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm48_mm_event *mme = (struct gsm48_mm_event *)msg->data;
+	struct msgb *nmsg;
+	uint16_t msg_type;
+
+	if (mm->vgcs.group_call)
+		msg_type = (mme->msg_type == GSM48_MM_EVENT_UPLINK_BUSY) ? GSM48_MMGCC_UPLINK_BUSY_IND
+									 : GSM48_MMGCC_UPLINK_FREE_IND;
+	else
+		msg_type = (mme->msg_type == GSM48_MM_EVENT_UPLINK_BUSY) ? GSM48_MMBCC_UPLINK_BUSY_IND
+									 : GSM48_MMBCC_UPLINK_FREE_IND;
+
+	LOGP(DMM, LOGL_INFO, "Update uplink free/busy state in group receive mode.\n");
+
+	/* Notification message to GCC/BCC layer */
+	nmsg = gsm48_mmxx_msgb_alloc(msg_type, mm->vgcs.callref, 0xff, 0);
+	if (!nmsg)
+		return -ENOMEM;
+
+	gsm48_mmxx_upmsg(ms, nmsg);
+	return 0;
+}
+
+/* Join VGCS/VBS call as listener. */
+static int gsm48_mm_group_req(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm48_mmxx_hdr *mmh = (struct gsm48_mmxx_hdr *)msg->data;
+	struct msgb *nmsg;
+
+	LOGP(DMM, LOGL_INFO, "Request for joining a group call, trying to establish group receive mode.\n");
+
+	/* Store infos about group/broadcast call. */
+	mm->vgcs.enabled = true;
+	mm->vgcs.group_call = (mmh->msg_type == GSM48_MMGCC_GROUP_REQ);
+	mm->vgcs.callref = mmh->ref;
+	mm->vgcs.normal_service = (mm->substate == GSM48_MM_SST_NORMAL_SERVICE);
+
+	/* Change to VGCS substate. */
+	new_mm_state(mm, GSM48_MM_ST_MM_IDLE, (mm->substate == GSM48_MM_SST_NORMAL_SERVICE)
+					      ? GSM48_MM_SST_RX_VGCS_NORMAL : GSM48_MM_SST_RX_VGCS_LIMITED);
+
+	/* Group recevie mode request to RR layer */
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+
+	/* Add channel description. */
+	memcpy(msgb_put(nmsg, sizeof(mmh->ch_desc)), &mmh->ch_desc, sizeof(mmh->ch_desc));
+
+	/* Push RR header and send to RR layer. */
+	return gsm48_mm_to_rr(ms, nmsg, GSM48_RR_GROUP_REQ, 0, 0);
+}
+
+/* Joining VGCS/VBS call is not allowed in other states. */
+static int gsm48_mm_group_reject(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmxx_hdr *mmh = (struct gsm48_mmxx_hdr *)msg->data;
+	uint16_t msg_type;
+	struct msgb *nmsg;
+	struct gsm48_mmxx_hdr *nmmh;
+
+	LOGP(DMM, LOGL_NOTICE, "Joining group call rejected in current state.\n");
+
+	msg_type = (mmh->msg_type == GSM48_MMGCC_GROUP_REQ) ? GSM48_MMGCC_REL_IND : GSM48_MMBCC_REL_IND;
+
+	/* Release message to GCC/BCC layer */
+	nmsg = gsm48_mmxx_msgb_alloc(msg_type, mmh->ref, mmh->transaction_id, mmh->sapi);
+	if (!nmsg)
+		return -ENOMEM;
+	nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+	nmmh->cause = GSM48_CC_CAUSE_CALL_REJECTED;
+
+	gsm48_mmxx_upmsg(ms, nmsg);
+	return 0;
+}
+
+/* RR layer confirms group call. */
+static int gsm48_mm_group_cnf(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	uint16_t msg_type;
+	struct msgb *nmsg;
+
+	LOGP(DMM, LOGL_NOTICE, "RR confirms group call.\n");
+
+	msg_type = (mm->vgcs.group_call) ? GSM48_MMGCC_GROUP_CNF : GSM48_MMBCC_GROUP_CNF;
+
+	/* Uplink confirm message to GCC/BCC layer */
+	nmsg = gsm48_mmxx_msgb_alloc(msg_type, mm->vgcs.callref, 0xff, 0);
+	if (!nmsg)
+		return -ENOMEM;
+
+
+	gsm48_mmxx_upmsg(ms, nmsg);
+	return 0;
+}
+
+/* RR layer releases group call channel. */
+static int gsm48_mm_group_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
+	uint16_t msg_type;
+	struct msgb *nmsg;
+	struct gsm48_mmxx_hdr *nmmh;
+
+	LOGP(DMM, LOGL_NOTICE, "RR released or rejected group call channel.\n");
+
+	/* Disable group mode. */
+	mm->vgcs.enabled = false;
+
+	/* Change mode back to normal or limited service. */
+	if (mm->substate == GSM48_MM_SST_RX_VGCS_LIMITED)
+		mm->substate = GSM48_MM_SST_LIMITED_SERVICE;
+	if (mm->substate == GSM48_MM_SST_RX_VGCS_NORMAL)
+		mm->substate = GSM48_MM_SST_NORMAL_SERVICE;
+
+	/* Return IDLE, if not already. Also select the sub-state to use. */
+	gsm48_mm_return_idle(ms, NULL);
+
+	/* Release message to GCC/BCC layer */
+	msg_type = (mm->vgcs.group_call) ? GSM48_MMGCC_REL_IND : GSM48_MMBCC_REL_IND;
+	nmsg = gsm48_mmxx_msgb_alloc(msg_type, mm->vgcs.callref, 0xff, 0);
+	if (!nmsg)
+		return -ENOMEM;
+	nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+	switch (rrh->cause) {
+	case RR_REL_CAUSE_TRY_LATER:
+		/* Joining not yet possible */
+		nmmh->cause = GSM48_CC_CAUSE_TEMP_FAILURE;
+		break;
+	case RR_REL_CAUSE_LOST_SIGNAL:
+		/* Lower layer failed. */
+		nmmh->cause = GSM48_CC_CAUSE_TEMP_FAILURE;
+		break;
+	case RR_REL_CAUSE_NORMAL:
+		/* Channel was released by network. */
+		nmmh->cause = GSM48_CC_CAUSE_NORM_CALL_CLEAR;
+		break;
+	default:
+		nmmh->cause = GSM48_CC_CAUSE_NORMAL_UNSPEC;
+		break;
+	}
+
+	gsm48_mmxx_upmsg(ms, nmsg);
+	return 0;
+}
+
+/* Upper layer releases group call. */
+static int gsm48_mm_group_rel_req(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct msgb *nmsg;
+
+	LOGP(DMM, LOGL_INFO, "Request to release group call in receive or transmit mode.\n");
+
+	/* Disable group mode. */
+	mm->vgcs.enabled = false;
+
+	/* Change mode back to normal or limited service. */
+	if (mm->substate == GSM48_MM_SST_RX_VGCS_LIMITED)
+		mm->substate = GSM48_MM_SST_LIMITED_SERVICE;
+	if (mm->substate == GSM48_MM_SST_RX_VGCS_NORMAL)
+		mm->substate = GSM48_MM_SST_NORMAL_SERVICE;
+
+	/* We are already IDLE. Also select the sub-state to use. */
+	gsm48_mm_return_idle(ms, NULL);
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+
+	/* Push RR header and send to RR layer. */
+	return gsm48_mm_to_rr(ms, nmsg, GSM48_RR_GROUP_REL_REQ, 0, 0);
+}
+
+/* Upper layer requests uplink. */
+static int gsm48_mm_uplink_req(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct msgb *nmsg;
+
+	LOGP(DMM, LOGL_INFO, "Request for uplink, trying to establish group transmit mode.\n");
+
+	/* Go into uplink pending state. */
+	new_mm_state(mm, GSM48_MM_ST_WAIT_RR_CONN_VGCS, 0);
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+
+	/* Push RR header and send to RR layer. */
+	return gsm48_mm_to_rr(ms, nmsg, GSM48_RR_UPLINK_REQ, 0, 0);
+}
+
+/* Uplink not allowed in this state. */
+static int gsm48_mm_uplink_reject(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmxx_hdr *mmh = (struct gsm48_mmxx_hdr *)msg->data;
+	uint16_t msg_type;
+	struct msgb *nmsg;
+	struct gsm48_mmxx_hdr *nmmh;
+
+	LOGP(DMM, LOGL_NOTICE, "Request for uplink rejected in current state.\n");
+
+	msg_type = (mmh->msg_type == GSM48_MMGCC_UPLINK_REQ) ? GSM48_MMGCC_UPLINK_REL_IND : GSM48_MMBCC_UPLINK_REL_IND;
+
+	/* Uplink release message to GCC/BCC layer */
+	nmsg = gsm48_mmxx_msgb_alloc(msg_type, mmh->ref, mmh->transaction_id, mmh->sapi);
+	if (!nmsg)
+		return -ENOMEM;
+	nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+	nmmh->cause = GSM48_CC_CAUSE_CALL_REJECTED;
+
+	gsm48_mmxx_upmsg(ms, nmsg);
+	return 0;
+}
+
+/* RR layer confirms uplink. */
+static int gsm48_mm_uplink_cnf(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	uint16_t msg_type;
+	struct msgb *nmsg;
+
+	LOGP(DMM, LOGL_NOTICE, "RR confirms uplink.\n");
+
+	/* Go into group transmit state. */
+	new_mm_state(mm, GSM48_MM_ST_MM_CONN_ACTIVE_VGCS, 0);
+
+	msg_type = (mm->vgcs.group_call) ? GSM48_MMGCC_UPLINK_CNF : GSM48_MMBCC_UPLINK_CNF;
+
+	/* Uplink confirm message to GCC/BCC layer */
+	nmsg = gsm48_mmxx_msgb_alloc(msg_type, mm->vgcs.callref, 0xff, 0);
+	if (!nmsg)
+		return -ENOMEM;
+
+	gsm48_mmxx_upmsg(ms, nmsg);
+	return 0;
+}
+
+/* RR layer releases/rejects uplink. */
+static int gsm48_mm_uplink_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
+	uint16_t msg_type;
+	struct msgb *nmsg;
+	struct gsm48_mmxx_hdr *nmmh;
+
+	LOGP(DMM, LOGL_NOTICE, "RR released or rejected uplink.\n");
+
+	/* Change to VGCS substate. */
+	new_mm_state(mm, GSM48_MM_ST_MM_IDLE, (mm->vgcs.normal_service) ? GSM48_MM_SST_RX_VGCS_NORMAL
+									: GSM48_MM_SST_RX_VGCS_LIMITED);
+
+	msg_type = (mm->vgcs.group_call) ? GSM48_MMGCC_UPLINK_REL_IND : GSM48_MMBCC_UPLINK_REL_IND;
+
+	/* Uplink reject message to GCC/BCC layer */
+	nmsg = gsm48_mmxx_msgb_alloc(msg_type, mm->vgcs.callref, 0xff, 0);
+	if (!nmsg)
+		return -ENOMEM;
+	nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
+	switch (rrh->cause) {
+	case RR_REL_CAUSE_UPLINK_REJECTED:
+		/* Access to uplink was rejected by network or when not in group receive mode. */
+		nmmh->cause = GSM48_CC_CAUSE_CALL_REJECTED;
+		break;
+	case RR_REL_CAUSE_UPLINK_BUSY:
+		/* Uplink was busy and did not become free. */
+		nmmh->cause = GSM48_CC_CAUSE_USER_BUSY;
+		break;
+	case RR_REL_CAUSE_LINK_FAILURE:
+		/* Access to uplink failed. */
+		nmmh->cause = GSM48_CC_CAUSE_TEMP_FAILURE;
+		break;
+	case RR_REL_CAUSE_NORMAL:
+		/* Uplink was released by message. */
+		nmmh->cause = GSM48_CC_CAUSE_NORM_CALL_CLEAR;
+		break;
+	default:
+		nmmh->cause = GSM48_CC_CAUSE_NORMAL_UNSPEC;
+		break;
+	}
+
+	gsm48_mmxx_upmsg(ms, nmsg);
+	return 0;
+}
+
+/* Upper layer releases uplink. */
+static int gsm48_mm_uplink_rel_req(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct msgb *nmsg;
+
+	LOGP(DMM, LOGL_INFO, "Request to release uplink, leaving group transmit mode.\n");
+
+	nmsg = gsm48_l3_msgb_alloc();
+	if (!nmsg)
+		return -ENOMEM;
+
+	/* Push RR header and send to RR layer. */
+	return gsm48_mm_to_rr(ms, nmsg, GSM48_RR_UPLINK_REL_REQ, 0, 0);
+}
+
 /*
  * other processes
  */
@@ -3675,14 +4154,32 @@ static struct downstate {
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MMBCC_EST_REQ, gsm48_mm_init_mm_no_rr},
 
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	 GSM48_MMBCC_GROUP_REQ, gsm48_mm_group_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
+	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_req},
+
 	/* 4.2.2.2 Attempt to update / Loc. Upd. needed */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
 				SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr}, /* emergency only */
 
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
+	 GSM48_MMBCC_GROUP_REQ, gsm48_mm_group_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
+	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_req},
+
 	/* 4.2.2.3 Limited service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
+	 GSM48_MMBCC_GROUP_REQ, gsm48_mm_group_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
+	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_req},
 
 	/* 4.2.2.4 No IMSI */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NO_IMSI),
@@ -3707,6 +4204,32 @@ static struct downstate {
 	/* 4.2.2.6 PLMN search */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
+
+	/* 4.2.2.7 Receiving group call, normal service */
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_NORMAL),
+	 GSM48_MMGCC_REL_REQ, gsm48_mm_group_rel_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_NORMAL),
+	 GSM48_MMBCC_REL_REQ, gsm48_mm_group_rel_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_NORMAL),
+	 GSM48_MMGCC_UPLINK_REQ, gsm48_mm_uplink_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_NORMAL),
+	 GSM48_MMBCC_UPLINK_REQ, gsm48_mm_uplink_req},
+
+	/* 4.2.2.8 Receiving group call, limited service */
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_LIMITED),
+	 GSM48_MMGCC_REL_REQ, gsm48_mm_group_rel_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_LIMITED),
+	 GSM48_MMBCC_REL_REQ, gsm48_mm_group_rel_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_LIMITED),
+	 GSM48_MMGCC_UPLINK_REQ, gsm48_mm_uplink_reject},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_LIMITED),
+	 GSM48_MMBCC_UPLINK_REQ, gsm48_mm_uplink_reject},
 
 	/* 4.5.1.1 MM Connection (EST) */
 	{SBIT(GSM48_MM_ST_RR_CONN_RELEASE_NA), ALL_STATES,
@@ -3734,10 +4257,7 @@ static struct downstate {
 	 GSM48_MMSMS_EST_REQ, gsm48_mm_init_mm_more},
 
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
-	 GSM48_MMGCC_EST_REQ, gsm48_mm_init_mm_more},
-
-	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
-	 GSM48_MMBCC_EST_REQ, gsm48_mm_init_mm_more},
+	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_req},
 
 	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES,
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_wait},
@@ -3748,12 +4268,7 @@ static struct downstate {
 	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES,
 	 GSM48_MMSMS_EST_REQ, gsm48_mm_init_mm_wait},
 
-	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES,
-	 GSM48_MMGCC_EST_REQ, gsm48_mm_init_mm_wait},
-
-	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES,
-	 GSM48_MMBCC_EST_REQ, gsm48_mm_init_mm_wait},
-
+	/* Reject call in other states. */
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_reject},
 
@@ -3768,6 +4283,12 @@ static struct downstate {
 
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MMBCC_EST_REQ, gsm48_mm_init_mm_reject},
+
+	{ALL_STATES, ALL_STATES,
+	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_reject},
+
+	{ALL_STATES, ALL_STATES,
+	 GSM48_MMBCC_GROUP_REQ, gsm48_mm_group_reject},
 
 	/* 4.5.2.1 MM Connection (DATA) */
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE) |
@@ -3844,6 +4365,29 @@ static struct downstate {
 
 	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_MM_CON), ALL_STATES,
 	 GSM48_MMBCC_REL_REQ, gsm48_mm_release_wait_rr},
+
+	/* Group transmit mode */
+	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_VGCS) |
+	 SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS), ALL_STATES,
+	 GSM48_MMGCC_UPLINK_REL_REQ, gsm48_mm_uplink_rel_req},
+
+	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_VGCS) |
+	 SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS), ALL_STATES,
+	 GSM48_MMBCC_UPLINK_REL_REQ, gsm48_mm_uplink_rel_req},
+
+	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_VGCS) |
+	 SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS), ALL_STATES,
+	 GSM48_MMGCC_REL_REQ, gsm48_mm_group_rel_req},
+
+	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_VGCS) |
+	 SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS), ALL_STATES,
+	 GSM48_MMBCC_REL_REQ, gsm48_mm_group_rel_req},
+
+	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS), ALL_STATES,
+	 GSM48_MMGCC_DATA_REQ, gsm48_mm_data},
+
+	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS), ALL_STATES,
+	 GSM48_MMBCC_DATA_REQ, gsm48_mm_data},
 };
 
 #define DOWNSLLEN \
@@ -3971,6 +4515,23 @@ static struct rrdatastate {
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON), /* not supported */
 	 GSM48_RR_ABORT_IND, gsm48_mm_abort_mm_con},
 
+	/* Group call */
+	{ALL_STATES,
+	 GSM48_RR_GROUP_CNF, gsm48_mm_group_cnf},
+
+	{ALL_STATES,
+	 GSM48_RR_UPLINK_CNF, gsm48_mm_uplink_cnf},
+
+	{ALL_STATES,
+	 GSM48_RR_GROUP_REL_IND, gsm48_mm_group_rel_ind},
+
+	{ALL_STATES,
+	 GSM48_RR_UPLINK_REL_IND, gsm48_mm_uplink_rel_ind},
+
+	{SBIT(GSM48_MM_ST_WAIT_RR_CONN_VGCS) |
+	 SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS),
+	 GSM48_RR_REL_IND, gsm48_mm_group_rel_ind},
+
 	/* other (also wait for network command) */
 	{ALL_STATES,
 	 GSM48_RR_REL_IND, gsm48_mm_rel_other},
@@ -4065,6 +4626,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t pdisc = gh->proto_discr & 0x0f;
 	uint8_t msg_type = gh->msg_type & 0xbf;
 	uint8_t transaction_id;
+	uint32_t callref;
 	struct gsm48_mm_conn *conn;
 	struct gsm48_mmxx_hdr *mmh;
 	int msg_supported = 0; /* determine, if message is supported at all */
@@ -4087,7 +4649,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	/* pull the RR header */
 	msgb_pull(msg, sizeof(struct gsm48_rr_hdr));
 
-	/* create transaction (if not exists) and push MM header to message */
+	/* create transaction (if not exists) and push message */
 	switch (pdisc) {
 	case GSM48_PDISC_CC:
 		rr_prim = GSM48_MMCC_DATA_IND;
@@ -4113,34 +4675,39 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	transaction_id = ((gh->proto_discr & 0xf0) ^ 0x80) >> 4; /* flip */
 
-	/* find transaction, if any */
-	conn = mm_conn_by_id(mm, pdisc, transaction_id);
+	if (mm->vgcs.enabled) {
+		/* Ongoing group call. */
+		callref = mm->vgcs.callref;
+	} else {
+		/* find transaction, if any */
+		conn = mm_conn_by_id(mm, pdisc, transaction_id);
 
-	/* create MM connection instance */
-	if (!conn) {
-		/* if MT calls are not supported with protocol */
-		if (rr_est == -1) {
-			LOGP(DMM, LOGL_ERROR, "No MO connection for pdisc=%d, "
-			     "transaction_id=%d\n", pdisc, transaction_id);
-			msgb_free(msg);
-			return -EINVAL;
+		/* create MM connection instance */
+		if (!conn) {
+			/* if MT calls are not supported with protocol */
+			if (rr_est == -1) {
+				LOGP(DMM, LOGL_ERROR, "No MO connection for pdisc=%d, transaction_id=%d\n",
+				     pdisc, transaction_id);
+				msgb_free(msg);
+				return -EINVAL;
+			}
+			conn = mm_conn_new(mm, pdisc, transaction_id, sapi, mm_conn_new_ref++);
+			rr_prim = rr_est;
 		}
-
-		conn = mm_conn_new(mm, pdisc, transaction_id, sapi, mm_conn_new_ref++);
 		if (!conn) {
 			msgb_free(msg);
 			return -ENOMEM;
 		}
-		rr_prim = rr_est;
+		callref = conn->ref;
 	}
 
 	/* push new header */
 	msgb_push(msg, sizeof(struct gsm48_mmxx_hdr));
 	mmh = (struct gsm48_mmxx_hdr *)msg->data;
 	mmh->msg_type = rr_prim;
-	mmh->ref = conn->ref;
-	mmh->transaction_id = conn->transaction_id;
-	mmh->sapi = conn->sapi;
+	mmh->ref = callref;
+	mmh->transaction_id = transaction_id;
+	mmh->sapi = sapi;
 
 	/* go MM CONN ACTIVE state */
 	if (mm->state == GSM48_MM_ST_WAIT_NETWORK_CMD ||
@@ -4272,6 +4839,10 @@ static struct eventstate {
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NORMAL_SERVICE),
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_start},
 
+	/* 4.2.2.7 Receiving Group Call (Normal service) */
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_NORMAL),
+	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_vgcs},
+
 	/* 4.2.2.2 Attempt to update / Loc. upd. needed */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
 				SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
@@ -4306,6 +4877,10 @@ static struct eventstate {
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_LIMITED_SERVICE),
 	 GSM48_MM_EVENT_TIMEOUT_T3212, gsm48_mm_loc_upd_delay_per}, /* 4.4.2 */
+
+	/* 4.2.2.8 Receiving Group Call (Limited service) */
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_LIMITED),
+	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_vgcs},
 
 	/* 4.2.2.4 No IMSI */
 	/* 4.2.2.5 PLMN search, normal service */
@@ -4342,12 +4917,15 @@ static struct eventstate {
 	{SBIT(GSM48_MM_ST_MM_IDLE), ALL_STATES, /* silently detach */
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_end},
 
+	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS) |
+	 SBIT(GSM48_MM_ST_WAIT_RR_CONN_VGCS), ALL_STATES, /* uplink access */
+	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_vgcs},
+
 	{SBIT(GSM48_MM_ST_WAIT_OUT_MM_CONN) |
 	 SBIT(GSM48_MM_ST_MM_CONN_ACTIVE) |
 	 SBIT(GSM48_MM_ST_PROCESS_CM_SERV_P) |
 	 SBIT(GSM48_MM_ST_WAIT_REEST) |
 	 SBIT(GSM48_MM_ST_WAIT_ADD_OUT_MM_CON) |
-	 SBIT(GSM48_MM_ST_MM_CONN_ACTIVE_VGCS) |
 	 SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES, /* we can release */
 	 GSM48_MM_EVENT_IMSI_DETACH, gsm48_mm_imsi_detach_release},
 
@@ -4402,6 +4980,17 @@ static struct eventstate {
 	{ALL_STATES, ALL_STATES,
 	 GSM48_MM_EVENT_CLASSMARK_CHG, gsm48_mm_classm_chg},
 #endif
+
+	/* Group call notification event */
+	{ALL_STATES, ALL_STATES,
+	 GSM48_MM_EVENT_NOTIFICATION, gsm48_mm_notification},
+
+	/* Uplink free/busy while in group receive mode */
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_NORMAL) | SBIT(GSM48_MM_SST_RX_VGCS_LIMITED),
+	 GSM48_MM_EVENT_UPLINK_BUSY, gsm48_mm_uplink_free},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_NORMAL) | SBIT(GSM48_MM_SST_RX_VGCS_LIMITED),
+	 GSM48_MM_EVENT_UPLINK_FREE, gsm48_mm_uplink_free},
 };
 
 #define EVENTSLLEN \

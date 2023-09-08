@@ -8,8 +8,8 @@ struct gsm_settings;
 #define GSM48_MMCC_CLASS		0x100
 #define GSM48_MMSS_CLASS		0x200
 #define GSM48_MMSMS_CLASS		0x300
-#define GSM48_MMBCC_CLASS		0x500
-#define GSM48_MMGCC_CLASS		0x600
+#define GSM48_MMGCC_CLASS		0x500
+#define GSM48_MMBCC_CLASS		0x600
 #define GSM48_MMXX_REL_IND		0x022
 #define GSM48_MMCC_EST_REQ		0x110
 #define GSM48_MMCC_EST_IND		0x112
@@ -66,6 +66,15 @@ struct gsm_settings;
 #define GSM48_MMGCC_REEST_REQ		0x560
 #define GSM48_MMGCC_REEST_CNF		0x561
 #define GSM48_MMGCC_ERR_IND		0x572
+#define GSM48_MMGCC_NOTIF_IND		0x582
+#define GSM48_MMGCC_GROUP_REQ		0x590
+#define GSM48_MMGCC_GROUP_CNF		0x591
+#define GSM48_MMGCC_UPLINK_REQ		0x5a0
+#define GSM48_MMGCC_UPLINK_CNF		0x5a1
+#define GSM48_MMGCC_UPLINK_REL_REQ	0x5a8
+#define GSM48_MMGCC_UPLINK_REL_IND	0x5aa
+#define GSM48_MMGCC_UPLINK_FREE_IND	0x5b2
+#define GSM48_MMGCC_UPLINK_BUSY_IND	0x5b6
 #define GSM48_MMBCC_EST_REQ		0x610
 #define GSM48_MMBCC_EST_CNF		0x611
 #define GSM48_MMBCC_REL_REQ		0x620
@@ -77,18 +86,34 @@ struct gsm_settings;
 #define GSM48_MMBCC_REEST_REQ		0x660
 #define GSM48_MMBCC_REEST_CNF		0x661
 #define GSM48_MMBCC_ERR_IND		0x672
+#define GSM48_MMBCC_NOTIF_IND		0x682
+#define GSM48_MMBCC_GROUP_REQ		0x690
+#define GSM48_MMBCC_GROUP_CNF		0x691
+#define GSM48_MMBCC_UPLINK_REQ		0x6a0
+#define GSM48_MMBCC_UPLINK_CNF		0x6a1
+#define GSM48_MMBCC_UPLINK_REL_REQ	0x6a8
+#define GSM48_MMBCC_UPLINK_REL_IND	0x6aa
+#define GSM48_MMBCC_UPLINK_FREE_IND	0x6b2
+#define GSM48_MMBCC_UPLINK_BUSY_IND	0x6b6
+
 
 #define MMXX_ALLOC_SIZE			256
 #define MMXX_ALLOC_HEADROOM		64
 
+#define MMXX_NOTIFY_SETUP		0
+#define MMXX_NOTIFY_RELEASE		1
+
 /* MMxx-SAP header */
 struct gsm48_mmxx_hdr {
-	uint16_t	msg_type; /* MMxx_* primitive */
-	uint32_t	ref; /* reference to transaction */
-	uint32_t	transaction_id; /* transaction identifier */
-	uint8_t		sapi; /* sapi */
-	uint8_t		emergency; /* emergency type of call */
-	uint8_t		cause; /* cause used for release */
+	uint16_t		msg_type; /* MMxx_* primitive */
+	uint32_t		ref; /* reference to transaction */
+	uint32_t		transaction_id; /* transaction identifier */
+	uint8_t			sapi; /* sapi */
+	uint8_t			emergency; /* emergency type of call */
+	uint8_t			cause; /* cause used for release */
+	uint8_t			notify; /* notify ongoing ASCI call */
+	bool			ch_desc_present; /* notifies channel */
+	struct gsm48_chan_desc	ch_desc; /* group channel */
 } __attribute__((packed));
 
 /* GSM 6.1.2 */
@@ -237,6 +262,14 @@ struct gsm48_mmlayer {
 
 	/* sapi 3 */
 	int			sapi3_link;
+
+	/* VGCS additional states */
+	struct {
+		bool			enabled;		/* We are in group/broadcast mode. */
+		bool			group_call;		/* This is a group call, not a broadcast call. */
+		uint32_t		callref;		/* Callref of this call. */
+		bool			normal_service;		/* Service state before group transmit mode. */
+	} vgcs;
 };
 
 /* MM connection entry */
