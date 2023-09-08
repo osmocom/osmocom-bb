@@ -62,7 +62,7 @@ struct gsm_trans {
 
 struct gsm_trans *trans_find_by_id(struct osmocom_ms *ms,
 				   uint8_t proto, uint8_t trans_id);
-struct gsm_trans *trans_find_by_callref(struct osmocom_ms *ms,
+struct gsm_trans *trans_find_by_callref(struct osmocom_ms *ms, uint8_t protocol,
 					uint32_t callref);
 
 struct gsm_trans *trans_alloc(struct osmocom_ms *ms,

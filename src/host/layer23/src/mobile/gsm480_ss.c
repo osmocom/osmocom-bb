@@ -1240,7 +1240,7 @@ int gsm480_rcv_ss(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_trans *trans;
 	int rc = 0;
 
-	trans = trans_find_by_callref(ms, mmh->ref);
+	trans = trans_find_by_callref(ms, GSM48_PDISC_NC_SS, mmh->ref);
 	if (!trans) {
 		LOGP(DSS, LOGL_INFO, " -> (new transaction)\n");
 		trans = trans_alloc(ms, GSM48_PDISC_NC_SS, mmh->transaction_id,

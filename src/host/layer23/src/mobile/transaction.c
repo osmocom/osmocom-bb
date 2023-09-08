@@ -44,13 +44,13 @@ struct gsm_trans *trans_find_by_id(struct osmocom_ms *ms,
 	return NULL;
 }
 
-struct gsm_trans *trans_find_by_callref(struct osmocom_ms *ms,
+struct gsm_trans *trans_find_by_callref(struct osmocom_ms *ms, uint8_t protocol,
 					uint32_t callref)
 {
 	struct gsm_trans *trans;
 
 	llist_for_each_entry(trans, &ms->trans_list, entry) {
-		if (trans->callref == callref)
+		if (trans->protocol == protocol && trans->callref == callref)
 			return trans;
 	}
 	return NULL;

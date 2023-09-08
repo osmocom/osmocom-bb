@@ -1937,7 +1937,7 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 	data->msg_type = msg_type;
 
 	/* Find callref */
-	trans = trans_find_by_callref(ms, data->callref);
+	trans = trans_find_by_callref(ms, GSM48_PDISC_CC, data->callref);
 
 	if (!trans) {
 		/* check for SETUP message */
@@ -2147,7 +2147,7 @@ int gsm48_rcv_cc(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_trans *trans;
 	int rc = 0;
 
-	trans = trans_find_by_callref(ms, mmh->ref);
+	trans = trans_find_by_callref(ms, GSM48_PDISC_CC, mmh->ref);
 	if (!trans) {
 		trans = trans_alloc(ms, GSM48_PDISC_CC, mmh->transaction_id,
 					mmh->ref);
