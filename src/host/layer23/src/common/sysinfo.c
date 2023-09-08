@@ -23,6 +23,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/bitvec.h>
 #include <osmocom/gsm/gsm48.h>
+#include <osmocom/gsm/gsm48_rest_octets.h>
 
 #include <osmocom/gprs/rlcmac/csn1_defs.h>
 
@@ -72,6 +73,7 @@ int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
 	char buffer[82];
 	int i, j, k, index;
 	int refer_pcs = gsm_refer_pcs(arfcn, s);
+	int rc;
 
 	/* available sysinfos */
 	print(priv, "ARFCN = %s  channels 512+ refer to %s\n",
@@ -282,6 +284,16 @@ int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
 	print(priv, "  BS-PA-MFMS = %d  Attachment = %s\n",
 		s->pag_mf_periods, (s->att_allowed) ? "allowed" : "denied");
 	print(priv, "BS-AG_BLKS_RES = %d  ", s->bs_ag_blks_res);
+	if (!s->nch)
+		print(priv, "NCH not available  ");
+	else {
+		uint8_t num_blocks, first_block;
+		rc = osmo_gsm48_si1ro_nch_pos_decode(s->nch_position, &num_blocks, &first_block);
+		if (rc < 0)
+			print(priv, "NCH Position invalid  ");
+		else
+			print(priv, "NCH Position %u / %u blocks  ", first_block, num_blocks);
+	}
 	if (s->t3212)
 		print(priv, "T3212 = %d sec.\n", s->t3212);
 	else
