@@ -39,6 +39,7 @@
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
+#include <osmocom/bb/mobile/gsm44068_gcc_bcc.h>
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
@@ -51,6 +52,18 @@ struct cmd_node support_node = {
 struct cmd_node audio_node = {
 	AUDIO_NODE,
 	"%s(audio)# ",
+	1
+};
+
+struct cmd_node vgcs_node = {
+	VGCS_NODE,
+	"%s(group-call)# ",
+	1
+};
+
+struct cmd_node vbs_node = {
+	VBS_NODE,
+	"%s(broadcast-call)# ",
 	1
 };
 
@@ -73,6 +86,32 @@ int vty_check_number(struct vty *vty, const char *number)
 	}
 	if (number[0] == '\0' || (number[0] == '+' && number[1] == '\0')) {
 		vty_out(vty, "Given number has no digits!%s", VTY_NEWLINE);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+int vty_check_callref(struct vty *vty, const char *number)
+{
+	int i, ii = strlen(number);
+
+	/* First check digits, so that a false command result the following error message. */
+	for (i = 0; i < ii; i++) {
+		if (!(number[i] >= '0' && number[i] <= '9')) {
+			vty_out(vty, "Invalid digit '%c' in callref!%s",
+				number[i], VTY_NEWLINE);
+			return -EINVAL;
+		}
+	}
+
+	if (ii < 1) {
+		vty_out(vty, "Given callref has no digits!%s", VTY_NEWLINE);
+		return -EINVAL;
+	}
+
+	if (ii > 8) {
+		vty_out(vty, "Given callref is too long!%s", VTY_NEWLINE);
 		return -EINVAL;
 	}
 
@@ -334,6 +373,22 @@ DEFUN(show_forb_la, show_forb_la_cmd, "show forbidden location-area MS_NAME",
 	return CMD_SUCCESS;
 }
 
+#define ASCI_STR SHOW_STR "Display information about ASCI items\nName of MS (see \"show ms\")\n"
+
+DEFUN(show_asci_calls, show_asci_calls_cmd, "show asci MS_NAME calls",
+	ASCI_STR "Display ongoing ASCI calls")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	gsm44068_dump_calls(ms, l23_vty_printf, vty);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(monitor_network, monitor_network_cmd, "monitor network MS_NAME",
 	"Monitor...\nMonitor network information\nName of MS (see \"show ms\")")
 {
@@ -581,6 +636,146 @@ DEFUN(service, service_cmd, "service MS_NAME (*#06#|*#21#|*#67#|*#61#|*#62#"
 	ss_send(ms, argv[1], 0);
 
 	return CMD_SUCCESS;
+}
+
+#define VGCS_STR "Make a voice group call\nName of MS (see \"show ms\")\n"
+#define VGCS_CMDS "(CALLREF|hangup|leave|talk|listen)"
+#define VGCS_CMDS_TXT \
+      "Voice group to call or join\nHangup voice group call\nLeave voice group call\nBecome talker\nBecome listener"
+
+/* This command enters VGCS call node with given MS. */
+DEFUN(vgcs_enter, vgcs_enter_cmd, "group-call MS_NAME",
+      VGCS_STR)
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	vty->index = ms;
+	vty->node = VGCS_NODE;
+
+	return CMD_SUCCESS;
+}
+
+/* These commands perform VGCS on VGCS node. */
+DEFUN(vgcs, vgcs_cmd, VGCS_CMDS,
+      VGCS_CMDS_TXT)
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set;
+	const char *command;
+
+	set = &ms->settings;
+
+	if (!set->vgcs) {
+		vty_out(vty, "VGCS not supported by this mobile, please enable VGCS support%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (set->ch_cap == GSM_CAP_SDCCH) {
+		vty_out(vty, "ASCI call is not supported for SDCCH only mobile%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	command = (char *)argv[0];
+	if (!strcmp(command, "hangup"))
+		gcc_bcc_hangup(ms);
+	else if (!strcmp(command, "leave"))
+		gcc_leave(ms);
+	else if (!strcmp(command, "talk"))
+		gcc_talk(ms);
+	else if (!strcmp(command, "listen"))
+		gcc_listen(ms);
+	else {
+		if (vty_check_callref(vty, command))
+			return CMD_WARNING;
+		gcc_bcc_call(ms, GSM48_PDISC_GROUP_CC, command);
+	}
+
+	return CMD_SUCCESS;
+}
+
+/* These commands perform VGCS on given MS without entering the VGCS node. */
+DEFUN(vgcs_direct, vgcs_direct_cmd, "group-call MS_NAME " VGCS_CMDS,
+      VGCS_STR VGCS_CMDS_TXT)
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	vty->index = ms;
+	return vgcs(self, vty, argc - 1, argv + 1);
+}
+
+#define VBS_STR "Make a voice broadcast call\nName of MS (see \"show ms\")\n"
+#define VBS_CMDS "(CALLREF|hangup)"
+#define VBS_CMDS_TXT \
+      "Voice broadcast to call or join\nHangup voice broadcast call"
+
+/* This command enters VBS call node with given MS. */
+DEFUN(vbs_enter, vbs_enter_cmd, "broadcast-call MS_NAME",
+      VBS_STR)
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	vty->index = ms;
+	vty->node = VBS_NODE;
+
+	return CMD_SUCCESS;
+}
+
+/* These commands perform VBS on VBS node. */
+DEFUN(vbs, vbs_cmd, VBS_CMDS,
+      VBS_CMDS_TXT)
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set;
+	const char *command;
+
+	set = &ms->settings;
+
+	if (!set->vbs) {
+		vty_out(vty, "VBS not supported by this mobile, please enable VBS support%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (set->ch_cap == GSM_CAP_SDCCH) {
+		vty_out(vty, "ASCI call is not supported for SDCCH only mobile%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	command = (char *)argv[0];
+	if (!strcmp(command, "hangup"))
+		gcc_bcc_hangup(ms);
+	else {
+		if (vty_check_callref(vty, command))
+			return CMD_WARNING;
+		gcc_bcc_call(ms, GSM48_PDISC_BCAST_CC, command);
+	}
+
+	return CMD_SUCCESS;
+}
+
+/* These commands perform VBS on given MS without entering the VBS node. */
+DEFUN(vbs_direct, vbs_direct_cmd, "broadcast-call MS_NAME " VBS_CMDS,
+      VBS_STR VBS_CMDS_TXT)
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	vty->index = ms;
+	return vbs(self, vty, argc - 1, argv + 1);
 }
 
 #define TEST_CMD_DESC	"Special commands for testing\n"
@@ -1072,11 +1267,14 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	if (!l23_vty_hide_default || set->skip_max_per_band)
 		vty_out(vty, "  %sskip-max-per-band%s",
 			(set->skip_max_per_band) ? "" : "no ", VTY_NEWLINE);
+	SUP_WRITE(vgcs, "vgcs");
+	SUP_WRITE(vbs, "vbs");
 	if (!l23_vty_hide_default || set->any_timeout != MOB_C7_DEFLT_ANY_TIMEOUT)
 		vty_out(vty, " c7-any-timeout %d%s",
 			set->any_timeout, VTY_NEWLINE);
-	SUP_WRITE(vgcs, "vgcs");
-	SUP_WRITE(vbs, "vbs");
+	if (!l23_vty_hide_default || !set->uplink_release_local)
+		vty_out(vty, " %suplink-release-local%s",
+			(set->uplink_release_local) ? "no " : "", VTY_NEWLINE);
 
 	vty_out(vty, " audio%s", VTY_NEWLINE);
 	vty_out(vty, "  io-handler %s%s",
@@ -1727,6 +1925,26 @@ DEFUN(cfg_ms_any_timeout, cfg_ms_any_timeout_cmd, "c7-any-timeout <0-255>",
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_no_uplink_release_local, cfg_ms_no_uplink_release_local_cmd, "no uplink-release-local",
+	NO_STR "Release L2 on uplink of VGCS channel normally. Release locally when UPLINK FREE is received.")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->uplink_release_local = false;
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_uplink_release_local, cfg_ms_uplink_release_local_cmd, "uplink-release-local",
+	"Release L2 on uplink of VGCS channel locally after receiving UPLINK FREE.")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->uplink_release_local = true;
+	return CMD_SUCCESS;
+}
+
 static int config_write_dummy(struct vty *vty)
 {
 	return CMD_SUCCESS;
@@ -2054,14 +2272,14 @@ DEFUN(cfg_ms_sup_no_skip_max_per_band, cfg_ms_sup_no_skip_max_per_band_cmd,
 	return CMD_SUCCESS;
 }
 
-SUP_EN(cfg_ms_sup_vbs, cfg_ms_sup_vbs_cmd, vbs, "vbs",
-	"Voice Broadcast Service (VBS)", 0);
-SUP_DI(cfg_ms_sup_no_vbs, cfg_ms_sup_no_vbs_cmd, vbs,
-	"vbs", "Voice Broadcast Service (VBS)", 0);
 SUP_EN(cfg_ms_sup_vgcs, cfg_ms_sup_vgcs_cmd, vgcs, "vgcs",
 	"Voice Group Call Service (VGCS)", 0);
 SUP_DI(cfg_ms_sup_no_vgcs, cfg_ms_sup_no_vgcs_cmd, vgcs,
 	"vgcs", "Voice Group Call Service (VBS)", 0);
+SUP_EN(cfg_ms_sup_vbs, cfg_ms_sup_vbs_cmd, vbs, "vbs",
+	"Voice Broadcast Service (VBS)", 0);
+SUP_DI(cfg_ms_sup_no_vbs, cfg_ms_sup_no_vbs_cmd, vbs,
+	"vbs", "Voice Broadcast Service (VBS)", 0);
 
 /* per audio config */
 DEFUN(cfg_ms_audio, cfg_ms_audio_cmd, "audio",
@@ -2265,6 +2483,7 @@ int ms_vty_init(void)
 	install_element_ve(&show_ba_cmd);
 	install_element_ve(&show_forb_la_cmd);
 	install_element_ve(&show_forb_plmn_cmd);
+	install_element_ve(&show_asci_calls_cmd);
 	install_element_ve(&monitor_network_cmd);
 	install_element_ve(&no_monitor_network_cmd);
 	install_element(ENABLE_NODE, &off_cmd);
@@ -2277,6 +2496,14 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
 	install_element(ENABLE_NODE, &sms_cmd);
 	install_element(ENABLE_NODE, &service_cmd);
+	install_element(ENABLE_NODE, &vgcs_enter_cmd);
+	install_element(ENABLE_NODE, &vgcs_direct_cmd);
+	install_node(&vgcs_node, config_write_dummy);
+	install_element(VGCS_NODE, &vgcs_cmd);
+	install_element(ENABLE_NODE, &vbs_enter_cmd);
+	install_element(ENABLE_NODE, &vbs_direct_cmd);
+	install_node(&vbs_node, config_write_dummy);
+	install_element(VBS_NODE, &vbs_cmd);
 	install_element(ENABLE_NODE, &test_reselection_cmd);
 	install_element(ENABLE_NODE, &delete_forbidden_plmn_cmd);
 
@@ -2335,6 +2562,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_any_timeout_cmd);
 	install_element(MS_NODE, &cfg_ms_sms_store_cmd);
 	install_element(MS_NODE, &cfg_ms_no_sms_store_cmd);
+	install_element(MS_NODE, &cfg_ms_uplink_release_local_cmd);
+	install_element(MS_NODE, &cfg_ms_no_uplink_release_local_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dtmf_cmd);
@@ -2391,10 +2620,10 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_skip_max_per_band_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_vbs_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_vbs_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_vgcs_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_vgcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_vbs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_no_vbs_cmd);
 	install_element(MS_NODE, &cfg_ms_script_load_run_cmd);
 	install_element(MS_NODE, &cfg_ms_no_script_load_run_cmd);
 
