@@ -27,7 +27,6 @@ struct gsm_trans {
 
 	union {
 		struct {
-
 			/* current call state */
 			int state;
 
@@ -55,6 +54,26 @@ struct gsm_trans {
 
 			struct gsm_sms *sms;
 		} sms;
+		struct {
+			/* VGCS/VBS state machine */
+			struct osmo_fsm_inst *fi;
+
+			/* Call State (See Table 9.3 of TS 144.068) */
+			uint8_t call_state;
+
+			/* State attributes (See Table 9.7 of TS 144.068) */
+			uint8_t d_att, u_att, comm, orig;
+
+			/* Channel description last received via notification */
+			bool ch_desc_present;
+			struct gsm48_chan_desc ch_desc;
+
+			/* Flag to store termination request from upper layer. */
+			bool termination;
+
+			/* Flag to tell the state machine that call changes from separate link to group receive mode. */
+			bool receive_after_sl;
+		} gcc;
 	};
 };
 

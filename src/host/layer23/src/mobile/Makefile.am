@@ -23,6 +23,7 @@ libmobile_a_SOURCES = \
 	gsm480_ss.c \
 	gsm411_sms.c \
 	gsm48_cc.c \
+	gsm44068_gcc_bcc.c \
 	gsm48_mm.c \
 	gsm48_rr.c \
 	gsm414.c \

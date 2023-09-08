@@ -34,6 +34,7 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
+#include <osmocom/bb/mobile/gsm44068_gcc_bcc.h>
 #include <osmocom/gsm/gsm0411_utils.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/bb/mobile/vty.h>
@@ -646,6 +647,14 @@ int gsm411_tx_sms_submit(struct osmocom_ms *ms, const char *sms_sca,
 	/* no running, no transaction */
 	if (!ms->started || ms->shutdown != MS_SHUTDOWN_NONE) {
 		LOGP(DLSMS, LOGL_ERROR, "Phone is down\n");
+		gsm411_sms_report(ms, sms, GSM411_RP_CAUSE_MO_TEMP_FAIL);
+		sms_free(sms);
+		return -EIO;
+	}
+
+	/* ASCI call does not allow other transactions */
+	if (trans_find_ongoing_gcc_bcc(ms)) {
+		LOGP(DLSMS, LOGL_ERROR, "Phone is busy doing ASCI call\n");
 		gsm411_sms_report(ms, sms, GSM411_RP_CAUSE_MO_TEMP_FAIL);
 		sms_free(sms);
 		return -EIO;

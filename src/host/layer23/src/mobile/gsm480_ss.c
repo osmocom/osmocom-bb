@@ -28,6 +28,7 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
+#include <osmocom/bb/mobile/gsm44068_gcc_bcc.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/gsm/protocol/gsm_04_80.h>
@@ -597,6 +598,12 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 	if (!ms->started || ms->shutdown != MS_SHUTDOWN_NONE) {
 		gsm480_ss_result(ms, "<phone is down>", 0);
 		return -EIO;
+	}
+
+	/* ASCI call does not allow other transactions */
+	if (trans_find_ongoing_gcc_bcc(ms)) {
+		gsm480_ss_result(ms, "<ongoing ASCI call>", 0);
+		return -EBUSY;
 	}
 
 	/* allocate transaction with dummy reference */

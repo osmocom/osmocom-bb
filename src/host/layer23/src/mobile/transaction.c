@@ -30,6 +30,7 @@
 void _gsm48_cc_trans_free(struct gsm_trans *trans);
 void _gsm480_ss_trans_free(struct gsm_trans *trans);
 void _gsm411_sms_trans_free(struct gsm_trans *trans);
+void _gsm44068_gcc_bcc_trans_free(struct gsm_trans *trans);
 
 struct gsm_trans *trans_find_by_id(struct osmocom_ms *ms,
 				   uint8_t proto, uint8_t trans_id)
@@ -92,6 +93,10 @@ void trans_free(struct gsm_trans *trans)
 		break;
 	case GSM48_PDISC_SMS:
 		_gsm411_sms_trans_free(trans);
+		break;
+	case GSM48_PDISC_GROUP_CC:
+	case GSM48_PDISC_BCAST_CC:
+		_gsm44068_gcc_bcc_trans_free(trans);
 		break;
 	}
 

@@ -38,6 +38,7 @@
 #include <osmocom/bb/mobile/gsm48_cc.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
+#include <osmocom/bb/mobile/gsm44068_gcc_bcc.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/primitives.h>
 #include <osmocom/bb/mobile/vty.h>
@@ -905,6 +906,7 @@ int gsm48_mmxx_dequeue(struct osmocom_ms *ms)
 			break;
 		case GSM48_MMGCC_CLASS:
 		case GSM48_MMBCC_CLASS:
+			gsm44068_rcv_gcc_bcc(ms, msg);
 			break;
 		}
 		msgb_free(msg);
@@ -1166,6 +1168,15 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 	if (state == GSM48_MM_ST_MM_IDLE
 	 && substate == GSM48_MM_SST_LOC_UPD_NEEDED) {
 		gsm48_mm_loc_upd_possible(mm);
+		/* must exit, because this function can be called recursively */
+		return;
+	}
+
+	/* Tell the group call that we are ready for a new channel activation. */
+	if (state == GSM48_MM_ST_MM_IDLE
+	 && (substate == GSM48_MM_SST_NORMAL_SERVICE
+	  || substate == GSM48_MM_SST_ATTEMPT_UPDATE)) {
+		gsm44068_rcv_mm_idle(ms);
 		/* must exit, because this function can be called recursively */
 		return;
 	}
@@ -4751,7 +4762,7 @@ forward_msg:
 
 	case GSM48_PDISC_GROUP_CC:
 	case GSM48_PDISC_BCAST_CC:
-		rc = -ENOTSUP;
+		rc = gsm44068_rcv_gcc_bcc(ms, msg);
 		msgb_free(msg);
 		return rc;
 

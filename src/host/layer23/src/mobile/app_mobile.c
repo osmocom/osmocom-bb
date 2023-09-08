@@ -35,6 +35,7 @@
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm48_mm.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
+#include <osmocom/bb/mobile/gsm44068_gcc_bcc.h>
 #include <osmocom/bb/mobile/gsm411_sms.h>
 #include <osmocom/bb/mobile/gsm322.h>
 #include <osmocom/bb/mobile/vty.h>
@@ -212,6 +213,7 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 	gsm48_cc_exit(ms);
 	gsm480_ss_exit(ms);
 	gsm411_sms_exit(ms);
+	gsm44068_gcc_exit(ms);
 	gsm_sim_exit(ms);
 	lapdm_channel_exit(&ms->lapdm_channel);
 
@@ -253,6 +255,7 @@ static int mobile_init(struct osmocom_ms *ms)
 	gsm48_cc_init(ms);
 	gsm480_ss_init(ms);
 	gsm411_sms_init(ms);
+	gsm44068_gcc_init(ms);
 	gsm_voice_init(ms);
 	gsm_subscr_init(ms);
 	gsm48_rr_init(ms);

@@ -32,6 +32,7 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
+#include <osmocom/bb/mobile/gsm44068_gcc_bcc.h>
 #include <osmocom/bb/mobile/voice.h>
 #include <l1ctl_proto.h>
 
@@ -1931,6 +1932,12 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 			GSM48_CC_CAUSE_DEST_OOO);
 			ms->mncc_entity.mncc_recv(ms, MNCC_REL_IND, &rel);
 		}
+		return -EBUSY;
+	}
+
+	/* ASCI call does not allow other transactions */
+	if (trans_find_ongoing_gcc_bcc(ms)) {
+		LOGP(DCC, LOGL_NOTICE, "Phone is busy doing ASCI call\n");
 		return -EBUSY;
 	}
 
