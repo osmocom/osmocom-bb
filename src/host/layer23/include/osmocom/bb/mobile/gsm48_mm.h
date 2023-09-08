@@ -161,12 +161,23 @@ struct gsm48_mmr {
 #define GSM48_MM_EVENT_SYSINFO		14
 #define GSM48_MM_EVENT_USER_PLMN_SEL	15
 #define GSM48_MM_EVENT_LOST_COVERAGE	16
+#define GSM48_MM_EVENT_NOTIFICATION	17
 
 /* message for MM events */
 struct gsm48_mm_event {
-	uint32_t	msg_type;
+	uint32_t		msg_type;
 
-	uint8_t		sres[4];
+	union {
+		/* GSM48_MM_EVENT_AUTH_RESPONSE */
+		uint8_t			sres[4];
+		/* GSM48_MM_EVENT_NOTIFICATION */
+		struct {
+			uint8_t			gcr[5];
+			bool			ch_desc_present;
+			struct gsm48_chan_desc	ch_desc;
+			bool			gone;
+		} __attribute__((packed)) notification;
+	};
 } __attribute__((packed));
 
 /* GSM 04.08 MM timers */
