@@ -2372,13 +2372,12 @@ static int gsm48_match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref, uint
 	for (i = 0; i < hist_num; i++) {
 		/* filter confirmed RACH requests only */
 		if (rr->cr_hist[i].valid && ref->ra == rr->cr_hist[i].ref.ra) {
-		 	ia_t1 = ref->t1;
-		 	ia_t2 = ref->t2;
-		 	ia_t3 = (ref->t3_high << 3) | ref->t3_low;
-			ref = &rr->cr_hist[i].ref;
-		 	cr_t1 = ref->t1;
-		 	cr_t2 = ref->t2;
-		 	cr_t3 = (ref->t3_high << 3) | ref->t3_low;
+			ia_t1 = ref->t1;
+			ia_t2 = ref->t2;
+			ia_t3 = (ref->t3_high << 3) | ref->t3_low;
+			cr_t1 = rr->cr_hist[i].ref.t1;
+			cr_t2 = rr->cr_hist[i].ref.t2;
+			cr_t3 = (rr->cr_hist[i].ref.t3_high << 3) | rr->cr_hist[i].ref.t3_low;
 			if (ia_t1 == cr_t1 && ia_t2 == cr_t2
 			 && ia_t3 == cr_t3) {
 		 		LOGP(DRR, LOGL_INFO, "request %02x matches "
