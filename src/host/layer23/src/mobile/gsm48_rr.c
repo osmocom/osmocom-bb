@@ -84,6 +84,9 @@
 
 #include <l1ctl_proto.h>
 
+/* Check response for the last 3 channel requests only. See TS 44.018 §3.3.1.1.3.1 and §3.3.1.1.3.2. */
+#define IMM_ASS_HISTORY		3
+
 static void start_rr_t_meas(struct gsm48_rrlayer *rr, int sec, int micro);
 static void stop_rr_t_starting(struct gsm48_rrlayer *rr);
 static void stop_rr_t3124(struct gsm48_rrlayer *rr);
@@ -1489,12 +1492,10 @@ rel_ind:
 		return -EINVAL;
 	}
 
-	/* store value, mask and history */
+	/* store value, mask and clear history */
 	rr->chan_req_val = chan_req_val;
 	rr->chan_req_mask = chan_req_mask;
-	rr->cr_hist[2].valid = 0;
-	rr->cr_hist[1].valid = 0;
-	rr->cr_hist[0].valid = 0;
+	memset(rr->cr_hist, 0, sizeof(rr->cr_hist));
 
 	/* store establishment cause, so 'choose cell' selects the last cell
 	 * after location updating */
@@ -1545,10 +1546,7 @@ int gsm48_rr_tx_rand_acc(struct osmocom_ms *ms, struct msgb *msg)
 		}
 
 		/* shift history and store */
-		memcpy(&(rr->cr_hist[2]), &(rr->cr_hist[1]),
-			sizeof(struct gsm48_cr_hist));
-		memcpy(&(rr->cr_hist[1]), &(rr->cr_hist[0]),
-			sizeof(struct gsm48_cr_hist));
+		memmove(rr->cr_hist + 1, rr->cr_hist, sizeof(rr->cr_hist) - sizeof(rr->cr_hist[0]));
 		rr->cr_hist[0].valid = 1;
 		rr->cr_hist[0].ref.ra = rr->cr_ra;
 		rr->cr_hist[0].ref.t1 = ref->t1;
@@ -2364,14 +2362,14 @@ static int gsm48_rr_rx_pag_req_3(struct osmocom_ms *ms, struct msgb *msg)
  */
 
 /* match request reference against request history */
-static int gsm48_match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref)
+static int gsm48_match_ra(struct osmocom_ms *ms, struct gsm48_req_ref *ref, uint8_t hist_num)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	int i;
 	uint8_t ia_t1, ia_t2, ia_t3;
 	uint8_t cr_t1, cr_t2, cr_t3;
 
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < hist_num; i++) {
 		/* filter confirmed RACH requests only */
 		if (rr->cr_hist[i].valid && ref->ra == rr->cr_hist[i].ref.ra) {
 		 	ia_t1 = ref->t1;
@@ -2492,7 +2490,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* request ref */
-	if (gsm48_match_ra(ms, &ia->req_ref)) {
+	if (gsm48_match_ra(ms, &ia->req_ref, IMM_ASS_HISTORY)) {
 		/* channel description */
 		memcpy(&rr->cd_now, &cd, sizeof(rr->cd_now));
 		/* timing advance */
@@ -2640,7 +2638,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* request ref 1 */
-	if (gsm48_match_ra(ms, &ia->req_ref1)) {
+	if (gsm48_match_ra(ms, &ia->req_ref1, IMM_ASS_HISTORY)) {
 		/* channel description */
 		memcpy(&rr->cd_now, &cd1, sizeof(rr->cd_now));
 		/* timing advance */
@@ -2656,7 +2654,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_dl_est(ms);
 	}
 	/* request ref 2 */
-	if (gsm48_match_ra(ms, &ia->req_ref2)) {
+	if (gsm48_match_ra(ms, &ia->req_ref2, IMM_ASS_HISTORY)) {
 		/* channel description */
 		memcpy(&rr->cd_now, &cd2, sizeof(rr->cd_now));
 		/* timing advance */
@@ -2706,7 +2704,7 @@ static int gsm48_rr_rx_imm_ass_rej(struct osmocom_ms *ms, struct msgb *msg)
 				(((uint8_t *)&ia->req_ref1) + i * 4);
 		LOGP(DRR, LOGL_INFO, "IMMEDIATE ASSIGNMENT REJECT "
 			"(ref 0x%02x)\n", req_ref->ra);
-		if (gsm48_match_ra(ms, req_ref)) {
+		if (gsm48_match_ra(ms, req_ref, IMM_ASS_HISTORY)) {
 			/* wait indication */
 			t3122_value = *(((uint8_t *)&ia->wait_ind1) + i * 4);
 			if (t3122_value)
