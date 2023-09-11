@@ -4727,6 +4727,8 @@ static int gsm48_rr_data_req(struct osmocom_ms *ms, struct msgb *msg)
 /* 3.4.2 data from layer 2 to RR and upper layer*/
 static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
+	struct abis_rsl_rll_hdr *rllh = msgb_l2(msg);
+	uint8_t sapi = rllh->link_id & 7;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	struct gsm48_rr_hdr *rrh;
 	uint8_t pdisc = gh->proto_discr & 0x0f;
@@ -4792,6 +4794,7 @@ static int gsm48_rr_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	msgb_push(msg, sizeof(struct gsm48_rr_hdr));
 	rrh = (struct gsm48_rr_hdr *)msg->data;
 	rrh->msg_type = GSM48_RR_DATA_IND;
+	rrh->sapi = sapi;
 
 	return gsm48_rr_upmsg(ms, msg);
 }
