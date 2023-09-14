@@ -162,6 +162,8 @@ struct gsm48_mmr {
 #define GSM48_MM_EVENT_USER_PLMN_SEL	15
 #define GSM48_MM_EVENT_LOST_COVERAGE	16
 #define GSM48_MM_EVENT_NOTIFICATION	17
+#define GSM48_MM_EVENT_UPLINK_FREE	18
+#define GSM48_MM_EVENT_UPLINK_BUSY	19
 
 /* message for MM events */
 struct gsm48_mm_event {
