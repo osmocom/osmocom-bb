@@ -97,7 +97,7 @@ static int forward_to_rlcmac(struct osmocom_ms *ms, struct msgb *msg)
 	struct osmo_gprs_rlcmac_prim *rlcmac_prim;
 	const uint32_t fn = *(uint32_t *)(&msg->cb[0]);
 
-	/* Forward SI13 to RLC/MAC layer */
+	/* Forward a CCCH/BCCH block to the RLC/MAC layer */
 	rlcmac_prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_ccch_data_ind(fn, msgb_l3(msg));
 	return osmo_gprs_rlcmac_prim_lower_up(rlcmac_prim);
 }
