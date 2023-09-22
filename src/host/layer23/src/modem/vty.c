@@ -73,27 +73,26 @@ int modem_vty_go_parent(struct vty *vty)
 /* testing commands */
 DEFUN_HIDDEN(test_grr_tx_chan_req,
 	     test_grr_tx_chan_req_cmd,
-	     "test MS_NAME grr tx-chan-req (1phase|2phase)",
+	     "test MS_NAME grr start-chan-access (1phase|2phase)",
 	     TEST_CMD_DESC MS_NAME_DESC GRR_CMDG_DESC
 	     "Send a CHANNEL REQUEST (RACH) to the network\n"
 	     "One-phase packet access (011110xx or 01111x0x or 01111xx0)\n"
 	     "Two-phase (single block) packet access (01110xxx)\n")
 {
 	struct osmocom_ms *ms;
-	uint8_t chan_req;
 
 	if ((ms = l23_vty_get_ms(argv[0], vty)) == NULL)
 		return CMD_WARNING;
 
-	chan_req = modem_grr_gen_chan_req(argv[1][0] == '2');
 	const struct osmo_gprs_rlcmac_l1ctl_prim lp = {
 		.rach_req = {
 			.is_11bit = false,
-			.ra = chan_req,
+			/* the 3 LSBs are randomized during (re)transmission */
+			.ra = argv[1][0] == '1' ? 0x78 : 0x70,
 		}
 	};
 
-	if (osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_RACH_REQ, (void *)&lp)) {
+	if (osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_CHAN_ACCESS_REQ, (void *)&lp)) {
 		vty_out(vty, "Failed to send a CHANNEL REQUEST%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}

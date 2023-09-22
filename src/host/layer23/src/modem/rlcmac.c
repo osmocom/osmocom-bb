@@ -145,7 +145,7 @@ static int modem_rlcmac_prim_down_cb(struct osmo_gprs_rlcmac_prim *prim, void *u
 
 	switch (OSMO_PRIM_HDR(&prim->oph)) {
 	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_RACH, PRIM_OP_REQUEST):
-		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_RACH_REQ, lp);
+		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_CHAN_ACCESS_REQ, lp);
 	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_PDCH_DATA, PRIM_OP_REQUEST):
 		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_BLOCK_REQ, lp);
 	case OSMO_PRIM(OSMO_GPRS_RLCMAC_L1CTL_CFG_UL_TBF, PRIM_OP_REQUEST):

@@ -63,7 +63,7 @@ static uint32_t _gsm48_req_ref2fn(const struct gsm48_req_ref *ref)
 }
 
 /* Generate an 8-bit CHANNEL REQUEST message as per 3GPP TS 44.018, 9.1.8 */
-uint8_t modem_grr_gen_chan_req(bool single_block)
+static uint8_t grr_gen_chan_req(bool single_block)
 {
 	uint8_t rnd = (uint8_t)rand();
 
@@ -408,7 +408,7 @@ static int grr_rx_rslms_cchan(struct osmocom_ms *ms, struct msgb *msg)
 
 	switch (ch->c.msg_type) {
 	case RSL_MT_CHAN_CONF: /* RACH.conf */
-		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_RACH_CNF,
+		return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_CHAN_ACCESS_CNF,
 					      (void *)&ch->data[1]);
 	default:
 		LOGP(DRSL, LOGL_NOTICE, "Unhandled RSLms CCHAN message "
@@ -448,6 +448,78 @@ int modem_grr_rslms_cb(struct msgb *msg, struct lapdm_entity *le, void *ctx)
 #define S(x)	(1 << (x))
 
 #include <osmocom/gsm/gsm0502.h> // XXX
+
+/* RACH re-transmission delay value (in ms) */
+#define GRR_PACKET_ACCESS_DELAY_MS		300
+/* RACH max number of transmissions */
+#define GRR_PACKET_ACCESS_MAX_CHAN_REQ		3
+
+static void handle_chan_access_req(struct osmo_fsm_inst *fi,
+				   const struct osmo_gprs_rlcmac_l1ctl_prim *lp)
+{
+	struct osmocom_ms *ms = fi->priv;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	if (lp->rach_req.is_11bit) { /* TODO: implement 11-bit RACH */
+		LOGPFSML(fi, LOGL_ERROR, "11-bit RACH is not supported\n");
+		return;
+	}
+
+	memset(&rr->cr_hist[0], 0x00, sizeof(rr->cr_hist));
+	rr->chan_req_val = lp->rach_req.ra & ~0x07;
+	rr->n_chan_req = GRR_PACKET_ACCESS_MAX_CHAN_REQ;
+	rr->state = GSM48_RR_ST_CONN_PEND;
+
+	osmo_fsm_inst_state_chg_ms(fi, GRR_ST_PACKET_ACCESS,
+				   GRR_PACKET_ACCESS_DELAY_MS, 0);
+}
+
+static void handle_pdch_establish_req(struct osmo_fsm_inst *fi,
+				      const struct osmo_gprs_rlcmac_l1ctl_prim *lp)
+{
+	struct osmocom_ms *ms = fi->priv;
+
+	if (!lp->pdch_est_req.fh) {
+		LOGPFSML(fi, LOGL_INFO,
+			 "PDCH Establish.Req: TSC=%u, H0, ARFCN=%u\n",
+			 lp->pdch_est_req.tsc, lp->pdch_est_req.arfcn);
+		l1ctl_tx_dm_est_req_h0(ms, lp->pdch_est_req.arfcn,
+				       RSL_CHAN_OSMO_PDCH | lp->pdch_est_req.ts_nr,
+				       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0);
+	} else {
+		/* Hopping */
+		uint8_t ma_len = 0;
+		uint16_t ma[64];
+
+		LOGPFSML(fi, LOGL_INFO,
+			 "PDCH Establish.Req: TSC=%u, H1, HSN=%u, MAIO=%u\n",
+			 lp->pdch_est_req.tsc,
+			 lp->pdch_est_req.fhp.hsn,
+			 lp->pdch_est_req.fhp.maio);
+
+		for (unsigned int i = 1, j = 0; i <= 1024; i++) {
+			unsigned int arfcn = i & 1023;
+			unsigned int k;
+
+			if (~ms->cellsel.sel_si.freq[arfcn].mask & 0x01)
+				continue;
+
+			k = lp->pdch_est_req.fhp.ma_len - (j >> 3) - 1;
+			if (lp->pdch_est_req.fhp.ma[k] & (1 << (j & 7)))
+				ma[ma_len++] = arfcn;
+			j++;
+		}
+
+		l1ctl_tx_dm_est_req_h1(ms,
+				       lp->pdch_est_req.fhp.maio,
+				       lp->pdch_est_req.fhp.hsn,
+				       &ma[0], ma_len,
+				       RSL_CHAN_OSMO_PDCH | lp->pdch_est_req.ts_nr,
+				       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0);
+	}
+
+	osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_TRANSFER, 0, 0);
+}
 
 static void handle_pdch_block_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -547,27 +619,60 @@ static void grr_st_packet_idle_action(struct osmo_fsm_inst *fi,
 	case GRR_EV_PCH_AGCH_BLOCK_IND:
 		grr_rx_ccch(ms, (struct msgb *)data);
 		break;
-	case GRR_EV_RACH_REQ:
-	{
-		const struct osmo_gprs_rlcmac_l1ctl_prim *lp = data;
-		struct gsm48_rrlayer *rr = &ms->rrlayer;
-
-		if (lp->rach_req.is_11bit) { /* TODO: implement 11-bit RACH */
-			LOGPFSML(fi, LOGL_ERROR, "11-bit RACH is not supported\n");
-			return;
-		}
-
-		rr->cr_ra = lp->rach_req.ra;
-		memset(&rr->cr_hist[0], 0x00, sizeof(rr->cr_hist));
-
-		LOGPFSML(fi, LOGL_INFO, "Sending CHANNEL REQUEST (0x%02x)\n", rr->cr_ra);
-		l1ctl_tx_rach_req(ms, RSL_CHAN_RACH, 0x00, rr->cr_ra, 0,
-				  ms->cellsel.ccch_mode == CCCH_MODE_COMBINED);
-
-		rr->state = GSM48_RR_ST_CONN_PEND;
+	case GRR_EV_CHAN_ACCESS_REQ:
+		handle_chan_access_req(fi, data);
 		break;
+	case GRR_EV_PDCH_ESTABLISH_REQ:
+		handle_pdch_establish_req(fi, data);
+		break;
+	default:
+		OSMO_ASSERT(0);
 	}
-	case GRR_EV_RACH_CNF:
+}
+
+static void grr_st_packet_access_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
+{
+	struct osmocom_ms *ms = fi->priv;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	if (rr->n_chan_req == 0) {
+		LOGPFSML(fi, LOGL_ERROR, "Packet access failed (no more attempts left)\n");
+		osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_NOT_READY, 0, 0);
+		return;
+	}
+
+	/* (re-)generate the RA value */
+	if ((rr->chan_req_val >> 3) == 0x0e) /* 01110xxx */
+		rr->cr_ra = grr_gen_chan_req(true);
+	else /* 011110xx or 01111x0x or 01111xx0 */
+		rr->cr_ra = grr_gen_chan_req(false);
+	rr->n_chan_req--;
+
+	LOGPFSML(fi, LOGL_INFO,
+		 "Sending CHANNEL REQUEST (ra=0x%02x, num_attempts=%u)\n",
+		 rr->cr_ra, rr->n_chan_req);
+
+	l1ctl_tx_rach_req(ms, RSL_CHAN_RACH, 0x00, rr->cr_ra, 0,
+			  ms->cellsel.ccch_mode == CCCH_MODE_COMBINED);
+}
+
+static void grr_st_packet_access_action(struct osmo_fsm_inst *fi,
+					uint32_t event, void *data)
+{
+	struct osmocom_ms *ms = fi->priv;
+
+	switch (event) {
+	case GRR_EV_BCCH_BLOCK_IND:
+		grr_rx_bcch(ms, (struct msgb *)data);
+		if (!grr_cell_is_usable(ms)) {
+			LOGPFSML(fi, LOGL_NOTICE, "Cell is not usable, GRR becomes not ready\n");
+			osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_NOT_READY, 0, 0);
+		}
+		break;
+	case GRR_EV_PCH_AGCH_BLOCK_IND:
+		grr_rx_ccch(ms, (struct msgb *)data);
+		break;
+	case GRR_EV_CHAN_ACCESS_CNF:
 	{
 		struct gsm48_rrlayer *rr = &ms->rrlayer;
 		const struct gsm48_req_ref *ref = data;
@@ -591,50 +696,8 @@ static void grr_st_packet_idle_action(struct osmo_fsm_inst *fi,
 		break;
 	}
 	case GRR_EV_PDCH_ESTABLISH_REQ:
-	{
-		const struct osmo_gprs_rlcmac_l1ctl_prim *lp = data;
-
-		if (!lp->pdch_est_req.fh) {
-			LOGPFSML(fi, LOGL_INFO,
-				 "PDCH Establish.Req: TSC=%u, H0, ARFCN=%u\n",
-				 lp->pdch_est_req.tsc, lp->pdch_est_req.arfcn);
-			l1ctl_tx_dm_est_req_h0(ms, lp->pdch_est_req.arfcn,
-					       RSL_CHAN_OSMO_PDCH | lp->pdch_est_req.ts_nr,
-					       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0);
-		} else {
-			/* Hopping */
-			uint8_t ma_len = 0;
-			uint16_t ma[64];
-
-			LOGPFSML(fi, LOGL_INFO,
-				 "PDCH Establish.Req: TSC=%u, H1, HSN=%u, MAIO=%u\n",
-				 lp->pdch_est_req.tsc,
-				 lp->pdch_est_req.fhp.hsn,
-				 lp->pdch_est_req.fhp.maio);
-
-			for (unsigned int i = 1, j = 0; i <= 1024; i++) {
-				unsigned int arfcn = i & 1023;
-				unsigned int k;
-
-				if (~ms->cellsel.sel_si.freq[arfcn].mask & 0x01)
-					continue;
-
-				k = lp->pdch_est_req.fhp.ma_len - (j >> 3) - 1;
-				if (lp->pdch_est_req.fhp.ma[k] & (1 << (j & 7)))
-					ma[ma_len++] = arfcn;
-				j++;
-			}
-
-			l1ctl_tx_dm_est_req_h1(ms,
-					       lp->pdch_est_req.fhp.maio,
-					       lp->pdch_est_req.fhp.hsn,
-					       &ma[0], ma_len,
-					       RSL_CHAN_OSMO_PDCH | lp->pdch_est_req.ts_nr,
-					       lp->pdch_est_req.tsc, GSM48_CMODE_SIGN, 0);
-		}
-		osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_TRANSFER, 0, 0);
+		handle_pdch_establish_req(fi, data);
 		break;
-	}
 	default:
 		OSMO_ASSERT(0);
 	}
@@ -704,6 +767,19 @@ static void grr_st_packet_transfer_action(struct osmo_fsm_inst *fi,
 	}
 }
 
+static int grr_fsm_timer_cb(struct osmo_fsm_inst *fi)
+{
+	switch (fi->state) {
+	case GRR_ST_PACKET_ACCESS:
+		/* perform a loop transaction, restarting the timer */
+		osmo_fsm_inst_state_chg_ms(fi, GRR_ST_PACKET_ACCESS,
+					   GRR_PACKET_ACCESS_DELAY_MS, 0);
+		return 0;
+	default:
+		OSMO_ASSERT(0);
+	}
+}
+
 static const struct osmo_fsm_state grr_fsm_states[] = {
 	[GRR_ST_PACKET_NOT_READY] = {
 		.name = "PACKET_NOT_READY",
@@ -715,14 +791,25 @@ static const struct osmo_fsm_state grr_fsm_states[] = {
 	[GRR_ST_PACKET_IDLE] = {
 		.name = "PACKET_IDLE",
 		.out_state_mask = S(GRR_ST_PACKET_NOT_READY)
+				| S(GRR_ST_PACKET_ACCESS)
 				| S(GRR_ST_PACKET_TRANSFER),
 		.in_event_mask  = S(GRR_EV_BCCH_BLOCK_IND)
 				| S(GRR_EV_PCH_AGCH_BLOCK_IND)
-				| S(GRR_EV_RACH_REQ)
-				| S(GRR_EV_RACH_CNF)
-				| S(GRR_EV_PDCH_ESTABLISH_REQ),
+				| S(GRR_EV_CHAN_ACCESS_REQ)
+				| S(GRR_EV_PDCH_ESTABLISH_REQ), /* DL TBF ASS */
 		.action = &grr_st_packet_idle_action,
 		.onenter = &grr_st_packet_idle_onenter,
+	},
+	[GRR_ST_PACKET_ACCESS] = {
+		.name = "PACKET_ACCESS",
+		.out_state_mask = S(GRR_ST_PACKET_NOT_READY)
+				| S(GRR_ST_PACKET_TRANSFER),
+		.in_event_mask  = S(GRR_EV_BCCH_BLOCK_IND)
+				| S(GRR_EV_PCH_AGCH_BLOCK_IND)
+				| S(GRR_EV_CHAN_ACCESS_CNF)
+				| S(GRR_EV_PDCH_ESTABLISH_REQ), /* UL TBF ASS */
+		.onenter = &grr_st_packet_access_onenter,
+		.action = &grr_st_packet_access_action,
 	},
 	[GRR_ST_PACKET_TRANSFER] = {
 		.name = "PACKET_TRANSFER",
@@ -742,8 +829,8 @@ static const struct osmo_fsm_state grr_fsm_states[] = {
 static const struct value_string grr_fsm_event_names[] = {
 	OSMO_VALUE_STRING(GRR_EV_BCCH_BLOCK_IND),
 	OSMO_VALUE_STRING(GRR_EV_PCH_AGCH_BLOCK_IND),
-	OSMO_VALUE_STRING(GRR_EV_RACH_REQ),
-	OSMO_VALUE_STRING(GRR_EV_RACH_CNF),
+	OSMO_VALUE_STRING(GRR_EV_CHAN_ACCESS_REQ),
+	OSMO_VALUE_STRING(GRR_EV_CHAN_ACCESS_CNF),
 	OSMO_VALUE_STRING(GRR_EV_PDCH_ESTABLISH_REQ),
 	OSMO_VALUE_STRING(GRR_EV_PDCH_RELEASE_REQ),
 	OSMO_VALUE_STRING(GRR_EV_PDCH_UL_TBF_CFG_REQ),
@@ -760,6 +847,7 @@ struct osmo_fsm grr_fsm_def = {
 	.states = grr_fsm_states,
 	.num_states = ARRAY_SIZE(grr_fsm_states),
 	.event_names = grr_fsm_event_names,
+	.timer_cb = &grr_fsm_timer_cb,
 };
 
 static __attribute__((constructor)) void on_dso_load(void)
