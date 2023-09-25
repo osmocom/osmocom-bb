@@ -207,6 +207,11 @@ struct gsm48_rrlayer {
 	/* sapi 3 */
 	uint8_t			sapi3_state;
 	uint8_t			sapi3_link_id;
+
+	/* group call */
+	struct {
+		struct llist_head	notif_list;	/* list of received call notifications */
+	} vgcs;
 };
 
 const char *get_rr_name(int value);

@@ -1310,6 +1310,241 @@ static int gsm48_rr_rx_cm_enq(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /*
+ * ASCI notification
+ */
+
+struct asci_notif {
+	struct llist_head	entry;
+	struct gsm48_rrlayer	*rr;
+	uint8_t			gcr[5];
+	bool			ch_desc_present;
+	struct gsm48_chan_desc	ch_desc;
+	struct osmo_timer_list	timer;
+};
+
+/* When does a notification received from NCH expires. */
+#define NOTIFICATION_TIMEOUT	5
+
+static void asci_notif_timeout(void *arg);
+
+/* Add new notification to list. */
+static struct asci_notif *asci_notif_alloc(struct gsm48_rrlayer *rr, const uint8_t *gcr)
+{
+	struct asci_notif *notif;
+
+	notif = talloc_zero(rr->ms, struct asci_notif);
+	if (!notif)
+		return NULL;
+	notif->rr = rr;
+	memcpy(notif->gcr, gcr, sizeof(notif->gcr));
+	llist_add_tail(&notif->entry, &rr->vgcs.notif_list);
+
+	notif->timer.cb = asci_notif_timeout;
+	notif->timer.data = notif;
+
+	return notif;
+}
+
+/* Remove notification from list. */
+static void asci_notif_free(struct asci_notif *notif)
+{
+	osmo_timer_del(&notif->timer);
+	llist_del(&notif->entry);
+	talloc_free(notif);
+}
+
+/* Remove all ASCI notifications from list. */
+static void asci_notif_list_free(struct gsm48_rrlayer *rr)
+{
+	struct asci_notif *notif, *notif2;
+
+	llist_for_each_entry_safe(notif, notif2, &rr->vgcs.notif_list, entry)
+		asci_notif_free(notif);
+}
+
+/* Notification timed out. */
+static void asci_notif_timeout(void *arg)
+{
+	struct asci_notif *notif = arg;
+	struct gsm48_rrlayer *rr = notif->rr;
+	struct msgb *nmsg;
+	struct gsm48_mm_event *mme;
+
+	/* Send notification of ceased call to MM layer. */
+	LOGP(DRR, LOGL_INFO, "Notify MM layer about ceased group call.\n");
+	nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_NOTIFICATION);
+	if (!nmsg)
+		return;
+	mme = (struct gsm48_mm_event *) nmsg->data;
+	memcpy(mme->notification.gcr, notif->gcr, sizeof(mme->notification.gcr));
+	mme->notification.gone = true;
+	gsm48_mmevent_msg(rr->ms, nmsg);
+
+	asci_notif_free(notif);
+}
+
+/* Find notification in list. */
+static struct asci_notif *asci_notif_find(struct gsm48_rrlayer *rr, const uint8_t *gcr)
+{
+	struct asci_notif *notif;
+
+	llist_for_each_entry(notif, &rr->vgcs.notif_list, entry) {
+		if (!memcmp(&notif->gcr, gcr, sizeof(notif->gcr)))
+			return notif;
+	}
+
+	return NULL;
+}
+
+static int gsm48_rr_rx_group_call(struct osmocom_ms *ms, const uint8_t *gcr, const uint8_t *ch_desc, bool nch)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct asci_notif *notif;
+	bool update_call = false;
+	struct msgb *nmsg;
+	struct gsm48_mm_event *mme;
+
+	/* Find or create notification entry. Only create entries for notifications on NCH */
+	notif = asci_notif_find(rr, gcr);
+	if (!notif) {
+		update_call = true;
+		if (nch) {
+			notif = asci_notif_alloc(rr, gcr);
+			if (!notif)
+				return -ENOMEM;
+		}
+	}
+
+	/* Update channel description. */
+	if (notif) {
+		if (ch_desc) {
+			if (!notif->ch_desc_present)
+				update_call = true;
+			notif->ch_desc_present = true;
+			memcpy(&notif->ch_desc, ch_desc, sizeof(notif->ch_desc));
+		} else {
+			notif->ch_desc_present = false;
+			if (!notif->ch_desc_present)
+				update_call = true;
+		}
+		/* (Re-)Start timer. */
+		osmo_timer_schedule(&notif->timer, NOTIFICATION_TIMEOUT, 0);
+	} else
+		update_call = true;
+
+	/* Send notification of new or updated call to MM layer. */
+	if (update_call) {
+		LOGP(DRR, LOGL_INFO, "Notify MM layer about new/updated group call.\n");
+		nmsg = gsm48_mmevent_msgb_alloc(GSM48_MM_EVENT_NOTIFICATION);
+		if (!nmsg)
+			return -ENOMEM;
+		mme = (struct gsm48_mm_event *) nmsg->data;
+		memcpy(mme->notification.gcr, gcr, sizeof(mme->notification.gcr));
+		if (ch_desc) {
+			mme->notification.ch_desc_present = true;
+			memcpy(&mme->notification.ch_desc, ch_desc, sizeof(mme->notification.ch_desc));
+		}
+		gsm48_mmevent_msg(ms, nmsg);
+	}
+
+	return 0;
+}
+
+/* Common function to decode Group Call Information */
+static int gsm48_rr_decode_group_call_info(struct osmocom_ms *ms, struct bitvec *bv, bool nch)
+{
+	struct bitvec *gcr_bv = NULL, *chd_bv = NULL;
+	int rc = 0;
+	int i;
+
+	/* <Group Call Reference : bit(36)> */
+	gcr_bv = bitvec_alloc(OSMO_BYTES_FOR_BITS(36), NULL);
+	OSMO_ASSERT(gcr_bv);
+	for (i = 0; i < 36; i++)
+		bitvec_set_bit(gcr_bv, bitvec_get_bit_pos(bv, bv->cur_bit++));
+	/* Group Channel Description */
+	if (bitvec_get_bit_pos(bv, bv->cur_bit++) == 1) {
+		chd_bv = bitvec_alloc(OSMO_BYTES_FOR_BITS(24), NULL);
+		OSMO_ASSERT(chd_bv);
+		for (i = 0; i < 24; i++)
+			bitvec_set_bit(chd_bv, bitvec_get_bit_pos(bv, bv->cur_bit++));
+		/* FIXME: hopping */
+		if (bitvec_get_bit_pos(bv, bv->cur_bit++) == 1) {
+			LOGP(DRR, LOGL_ERROR, "Hopping not supported on VGCS/VBS channel, please fix!\n");
+			rc = -ENOTSUP;
+			goto out;
+		}
+	}
+
+	rc = gsm48_rr_rx_group_call(ms, gcr_bv->data, (chd_bv) ? chd_bv->data : NULL, nch);
+
+out:
+	bitvec_free(chd_bv);
+	bitvec_free(gcr_bv);
+
+	return rc;
+}
+
+/* Notification/FACCH (9.1.21a) */
+static int gsm48_rr_rx_notif_facch(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_hdr_sh *sgh = msgb_l3(msg);
+	int payload_len = msgb_l3len(msg) - sizeof(*sgh);
+	struct bitvec bv;
+	int rc;
+
+	LOGP(DRR, LOGL_INFO, "NOTIFICATION/FACCH\n");
+
+	bv = (struct bitvec) {
+		.data = sgh->data,
+		.data_len = payload_len,
+	};
+
+	/* Group Call Information */
+	if (bitvec_get_bit_pos(&bv, bv.cur_bit++) == 0) {
+		rc = gsm48_rr_decode_group_call_info(ms, &bv, false);
+		return rc;
+	}
+
+	/* Note: Other information are not used. */
+	return -ENOTSUP;
+}
+
+/* Notification/NCH (9.1.21b) */
+static int gsm48_rr_rx_notif_nch(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_notification_nch *nn = msgb_l3(msg);
+	int payload_len = msgb_l3len(msg) - sizeof(*nn);
+	struct bitvec bv;
+	int rc;
+
+	LOGP(DRR, LOGL_INFO, "NOTIFICATION/NCH\n");
+
+	bv = (struct bitvec) {
+		.data = nn->data,
+		.data_len = payload_len,
+	};
+
+	/* 0 | 1 <NLN(NCH) : bit (2) > */
+	if (bitvec_get_bit_pos(&bv, bv.cur_bit++) == 1) {
+		/* NLN not used
+		nln = bitvec_get_uint(&bv, 2);
+		nln_present = true;
+		*/
+		bv.cur_bit += 2;
+	}
+
+	/* < list of Group Call NCH information > */
+	while (bitvec_get_bit_pos(&bv, bv.cur_bit++) == 1) {
+		rc = gsm48_rr_decode_group_call_info(ms, &bv, true);
+		if (rc < 0)
+			break;
+	}
+
+	return 0;
+}
+
+/*
  * random access
  */
 
@@ -4875,6 +5110,10 @@ static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 		return gsm48_rr_rx_imm_ass_ext(ms, msg);
 	case GSM48_MT_RR_IMM_ASS_REJ:
 		return gsm48_rr_rx_imm_ass_rej(ms, msg);
+
+	case GSM48_MT_RR_NOTIF_NCH:
+		return gsm48_rr_rx_notif_nch(ms, msg);
+
 	default:
 #if 0
 		LOGP(DRR, LOGL_NOTICE, "CCCH message type 0x%02x unknown.\n",
@@ -4903,6 +5142,8 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 			return -EINVAL;
 		}
 		switch (sgh->msg_type) {
+		case GSM48_MT_RR_SH_FACCH:
+			return gsm48_rr_rx_notif_facch(ms, msg);
 		default:
 			LOGP(DRR, LOGL_NOTICE, "Short header message type 0x%02x unsupported.\n", sgh->msg_type);
 			return -EINVAL;
@@ -5708,6 +5949,9 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 		rr->audio_mode = 0x00;
 	}
 
+	/* List of notifications about ongoing ASCI calls */
+	INIT_LLIST_HEAD(&rr->vgcs.notif_list);
+
 	return 0;
 }
 
@@ -5736,6 +5980,9 @@ int gsm48_rr_exit(struct osmocom_ms *ms)
 	stop_rr_t3122(rr);
 	stop_rr_t3124(rr);
 	stop_rr_t3126(rr);
+
+	/* Free pending list entries. */
+	asci_notif_list_free(rr);
 
 	return 0;
 }
