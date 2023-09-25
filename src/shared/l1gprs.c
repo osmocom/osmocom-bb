@@ -344,19 +344,6 @@ static void l1gprs_remove_tbf_pending_req(struct l1gprs_state *gprs, struct l1gp
 		  LOG_TBF_ARGS(preq), preq->start_fn);
 }
 
-/* Check if the current TDMA Fn is past the start TDMA Fn.
- * Based on fn_cmp() implementation from osmo-pcu.git, simplified. */
-static bool l1gprs_check_fn(uint32_t current, uint32_t start)
-{
-	const uint32_t thresh = GSM_TDMA_HYPERFRAME / 2;
-
-	if ((current < start && (start - current) < thresh) ||
-	    (current > start && (current - start) > thresh))
-		return false;
-
-	return true;
-}
-
 /* Check the list of pending TBFs and move those with expired Fn to the active list */
 static void l1gprs_check_pending_tbfs(struct l1gprs_state *gprs, uint32_t fn)
 {
@@ -364,7 +351,7 @@ static void l1gprs_check_pending_tbfs(struct l1gprs_state *gprs, uint32_t fn)
 	struct l1gprs_tbf *tbf;
 
 	llist_for_each_entry_safe(preq, tmp, &gprs->tbf_list_pending, list) {
-		if (!l1gprs_check_fn(fn, preq->start_fn))
+		if (gsm0502_fncmp(fn, preq->start_fn) < 0)
 			continue;
 
 		LOGP_GPRS(gprs, LOGL_INFO,
