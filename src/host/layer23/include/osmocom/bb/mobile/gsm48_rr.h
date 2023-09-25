@@ -23,6 +23,15 @@
 #define	GSM48_RR_ABORT_REQ		0x60
 #define	GSM48_RR_ABORT_IND		0x62
 #define	GSM48_RR_ACT_REQ		0x70
+/* These are non-stadard primitives, used for group receive/transmit modes. */
+#define	GSM48_RR_GROUP_REQ		0x80	/* Join a group channel in group receive mode. */
+#define	GSM48_RR_GROUP_CNF		0x81	/* Group channel has been joined. */
+#define	GSM48_RR_GROUP_REL_REQ		0x84	/* Release group channel. */
+#define	GSM48_RR_GROUP_REL_IND		0x86	/* Group channel has been released or failed. */
+#define	GSM48_RR_UPLINK_REQ		0x90	/* Request uplink for group transmit mode. */
+#define	GSM48_RR_UPLINK_CNF		0x91	/* Access granted. */
+#define	GSM48_RR_UPLINK_REL_REQ		0x94	/* Release uplink for group receive mode. */
+#define	GSM48_RR_UPLINK_REL_IND		0x96	/* Access denied or failed or uplink released. */
 
 #define RR_EST_CAUSE_EMERGENCY		1
 #define RR_EST_CAUSE_REESTAB_TCH_F	2
@@ -45,6 +54,8 @@
 #define RR_REL_CAUSE_EMERGENCY_ONLY	6
 #define RR_REL_CAUSE_LOST_SIGNAL	7
 #define RR_REL_CAUSE_LINK_FAILURE	8
+#define RR_REL_CAUSE_UPLINK_BUSY	9
+#define RR_REL_CAUSE_UPLINK_REJECTED	10
 
 #define RR_SYNC_CAUSE_CIPHERING		1
 

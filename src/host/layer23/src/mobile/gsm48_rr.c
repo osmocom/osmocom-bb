@@ -34,6 +34,21 @@
  * When the assignment or handover fails, the old channel is activate and the
  * link is established again. Also pending messages are sent.
  *
+ * New primitives are invented for group/broadcast calls. They are not
+ * specified in any recommendation. They are:
+ *
+ * GSM48_MM_EVENT_NOTIFICATION: Notify MM layer about received/ceased call.
+ * GSM48_MM_EVENT_UPLINK_BUSY: Notify MM layer about uplink becoming busy.
+ * GSM48_MM_EVENT_UPLINK_FREE: Notify MM layer about uplink becoming free.
+ *
+ * RR_GROUP_REQ: The MM layer requests group channel in receive mode.
+ * RR_GROUP_CNF: The RR confirms group channel.
+ * RR_GROUP_REL_REQ: The MM layer releases group channel.
+ * RR_GROUP_REL_IND: The RR indicates/confirms release of group channel.
+ * RR_UPLINK_REQ: The MM layer requests uplink (group transmit mode).
+ * RR_UPLINK_CNF: The RR layer confirms uplink. (Uplink was granted.)
+ * RR_UPLINK_REL_REQ: The MM layer requests release of uplink.
+ * RR_UPLINK_REL_IND: The RR layer indicates/confirms release of uplink
  */
 
 /* Testing delayed (immediate) assignment / handover
@@ -463,6 +478,14 @@ static const struct value_string gsm48_rr_msg_names[] = {
 	{ GSM48_RR_ABORT_REQ,		"RR_ABORT_REQ" },
 	{ GSM48_RR_ABORT_IND,		"RR_ABORT_IND" },
 	{ GSM48_RR_ACT_REQ,		"RR_ACT_REQ" },
+	{ GSM48_RR_GROUP_REQ,		"RR_GROUP_REQ" },
+	{ GSM48_RR_GROUP_CNF,		"RR_GROUP_CNF" },
+	{ GSM48_RR_GROUP_REL_REQ,	"RR_GROUP_REL_REQ" },
+	{ GSM48_RR_GROUP_REL_IND,	"RR_GROUP_REL_IND" },
+	{ GSM48_RR_UPLINK_REQ,		"RR_UPLINK_REQ" },
+	{ GSM48_RR_UPLINK_CNF,		"RR_UPLINK_CNF" },
+	{ GSM48_RR_UPLINK_REL_REQ,	"RR_UPLINK_REL_REQ" },
+	{ GSM48_RR_UPLINK_REL_IND,	"RR_UPLINK_REL_IND" },
 	{ 0,				NULL }
 };
 
