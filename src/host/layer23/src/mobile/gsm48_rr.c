@@ -4884,23 +4884,58 @@ static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 	}
 }
 
+#define N201_Bter_SACCH		21
+#define N201_Bter_SDCCH_FACCH	23
+#define N201_B4			19
+
 /* receive ACCH at RR layer */
 static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 {
-	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
+	const struct gsm48_system_information_type_header *sih;
+	const struct gsm48_hdr_sh *sgh;
+	const struct gsm48_hdr *gh;
 
-	switch (sih->system_information) {
-	case GSM48_MT_RR_SYSINFO_5:
-		return gsm48_rr_rx_sysinfo5(ms, msg);
-	case GSM48_MT_RR_SYSINFO_5bis:
-		return gsm48_rr_rx_sysinfo5bis(ms, msg);
-	case GSM48_MT_RR_SYSINFO_5ter:
-		return gsm48_rr_rx_sysinfo5ter(ms, msg);
-	case GSM48_MT_RR_SYSINFO_6:
-		return gsm48_rr_rx_sysinfo6(ms, msg);
+	/* Bter frame (SACCH or SDCCH/FACCH) */
+	if (msgb_l3len(msg) == N201_Bter_SACCH || msgb_l3len(msg) == N201_Bter_SDCCH_FACCH) {
+		sgh = msgb_l3(msg);
+		if (sgh->rr_short_pd != GSM48_PDISC_SH_RR) {
+			LOGP(DRR, LOGL_NOTICE, "Short header message is not an RR message.\n");
+			return -EINVAL;
+		}
+		switch (sgh->msg_type) {
+		default:
+			LOGP(DRR, LOGL_NOTICE, "Short header message type 0x%02x unsupported.\n", sgh->msg_type);
+			return -EINVAL;
+		}
+	}
+
+	/* B4 frame (SACCH) */
+	if ((msg->cb[0] & 0x40) && msgb_l3len(msg) == N201_B4) {
+		sih = msgb_l3(msg);
+		switch (sih->system_information) {
+		case GSM48_MT_RR_SYSINFO_5:
+			return gsm48_rr_rx_sysinfo5(ms, msg);
+		case GSM48_MT_RR_SYSINFO_5bis:
+			return gsm48_rr_rx_sysinfo5bis(ms, msg);
+		case GSM48_MT_RR_SYSINFO_5ter:
+			return gsm48_rr_rx_sysinfo5ter(ms, msg);
+		case GSM48_MT_RR_SYSINFO_6:
+			return gsm48_rr_rx_sysinfo6(ms, msg);
+		default:
+			LOGP(DRR, LOGL_NOTICE, "ACCH message type 0x%02x unknown.\n", sih->system_information);
+			return -EINVAL;
+		}
+	}
+
+	/* B frame (UI frame on VGCS) */
+	if (msgb_l3len(msg) < sizeof(*gh)) {
+		LOGP(DRR, LOGL_NOTICE, "ACCH message too short.\n");
+		return -EINVAL;
+	}
+	gh = msgb_l3(msg);
+	switch (gh->msg_type) {
 	default:
-		LOGP(DRR, LOGL_NOTICE, "ACCH message type 0x%02x unknown.\n",
-			sih->system_information);
+		LOGP(DRR, LOGL_NOTICE, "ACCH message type 0x%02x unknown.\n", gh->msg_type);
 		return -EINVAL;
 	}
 }
@@ -4991,6 +5026,7 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	case RSL_CHAN_Lm_ACCHs:
 	case RSL_CHAN_SDCCH4_ACCH:
 	case RSL_CHAN_SDCCH8_ACCH:
+		msg->cb[0] = rllh->link_id;
 		return gsm48_rr_rx_acch(ms, msg);
 	default:
 		LOGP(DRSL, LOGL_NOTICE, "RSL with chan_nr 0x%02x unknown.\n",
