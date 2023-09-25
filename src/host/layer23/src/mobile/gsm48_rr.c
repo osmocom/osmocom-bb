@@ -34,6 +34,22 @@
  * When the assignment or handover fails, the old channel is activate and the
  * link is established again. Also pending messages are sent.
  *
+ * Group Channel:
+ *
+ * A group receive/transmit mode is not documented at GSM 04.07. The group
+ * receive mode is similar to the IDLE mode, except that the MS is listening
+ * to a TCH. The group transmit mode is similar to the DEDICATED mode. Special
+ * (undocumented) commands are used to enter group receive and transmit mode.
+ *
+ * There is a substate that indicates group receive/transmit mode. If the
+ * substate is set to group receive, the IDLE mode becomes the group receive
+ * mode. If the substate is set to group transmit, the dedicated mode becomes
+ * the group transmit mode. The substate set to group receive allows to enter
+ * regular dedicated mode and return back to group receive mode afterwards.
+ *
+ * new_rr_state(rr, GSM48_RR_ST_IDLE) is used to return to IDLE mode or to
+ * group receive mode, depending on the substate.
+ *
  * New primitives are invented for group/broadcast calls. They are not
  * specified in any recommendation. They are:
  *
@@ -101,7 +117,11 @@
 
 /* Check response for the last 3 channel requests only. See TS 44.018 §3.3.1.1.3.1 and §3.3.1.1.3.2. */
 #define IMM_ASS_HISTORY		3
+/* Check response for up to 5 uplink requests. See TS 44.018 §3.3.1.2.1.2. */
+#define UL_GRANT_HISTROY	5
 
+static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd, uint16_t *ma, uint8_t *ma_len);
+static int gsm48_rr_activate_channel(struct osmocom_ms *ms, struct gsm48_rr_cd *cd, uint16_t *ma, uint8_t ma_len);
 static void start_rr_t_meas(struct gsm48_rrlayer *rr, int sec, int micro);
 static void stop_rr_t_starting(struct gsm48_rrlayer *rr);
 static void stop_rr_t3124(struct gsm48_rrlayer *rr);
@@ -111,6 +131,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms);
 static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr, uint8_t mode, uint8_t tch_flags);
 static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg);
 int gsm414_rcv_test(struct osmocom_ms *ms, const struct msgb *msg);
+static int gsm48_rr_group_rel(struct osmocom_ms *ms, int cause);
 
 /*
  * support
@@ -366,19 +387,21 @@ const char *gsm48_rr_state_names[] = {
 
 static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 {
+	struct osmocom_ms *ms = rr->ms;
+
 	if (state < 0 || state >=
 		(sizeof(gsm48_rr_state_names) / sizeof(char *)))
 		return;
 
-	/* must check against equal state */
-	if (rr->state == state) {
+	/* Check against equal state or IDLE state. */
+	if (rr->state == state && state != GSM48_RR_ST_IDLE) {
 		LOGP(DRR, LOGL_INFO, "equal state ? %s\n",
 			gsm48_rr_state_names[rr->state]);
 		return;
 	}
 
 	LOGP(DRR, LOGL_INFO, "new state %s -> %s\n",
-		gsm48_rr_state_names[rr->state], gsm48_rr_state_names[state]);
+	     gsm48_rr_state_names[rr->state], gsm48_rr_state_names[state]);
 
 	/* abort handover, in case of release of dedicated mode */
 	if (rr->state == GSM48_RR_ST_DEDICATED) {
@@ -392,10 +415,15 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 
 	rr->state = state;
 
-	if (state == GSM48_RR_ST_IDLE) {
+	if (state != GSM48_RR_ST_IDLE)
+		return;
+
+	/* Return from dedicated/group receive/transmit mode to idle mode. (Trigger cell reselection.) */
+	if (rr->vgcs.group_state == GSM48_RR_GST_OFF) {
 		struct msgb *msg, *nmsg;
 		struct gsm322_msg *em;
 
+		LOGP(DRR, LOGL_INFO, "Returning to IDLE mode.\n");
 		/* release dedicated mode, if any */
 		l1ctl_tx_dm_rel_req(rr->ms);
 		rr->ms->meas.rl_fail = 0;
@@ -438,6 +466,45 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		msgb_free(nmsg);
 		/* reset any BA range */
 		rr->ba_ranges = 0;
+		return;
+	}
+
+	/* Return from dedicated mode to group receive mode.
+	 * This is not used, because we never enter dedicated mode during group receive/transmit mode.
+	 * It may be used later, if we support it in MM layer. */
+	if (rr->vgcs.group_state == GSM48_RR_GST_RECEIVE) {
+		uint16_t ma[64];
+		uint8_t ma_len;
+		struct msgb *msg;
+
+		LOGP(DRR, LOGL_INFO, "Returning to GROUP RECEIVE mode.\n");
+		/* release dedicated mode, if any */
+		l1ctl_tx_dm_rel_req(rr->ms);
+		rr->ms->meas.rl_fail = 0;
+		rr->dm_est = 0;
+		l1ctl_tx_reset_req(rr->ms, L1CTL_RES_T_SCHED);
+		/* free establish message, if any */
+		rr->rr_est_req = 0;
+		if (rr->rr_est_msg) {
+			msgb_free(rr->rr_est_msg);
+			rr->rr_est_msg = NULL;
+		}
+		/* free all pending messages */
+		while ((msg = msgb_dequeue(&rr->downqueue)))
+			msgb_free(msg);
+		/* reset ciphering */
+		rr->cipher_on = 0;
+		/* copy channel description "group mode" */
+		memcpy(&rr->cd_now, &rr->vgcs.cd_group, sizeof(rr->cd_now));
+		/* render channel "group mode" */
+		gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
+		/* activate channel */
+		gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len);
+#ifdef WITH_GAPK_IO
+		/* clean-up GAPK state */
+		gapk_io_clean_up_ms(rr->ms);
+#endif
+		return;
 	}
 }
 
@@ -2331,6 +2398,15 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm48_new_sysinfo(ms, si->system_information);
 }
 
+/* Receive "SYSTEM INFORMATION TYPE 10" message (9.1.50). */
+static int gsm48_rr_rx_sysinfo_10(struct osmocom_ms *ms, struct msgb *msg)
+{
+	LOGP(DRR, LOGL_INFO, "SYSINFO 10\n");
+
+	/* Ignore content. */
+	return -ENOTSUP;
+}
+
 /* receive "SYSTEM INFORMATION 13" message (9.1.43a) */
 static int gsm48_rr_rx_sysinfo13(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -3174,6 +3250,9 @@ int gsm48_rr_los(struct osmocom_ms *ms)
 
 	LOGP(DSUM, LOGL_INFO, "Radio link lost signal\n");
 
+	if (rr->vgcs.group_state != GSM48_RR_GST_OFF)
+		return gsm48_rr_group_rel(ms, RR_REL_CAUSE_LOST_SIGNAL);
+
 	/* stop T3211 if running */
 	stop_rr_t3110(rr);
 
@@ -3706,6 +3785,30 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 	/* release SAPI 3 link, if exits */
 	gsm48_release_sapi3_link(ms);
 	return 0;
+}
+
+/* Release of channel on VGCS/VBS. */
+static int gsm48_rr_rx_chan_rel_ui(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	struct gsm48_chan_rel *cr = (struct gsm48_chan_rel *)gh->data;
+	int payload_len = msgb_l3len(msg) - sizeof(*gh) - sizeof(*cr);
+	struct tlv_parsed tp;
+
+	if (payload_len < 0) {
+		LOGP(DRR, LOGL_NOTICE, "Short read of CHANNEL RELEASE message.\n");
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
+	tlv_parse(&tp, &gsm48_rr_att_tlvdef, cr->data, payload_len, 0, 0);
+
+	LOGP(DRR, LOGL_INFO, "CHANNEL RELESE via UI frame with cause 0x%02x\n", cr->rr_cause);
+
+	/* Only allow when in group receive mode. */
+	if (rr->vgcs.group_state != GSM48_RR_GST_RECEIVE)
+		return 0;
+
+	return gsm48_rr_group_rel(ms, RR_REL_CAUSE_NORMAL);
 }
 
 /*
@@ -4850,6 +4953,13 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_rr_hdr *nrrh;
 	uint16_t acc_class;
 
+	/* Reject during group call. */
+	if (rr->vgcs.group_state != GSM48_RR_GST_OFF) {
+		LOGP(DRR, LOGL_INFO, "We have a group call, rejecting!\n");
+		cause = RR_REL_CAUSE_TRY_LATER;
+		goto reject;
+	}
+
 	/* 3.3.1.1.3.2 */
 	if (osmo_timer_pending(&rr->t3122)) {
 		if (rrh->cause != RR_EST_CAUSE_EMERGENCY) {
@@ -4937,8 +5047,183 @@ static int gsm48_rr_est_req(struct osmocom_ms *ms, struct msgb *msg)
 	memcpy(msgb_put(rr->rr_est_msg, msgb_l3len(msg)),
 		msgb_l3(msg), msgb_l3len(msg));
 
+	if (rr->vgcs.group_state == GSM48_RR_GST_RECEIVE) {
+		/* Release group receive mode. */
+		l1ctl_tx_dm_rel_req(rr->ms);
+		rr->ms->meas.rl_fail = 0;
+		l1ctl_tx_reset_req(rr->ms, L1CTL_RES_T_SCHED);
+	}
+
 	/* request channel */
 	return gsm48_rr_chan_req(ms, rrh->cause, 0, 0);
+}
+
+/* 3.3.3.2 Request for group receive mode. */
+static int gsm48_rr_group_req(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm322_cellsel *cs = &ms->cellsel;
+	struct gsm48_sysinfo *s = &cs->sel_si;
+	struct gsm48_chan_desc *ch_desc = (struct gsm48_chan_desc *)(msg->data + sizeof(struct gsm48_rr_hdr));
+	uint8_t cause;
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
+	struct gsm48_rr_cd cd;
+	uint8_t ch_type, ch_subch, ch_ts;
+	uint16_t ma[64];
+	uint8_t ma_len;
+	int rc;
+
+	/* if state is not idle */
+	if (rr->state != GSM48_RR_ST_IDLE || rr->vgcs.group_state != GSM48_RR_GST_OFF) {
+		LOGP(DRR, LOGL_INFO, "We are not IDLE yet, rejecting!\n");
+		cause = RR_REL_CAUSE_TRY_LATER;
+reject:
+		LOGP(DSUM, LOGL_INFO, "Joining group call channel not possible\n");
+		nmsg = gsm48_rr_msgb_alloc(GSM48_RR_GROUP_REL_IND);
+		if (!nmsg)
+			return -ENOMEM;
+		nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+		nrrh->cause = cause;
+		return gsm48_rr_upmsg(ms, nmsg);
+	}
+
+	/* cell selected */
+	if (!cs->selected) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, rejecting!\n");
+		cause = RR_REL_CAUSE_TRY_LATER;
+		goto reject;
+	}
+
+	/* check if camping */
+	if (cs->state != GSM322_C3_CAMPED_NORMALLY
+	 && cs->state != GSM322_C7_CAMPED_ANY_CELL) {
+		LOGP(DRR, LOGL_INFO, "Not camping, rejecting! "
+			"(cs->state = %d)\n", cs->state);
+		cause = RR_REL_CAUSE_TRY_LATER;
+		goto reject;
+	}
+
+	/* get channel description */
+	memset(&cd, 0, sizeof(cd));
+	cd.chan_nr = ch_desc->chan_nr;
+	if (rsl_dec_chan_nr(cd.chan_nr, &ch_type, &ch_subch, &ch_ts) != 0) {
+		LOGP(DRR, LOGL_ERROR,
+		     "%s(): rsl_dec_chan_nr(chan_nr=0x%02x) failed\n",
+		     __func__, cd.chan_nr);
+		cause = GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		goto reject;
+	}
+	if (ch_desc->h0.h) {
+		LOGP(DRR, LOGL_ERROR, "HOPPING NOT SUPPORTED, PLEASE FIX!\n");
+		cd.h = 1;
+		gsm48_decode_chan_h1(ch_desc, &cd.tsc, &cd.maio,
+			&cd.hsn);
+		LOGP(DRR, LOGL_INFO, " (chan_nr 0x%02x MAIO %u HSN %u TS %u SS %u TSC %u)\n",
+		     ch_desc->chan_nr, cd.maio, cd.hsn, ch_ts, ch_subch, cd.tsc);
+	} else {
+		cd.h = 0;
+		gsm48_decode_chan_h0(ch_desc, &cd.tsc, &cd.arfcn);
+		if (gsm_refer_pcs(cs->arfcn, s))
+			cd.arfcn |= ARFCN_PCS;
+		LOGP(DRR, LOGL_INFO, " (chan_nr 0x%02x ARFCN %s TS %u SS %u TSC %u)\n",
+		     ch_desc->chan_nr, gsm_print_arfcn(cd.arfcn), ch_ts, ch_subch, cd.tsc);
+	}
+	if (gsm48_rr_render_ma(ms, &rr->vgcs.cd_group, ma, &ma_len)) {
+		cause = GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		goto reject;
+	}
+
+	/* Turn off transmitter. */
+	cd.tch_flags |= L1CTL_TCH_FLAG_RXONLY;
+
+	/* Set mode to Speech V1. FIXME: Add AMR support. */
+	cd.mode = GSM48_CMODE_SPEECH_V1;
+
+	/* Set current channel and also store as 'vgcs.cd_group', used when leaving dedicated mode. */
+	memcpy(&rr->cd_now, &cd, sizeof(rr->cd_now));
+	memcpy(&rr->vgcs.cd_group, &cd, sizeof(rr->vgcs.cd_group));
+
+	/* tell cell selection process to leave idle mode
+	 * NOTE: this must be sent unbuffered, because the state may not
+	 * change until idle mode is left
+	 */
+	nmsg = gsm322_msgb_alloc(GSM322_EVENT_LEAVE_IDLE);
+	if (!nmsg)
+		return -ENOMEM;
+	rc = gsm322_c_event(ms, nmsg);
+	msgb_free(nmsg);
+	if (rc) {
+		LOGP(DRR, LOGL_INFO, "Failed to leave IDLE mode.\n");
+		cause = GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		goto reject;
+	}
+
+	/* Set group state to receive mode. */
+	rr->vgcs.group_state = GSM48_RR_GST_RECEIVE;
+
+	/* Wait until synced to the CCCH ... */
+	return 0;
+}
+/* ... Continue after synced to the CCCH. */
+static int gsm48_rr_group_req_continue(struct osmocom_ms *ms)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	uint16_t ma[64];
+	uint8_t ma_len;
+	struct msgb *nmsg;
+
+	/* get hopping sequence, if required */
+	gsm48_rr_render_ma(ms, &rr->vgcs.cd_group, ma, &ma_len);
+	/* activate channel */
+	gsm48_rr_activate_channel(ms, &rr->vgcs.cd_group, ma, ma_len);
+
+	/* Confirm group call channel. */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_GROUP_CNF);
+	if (!nmsg)
+		return -ENOMEM;
+	return gsm48_rr_upmsg(ms, nmsg);
+}
+
+/* After "loss of signal"/release in group transmit or receive mode, return IDLE and release towards MM. */
+static int gsm48_rr_group_rel(struct osmocom_ms *ms, int cause)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct msgb *nmsg;
+	struct gsm48_rr_hdr *nrrh;
+
+	/* Go back to IDLE mode. */
+	rr->vgcs.group_state = GSM48_RR_GST_OFF;
+	new_rr_state(rr, GSM48_RR_ST_IDLE);
+
+	/* Indicate release to MM. */
+	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_GROUP_REL_IND);
+	if (!nmsg)
+		return -ENOMEM;
+	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
+	nrrh->cause = cause;
+	return gsm48_rr_upmsg(ms, nmsg);
+}
+
+/* Release group channel, return to IDLE. */
+static int gsm48_rr_group_rel_req(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+
+	/* Only in group receive/transmit mode. */
+	if (rr->vgcs.group_state == GSM48_RR_GST_OFF)
+		return 0;
+
+	/* Unset group state. Wait, if release is pending. */
+	rr->vgcs.group_state = GSM48_RR_GST_OFF;
+	if (rr->state != GSM48_RR_ST_IDLE) {
+		LOGP(DRR, LOGL_INFO, "Cannot release group channel yet, wait to return to IDLE state.\n");
+		return 0;
+	}
+
+	LOGP(DRR, LOGL_INFO, "Release Group channel.\n");
+	new_rr_state(rr, GSM48_RR_ST_IDLE);
+	return 0;
 }
 
 /* 3.4.2 transfer data in dedicated mode */
@@ -5144,6 +5429,8 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 		switch (sgh->msg_type) {
 		case GSM48_MT_RR_SH_FACCH:
 			return gsm48_rr_rx_notif_facch(ms, msg);
+		case GSM48_MT_RR_SH_SI10:
+			return gsm48_rr_rx_sysinfo_10(ms, msg);
 		default:
 			LOGP(DRR, LOGL_NOTICE, "Short header message type 0x%02x unsupported.\n", sgh->msg_type);
 			return -EINVAL;
@@ -5175,6 +5462,8 @@ static int gsm48_rr_rx_acch(struct osmocom_ms *ms, struct msgb *msg)
 	}
 	gh = msgb_l3(msg);
 	switch (gh->msg_type) {
+	case GSM48_MT_RR_CHAN_REL:
+		return gsm48_rr_rx_chan_rel_ui(ms, msg);
 	default:
 		LOGP(DRR, LOGL_NOTICE, "ACCH message type 0x%02x unknown.\n", gh->msg_type);
 		return -EINVAL;
@@ -5232,6 +5521,10 @@ static int gsm48_rr_unit_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	if (cs->ccch_state != GSM322_CCCH_ST_DATA) {
 		LOGP(DCS, LOGL_INFO, "Channel provides data.\n");
 		cs->ccch_state = GSM322_CCCH_ST_DATA;
+
+		/* in group receive mode */
+		if (ms->rrlayer.vgcs.group_state == GSM48_RR_GST_RECEIVE)
+			return gsm48_rr_group_req_continue(ms);
 
 		/* in dedicated mode */
 		if (ms->rrlayer.state == GSM48_RR_ST_CONN_PEND)
@@ -5372,7 +5665,11 @@ static int gsm48_rr_rel_cnf(struct osmocom_ms *ms, struct msgb *msg)
 	stop_rr_t3110(rr);
 
 	/* send release indication */
-	nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
+	if (rr->vgcs.group_state == GSM48_RR_GST_RECEIVE) {
+		nmsg = gsm48_rr_msgb_alloc(GSM48_RR_GROUP_REL_IND);
+		rr->vgcs.group_state = GSM48_RR_GST_OFF;
+	} else
+		nmsg = gsm48_rr_msgb_alloc(GSM48_RR_REL_IND);
 	if (!nmsg)
 		return -ENOMEM;
 	nrrh = (struct gsm48_rr_hdr *)nmsg->data;
@@ -5839,6 +6136,14 @@ static struct rrdownstate {
 	{SBIT(GSM48_RR_ST_CONN_PEND) |
 	 SBIT(GSM48_RR_ST_DEDICATED), /* 3.4.13.3 */
 	 GSM48_RR_ABORT_REQ, gsm48_rr_abort_req},
+
+	/* NOTE: If not IDLE, it is rejected there. */
+	{ALL_STATES, /* 3.3.3.2 */
+	 GSM48_RR_GROUP_REQ, gsm48_rr_group_req},
+
+	{ALL_STATES,
+	 GSM48_RR_GROUP_REL_REQ, gsm48_rr_group_rel_req},
+
 };
 
 #define RRDOWNSLLEN \
@@ -6108,6 +6413,9 @@ int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;
+
+	if (ms->settings.audio.io_handler != AUDIO_IOH_NONE)
+		return 0;
 
 	LOGP(DRR, LOGL_INFO, "setting audio mode to %d\n", mode);
 

@@ -11,6 +11,7 @@
 #define	T200_ACCH			2	/* SACCH SAPI 3 */
 
 
+
 /* GSM 04.07 9.1.2 */
 #define	GSM48_RR_EST_REQ		0x10
 #define	GSM48_RR_EST_IND		0x12
@@ -80,6 +81,13 @@ struct gsm48_rr_hdr {
 #define GSM48_RR_ST_CONN_PEND		1
 #define GSM48_RR_ST_DEDICATED		2
 #define GSM48_RR_ST_REL_PEND		3
+
+/* group states (VGCS) */
+enum gsm48_rr_gstate {
+	GSM48_RR_GST_OFF = 0,
+	GSM48_RR_GST_RECEIVE,
+	GSM48_RR_GST_TRANSMIT,
+};
 
 /* special states for SAPI 3 link */
 #define GSM48_RR_SAPI3ST_IDLE		0
@@ -211,6 +219,8 @@ struct gsm48_rrlayer {
 	/* group call */
 	struct {
 		struct llist_head	notif_list;	/* list of received call notifications */
+		enum gsm48_rr_gstate	group_state;	/* extension to RR state for group transmit/receive modes */
+		struct gsm48_rr_cd	cd_group;	/* channel description of group call channel */
 	} vgcs;
 };
 
