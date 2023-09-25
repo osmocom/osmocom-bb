@@ -26,6 +26,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/bits.h>
 
+#include <osmocom/gsm/gsm0502.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/coding/gsm0503_coding.h>
@@ -104,20 +105,25 @@ int rx_pdtch_fn(struct l1sched_lchan_state *lchan,
 
 static struct msgb *prim_dequeue_pdtch(struct l1sched_lchan_state *lchan, uint32_t fn)
 {
-	const struct l1sched_prim *prim;
-	struct msgb *msg;
+	while (!llist_empty(&lchan->tx_prims)) {
+		struct msgb *msg = llist_first_entry(&lchan->tx_prims, struct msgb, list);
+		const struct l1sched_prim *prim = l1sched_prim_from_msgb(msg);
+		int ret = gsm0502_fncmp(prim->data_req.frame_nr, fn);
 
-	msg = msgb_dequeue(&lchan->tx_prims);
-	if (msg == NULL)
-		return NULL;
-	prim = l1sched_prim_from_msgb(msg);
+		if (OSMO_LIKELY(ret == 0)) { /* it's a match! */
+			llist_del(&msg->list);
+			return msg;
+		} else if (ret > 0) { /* not now, come back later */
+			break;
+		} /* else: the ship has sailed, drop your ticket */
 
-	if (OSMO_LIKELY(prim->data_req.frame_nr == fn))
-		return msg;
-	LOGP_LCHAND(lchan, LOGL_ERROR,
-		    "%s(): dropping Tx primitive (current Fn=%u, prim Fn=%u)\n",
-		    __func__, fn, prim->data_req.frame_nr);
-	msgb_free(msg);
+		LOGP_LCHAND(lchan, LOGL_ERROR,
+			    "%s(): dropping stale Tx primitive (current Fn=%u, prim Fn=%u)\n",
+			    __func__, fn, prim->data_req.frame_nr);
+		llist_del(&msg->list);
+		msgb_free(msg);
+	}
+
 	return NULL;
 }
 
