@@ -688,7 +688,8 @@ static void grr_st_packet_access_action(struct osmo_fsm_inst *fi,
 		}
 
 		/* shift the CHANNEL REQUEST history buffer */
-		memmove(&rr->cr_hist[1], &rr->cr_hist[0], ARRAY_SIZE(rr->cr_hist) - 1);
+		memmove(&rr->cr_hist[1], &rr->cr_hist[0],
+			sizeof(rr->cr_hist) - sizeof(rr->cr_hist[0]));
 		/* store the new entry */
 		rr->cr_hist[0].ref = *ref;
 		rr->cr_hist[0].ref.ra = rr->cr_ra;
