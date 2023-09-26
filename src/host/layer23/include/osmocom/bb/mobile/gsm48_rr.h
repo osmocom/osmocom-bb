@@ -10,6 +10,9 @@
 #define	T200_DCCH_SHARED		2	/* SDCCH shares SAPI 0 and 3 */
 #define	T200_ACCH			2	/* SACCH SAPI 3 */
 
+/* GSM 04.08 RR timers */
+#define GSM_T3128_MS			1, 0	/* Uplink investigation timer. */
+#define GSM_T3130_MS			5, 0	/* Uplink access timeout. */
 
 
 /* GSM 04.07 9.1.2 */
@@ -221,6 +224,14 @@ struct gsm48_rrlayer {
 		struct llist_head	notif_list;	/* list of received call notifications */
 		enum gsm48_rr_gstate	group_state;	/* extension to RR state for group transmit/receive modes */
 		struct gsm48_rr_cd	cd_group;	/* channel description of group call channel */
+		bool			uplink_free;	/* Is set, if uplink is currently free. */
+		uint8_t			uic;		/* UIC to use for access burst (-1 for BSIC) */
+		bool			uplink_access;	/* The network wants us to send listener access bursts. */
+		struct osmo_timer_list	t_ul_free;	/* Uplink free timer. (480ms timer) */
+		struct osmo_timer_list	t3128;		/* Uplink investigation timer. */
+		struct osmo_timer_list	t3130;		/* Uplink access timer. */
+		uint8_t			uplink_tries;	/* Counts number of tries to access the uplink. */
+		uint8_t			uplink_counter;	/* Counts number of access bursts per 'try'. */
 	} vgcs;
 };
 

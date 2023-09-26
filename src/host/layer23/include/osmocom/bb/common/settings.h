@@ -188,6 +188,9 @@ struct gsm_settings {
 
 	/* Timeout for GSM 03.22 C7 state */
 	uint8_t			any_timeout;
+
+	/* ASCI settings */
+	bool			uplink_release_local;
 };
 
 struct gsm_settings_abbrev {
