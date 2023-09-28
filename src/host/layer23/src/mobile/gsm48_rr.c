@@ -4856,6 +4856,11 @@ static int gsm48_rr_rx_pch_agch(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_system_information_type_header *sih = msgb_l3(msg);
 
+	if (msgb_l3len(msg) < sizeof(*sih)) {
+		LOGP(DRR, LOGL_NOTICE, "Short read of CCCH message.\n");
+		return -EINVAL;
+	}
+
 	switch (sih->system_information) {
 	case GSM48_MT_RR_PAG_REQ_1:
 		return gsm48_rr_rx_pag_req_1(ms, msg);
