@@ -4068,7 +4068,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mm_conn *conn;
 	struct gsm48_mmxx_hdr *mmh;
 	int msg_supported = 0; /* determine, if message is supported at all */
-	int rr_prim = -1, rr_est = -1; /* no prim set */
+	int rr_prim, rr_est = -1; /* no prim set */
 	uint8_t skip_ind;
 	int i, rc;
 
@@ -4108,11 +4108,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		rr_prim = GSM48_MMBCC_DATA_IND;
 		break;
 	default:
-		LOGP(DMM, LOGL_NOTICE, "Protocol type 0x%02x unsupported.\n",
-		     pdisc);
-		msgb_free(msg);
-		return gsm48_mm_tx_mm_status(ms,
-			GSM48_REJECT_MSG_TYPE_NOT_IMPLEMENTED);
+		goto forward_msg;
 	}
 
 	transaction_id = ((gh->proto_discr & 0xf0) ^ 0x80) >> 4; /* flip */
@@ -4159,6 +4155,7 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	/* forward message */
+forward_msg:
 	switch (pdisc) {
 	case GSM48_PDISC_MM:
 		skip_ind = (gh->proto_discr & 0xf0) >> 4;
@@ -4190,6 +4187,13 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		rc = -ENOTSUP;
 		msgb_free(msg);
 		return rc;
+
+	default:
+		LOGP(DMM, LOGL_NOTICE, "Protocol type 0x%02x unsupported.\n",
+		     pdisc);
+		msgb_free(msg);
+		return gsm48_mm_tx_mm_status(ms,
+			GSM48_REJECT_MSG_TYPE_NOT_IMPLEMENTED);
 	}
 
 	LOGP(DMM, LOGL_INFO, "(ms %s) Received '%s' in MM state %s\n", ms->name,
