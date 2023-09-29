@@ -2897,13 +2897,38 @@ static int gsm48_rr_rx_sysinfo6(struct osmocom_ms *ms, struct msgb *msg)
 	return gsm48_new_sysinfo(ms, si->system_information);
 }
 
-/* Receive "SYSTEM INFORMATION TYPE 10" message (9.1.50). */
+/* Receive "SYSTEM INFORMATION 10" message (9.1.50). */
 static int gsm48_rr_rx_sysinfo_10(struct osmocom_ms *ms, struct msgb *msg)
 {
-	LOGP(DRR, LOGL_INFO, "SYSINFO 10\n");
+	/* NOTE: Short L2 header is included in this structure */
+	struct gsm48_system_information_type_10 *si = msgb_l3(msg);
+	struct gsm48_sysinfo *s = ms->cellsel.si;
+	int payload_len = msgb_l3len(msg) - sizeof(*si);
 
-	/* Ignore content. */
-	return -ENOTSUP;
+	if (!s) {
+		LOGP(DRR, LOGL_INFO, "No cell selected, SYSTEM INFORMATION 10 ignored.\n");
+		return -EINVAL;
+	}
+
+	if (payload_len < 20) {
+		LOGP(DRR, LOGL_NOTICE, "Short read of SYSTEM INFORMATION 10 message.\n");
+		return -EINVAL;
+	}
+
+	/* No complete SI5, cannot decode yet. */
+	if (!s->si5 || !(s->si5bis || !s->nb_ext_ind_si5))
+		return 0;
+
+	/* We decode when changed or when SI10 could not decoded, due to missing neighbor cell infos. */
+	if (!memcmp(si, s->si10_msg, OSMO_MIN(msgb_l3len(msg), sizeof(s->si10_msg))) && s->si10)
+		return 0;
+
+	LOGP(DRR, LOGL_INFO, "New SYSTEM INFORMATION 10\n");
+
+	gsm48_decode_sysinfo10(s, si, msgb_l3len(msg));
+
+	/* We cannot call gsm48_new_sysinfo, because it requires regular message types. */
+	return 0;
 }
 
 /* receive "SYSTEM INFORMATION 13" message (9.1.43a) */
