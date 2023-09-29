@@ -636,8 +636,8 @@ int gsm48_decode_sysinfo2(struct gsm48_sysinfo *s,
 	memcpy(s->si2_msg, si, OSMO_MIN(len, sizeof(s->si2_msg)));
 
 	/* Neighbor Cell Description */
-	s->nb_ext_ind_si2 = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->nb_ba_ind_si2 = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_ext_ind_si2 = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_ba_ind_si2 = (si->bcch_frequency_list[0] >> 4) & 1;
 	decode_freq_list(s->freq, si->bcch_frequency_list,
 			 sizeof(si->bcch_frequency_list),
 			 0xce, FREQ_TYPE_NCELL_2);
@@ -657,8 +657,8 @@ int gsm48_decode_sysinfo2bis(struct gsm48_sysinfo *s,
 	memcpy(s->si2b_msg, si, OSMO_MIN(len, sizeof(s->si2b_msg)));
 
 	/* Neighbor Cell Description */
-	s->nb_ext_ind_si2bis = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->nb_ba_ind_si2bis = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_ext_ind_si2bis = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_ba_ind_si2bis = (si->bcch_frequency_list[0] >> 4) & 1;
 	decode_freq_list(s->freq, si->bcch_frequency_list,
 		sizeof(si->bcch_frequency_list), 0xce, FREQ_TYPE_NCELL_2bis);
 	/* RACH Control Parameter */
@@ -675,8 +675,8 @@ int gsm48_decode_sysinfo2ter(struct gsm48_sysinfo *s,
 	memcpy(s->si2t_msg, si, OSMO_MIN(len, sizeof(s->si2t_msg)));
 
 	/* Neighbor Cell Description 2 */
-	s->nb_multi_rep_si2ter = (si->ext_bcch_frequency_list[0] >> 6) & 3;
-	s->nb_ba_ind_si2ter = (si->ext_bcch_frequency_list[0] >> 5) & 1;
+	s->nb_multi_rep_si2ter = (si->ext_bcch_frequency_list[0] >> 5) & 3;
+	s->nb_ba_ind_si2ter = (si->ext_bcch_frequency_list[0] >> 4) & 1;
 	decode_freq_list(s->freq, si->ext_bcch_frequency_list,
 		sizeof(si->ext_bcch_frequency_list), 0x8e,
 			FREQ_TYPE_NCELL_2ter);
@@ -780,8 +780,8 @@ int gsm48_decode_sysinfo5(struct gsm48_sysinfo *s,
 	memcpy(s->si5_msg, si, OSMO_MIN(len, sizeof(s->si5_msg)));
 
 	/* Neighbor Cell Description */
-	s->nb_ext_ind_si5 = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->nb_ba_ind_si5 = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_ext_ind_si5 = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_ba_ind_si5 = (si->bcch_frequency_list[0] >> 4) & 1;
 	decode_freq_list(s->freq, si->bcch_frequency_list,
 			 sizeof(si->bcch_frequency_list),
 			 0xce, FREQ_TYPE_REP_5);
@@ -797,8 +797,8 @@ int gsm48_decode_sysinfo5bis(struct gsm48_sysinfo *s,
 	memcpy(s->si5b_msg, si, OSMO_MIN(len, sizeof(s->si5b_msg)));
 
 	/* Neighbor Cell Description */
-	s->nb_ext_ind_si5bis = (si->bcch_frequency_list[0] >> 6) & 1;
-	s->nb_ba_ind_si5bis = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_ext_ind_si5bis = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_ba_ind_si5bis = (si->bcch_frequency_list[0] >> 4) & 1;
 	decode_freq_list(s->freq, si->bcch_frequency_list,
 			 sizeof(si->bcch_frequency_list),
 			 0xce, FREQ_TYPE_REP_5bis);
@@ -814,8 +814,8 @@ int gsm48_decode_sysinfo5ter(struct gsm48_sysinfo *s,
 	memcpy(s->si5t_msg, si, OSMO_MIN(len, sizeof(s->si5t_msg)));
 
 	/* Neighbor Cell Description */
-	s->nb_multi_rep_si5ter = (si->bcch_frequency_list[0] >> 6) & 3;
-	s->nb_ba_ind_si5ter = (si->bcch_frequency_list[0] >> 5) & 1;
+	s->nb_multi_rep_si5ter = (si->bcch_frequency_list[0] >> 5) & 3;
+	s->nb_ba_ind_si5ter = (si->bcch_frequency_list[0] >> 4) & 1;
 	decode_freq_list(s->freq, si->bcch_frequency_list,
 			 sizeof(si->bcch_frequency_list),
 			 0x8e, FREQ_TYPE_REP_5ter);
