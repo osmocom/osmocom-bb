@@ -4628,61 +4628,16 @@ static struct mmdatastate {
 #define MMDATASLLEN \
 	(sizeof(mmdatastatelist) / sizeof(struct mmdatastate))
 
-static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
+static int create_conn_and_push_mm_hdr(struct gsm48_mmlayer *mm, struct msgb *msg, int rr_est, int rr_prim)
 {
-	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
 	uint8_t sapi = rrh->sapi;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	uint8_t pdisc = gh->proto_discr & 0x0f;
-	uint8_t msg_type = gh->msg_type & 0xbf;
 	uint8_t transaction_id;
 	uint32_t callref;
 	struct gsm48_mm_conn *conn;
 	struct gsm48_mmxx_hdr *mmh;
-	int msg_supported = 0; /* determine, if message is supported at all */
-	int rr_prim, rr_est = -1; /* no prim set */
-	uint8_t skip_ind;
-	int i, rc;
-
-	/* 9.2.19 */
-	if (msg_type == GSM48_MT_MM_NULL) {
-		msgb_free(msg);
-		return 0;
-	}
-
-	if (mm->state == GSM48_MM_ST_IMSI_DETACH_INIT) {
-		LOGP(DMM, LOGL_NOTICE, "DATA IND ignored during IMSI "
-			"detach.\n");
-		msgb_free(msg);
-		return 0;
-	}
-	/* pull the RR header */
-	msgb_pull(msg, sizeof(struct gsm48_rr_hdr));
-
-	/* create transaction (if not exists) and push message */
-	switch (pdisc) {
-	case GSM48_PDISC_CC:
-		rr_prim = GSM48_MMCC_DATA_IND;
-		rr_est = GSM48_MMCC_EST_IND;
-		break;
-	case GSM48_PDISC_NC_SS:
-		rr_prim = GSM48_MMSS_DATA_IND;
-		rr_est = GSM48_MMSS_EST_IND;
-		break;
-	case GSM48_PDISC_SMS:
-		rr_prim = GSM48_MMSMS_DATA_IND;
-		rr_est = GSM48_MMSMS_EST_IND;
-		break;
-	case GSM48_PDISC_GROUP_CC:
-		rr_prim = GSM48_MMGCC_DATA_IND;
-		break;
-	case GSM48_PDISC_BCAST_CC:
-		rr_prim = GSM48_MMBCC_DATA_IND;
-		break;
-	default:
-		goto forward_msg;
-	}
 
 	transaction_id = ((gh->proto_discr & 0xf0) ^ 0x80) >> 4; /* flip */
 
@@ -4699,16 +4654,13 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 			if (rr_est == -1) {
 				LOGP(DMM, LOGL_ERROR, "No MO connection for pdisc=%d, transaction_id=%d\n",
 				     pdisc, transaction_id);
-				msgb_free(msg);
 				return -EINVAL;
 			}
 			conn = mm_conn_new(mm, pdisc, transaction_id, sapi, mm_conn_new_ref++);
 			rr_prim = rr_est;
 		}
-		if (!conn) {
-			msgb_free(msg);
+		if (!conn)
 			return -ENOMEM;
-		}
 		callref = conn->ref;
 	}
 
@@ -4732,8 +4684,35 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		new_mm_state(mm, GSM48_MM_ST_MM_CONN_ACTIVE, 0);
 	}
 
+	return 0;
+}
+
+static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm48_hdr *gh = msgb_l3(msg);
+	uint8_t pdisc = gh->proto_discr & 0x0f;
+	uint8_t msg_type = gh->msg_type & 0xbf;
+	int msg_supported = 0; /* determine, if message is supported at all */
+	uint8_t skip_ind;
+	int i, rc;
+
+	/* 9.2.19 */
+	if (msg_type == GSM48_MT_MM_NULL) {
+		msgb_free(msg);
+		return 0;
+	}
+
+	if (mm->state == GSM48_MM_ST_IMSI_DETACH_INIT) {
+		LOGP(DMM, LOGL_NOTICE, "DATA IND ignored during IMSI "
+			"detach.\n");
+		msgb_free(msg);
+		return 0;
+	}
+	/* pull the RR header */
+	msgb_pull(msg, sizeof(struct gsm48_rr_hdr));
+
 	/* forward message */
-forward_msg:
 	switch (pdisc) {
 	case GSM48_PDISC_MM:
 		skip_ind = (gh->proto_discr & 0xf0) >> 4;
@@ -4746,23 +4725,36 @@ forward_msg:
 		break; /* follow the selection procedure below */
 
 	case GSM48_PDISC_CC:
-		rc = gsm48_rcv_cc(ms, msg);
+		rc = create_conn_and_push_mm_hdr(mm, msg, GSM48_MMCC_EST_IND, GSM48_MMCC_DATA_IND);
+		if (rc == 0)
+			rc = gsm48_rcv_cc(ms, msg);
 		msgb_free(msg);
 		return rc;
 
 	case GSM48_PDISC_NC_SS:
-		rc = gsm480_rcv_ss(ms, msg);
+		rc = create_conn_and_push_mm_hdr(mm, msg, GSM48_MMSS_EST_IND, GSM48_MMSS_DATA_IND);
+		if (rc == 0)
+			rc = gsm480_rcv_ss(ms, msg);
 		msgb_free(msg);
 		return rc;
 
 	case GSM48_PDISC_SMS:
-		rc = gsm411_rcv_sms(ms, msg);
+		rc = create_conn_and_push_mm_hdr(mm, msg, GSM48_MMSMS_EST_IND, GSM48_MMSMS_DATA_IND);
+		if (rc == 0)
+			rc = gsm411_rcv_sms(ms, msg);
 		msgb_free(msg);
 		return rc;
 
 	case GSM48_PDISC_GROUP_CC:
+		rc = create_conn_and_push_mm_hdr(mm, msg, -1, GSM48_MMGCC_DATA_IND);
+		if (rc == 0)
+			rc = gsm44068_rcv_gcc_bcc(ms, msg);
+		msgb_free(msg);
+		return rc;
 	case GSM48_PDISC_BCAST_CC:
-		rc = gsm44068_rcv_gcc_bcc(ms, msg);
+		rc = create_conn_and_push_mm_hdr(mm, msg, -1, GSM48_MMBCC_DATA_IND);
+		if (rc == 0)
+			rc = gsm44068_rcv_gcc_bcc(ms, msg);
 		msgb_free(msg);
 		return rc;
 
