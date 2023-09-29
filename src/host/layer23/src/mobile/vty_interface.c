@@ -373,10 +373,10 @@ DEFUN(show_forb_la, show_forb_la_cmd, "show forbidden location-area MS_NAME",
 	return CMD_SUCCESS;
 }
 
-#define ASCI_STR SHOW_STR "Display information about ASCI items\nName of MS (see \"show ms\")\n"
+#define SHOW_ASCI_STR SHOW_STR "Display information about ASCI items\nName of MS (see \"show ms\")\n"
 
 DEFUN(show_asci_calls, show_asci_calls_cmd, "show asci MS_NAME calls",
-	ASCI_STR "Display ongoing ASCI calls")
+	SHOW_ASCI_STR "Display ongoing ASCI calls")
 {
 	struct osmocom_ms *ms;
 
@@ -385,6 +385,20 @@ DEFUN(show_asci_calls, show_asci_calls_cmd, "show asci MS_NAME calls",
 		return CMD_WARNING;
 
 	gsm44068_dump_calls(ms, l23_vty_printf, vty);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_asci_neighbors, show_asci_neighbors_cmd, "show asci MS_NAME neighbors",
+	SHOW_ASCI_STR "Display neigbor cells of ongoing or last ASCI call")
+{
+	struct osmocom_ms *ms;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+
+	gsm48_si10_dump(ms->cellsel.si, l23_vty_printf, vty);
 
 	return CMD_SUCCESS;
 }
@@ -2484,6 +2498,7 @@ int ms_vty_init(void)
 	install_element_ve(&show_forb_la_cmd);
 	install_element_ve(&show_forb_plmn_cmd);
 	install_element_ve(&show_asci_calls_cmd);
+	install_element_ve(&show_asci_neighbors_cmd);
 	install_element_ve(&monitor_network_cmd);
 	install_element_ve(&no_monitor_network_cmd);
 	install_element(ENABLE_NODE, &off_cmd);

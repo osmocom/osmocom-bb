@@ -185,6 +185,7 @@ uint8_t gsm_refer_pcs(uint16_t arfcn, const struct gsm48_sysinfo *s);
 int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
 		       void (*print)(void *, const char *, ...),
 		       void *priv, uint8_t *freq_map);
+int gsm48_si10_dump(const struct gsm48_sysinfo *s, void (*print)(void *, const char *, ...), void *priv);
 int gsm48_decode_lai(struct gsm48_loc_area_id *lai, uint16_t *mcc,
 	uint16_t *mnc, uint16_t *lac);
 int gsm48_decode_chan_h0(const struct gsm48_chan_desc *cd,

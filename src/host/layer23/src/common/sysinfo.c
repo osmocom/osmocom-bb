@@ -311,6 +311,48 @@ int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
 	return 0;
 }
 
+int gsm48_si10_dump(const struct gsm48_sysinfo *s, void (*print)(void *, const char *, ...), void *priv)
+{
+	const struct si10_cell_info *c;
+	int i;
+
+	if (!s || !s->si10) {
+		print(priv, "No group channel neighbor information available.\n");
+		return 0;
+	}
+
+	if (!s->si10_cell_num) {
+		print(priv, "No group channel neighbors exist.\n");
+		return 0;
+	}
+
+	/* Group call neighbor cells. */
+	print(priv, "Group channel neighbor cells (current or last call):\n");
+	for (i = 0; i < s->si10_cell_num; i++) {
+		c = &s->si10_cell[i];
+		print(priv, " index = %d", c->index);
+		if (c->arfcn >= 0)
+			print(priv, " ARFCN = %d", c->arfcn);
+		else
+			print(priv, " ARFCN = not in SI5*");
+		print(priv, "  BSIC = %d,%d", c->bsic >> 3, c->bsic & 0x7);
+		if (c->barred) {
+			print(priv, "  barred");
+			continue;
+		}
+		if (c->la_different)
+			print(priv, "  CRH = %d", c->cell_resel_hyst_db);
+		print(priv, "  MS_TXPWR_MAX_CCCH = %d\n", c->ms_txpwr_max_cch);
+		print(priv, "  RXLEV_MIN = %d", c->rxlev_acc_min_db);
+		print(priv, "  CRO = %d", c->cell_resel_offset);
+		print(priv, "  TEMP_OFFSET = %d", c->temp_offset);
+		print(priv, "  PENALTY_TIME = %d", c->penalty_time);
+	}
+	print(priv, "\n");
+
+	return 0;
+}
+
 /*
  * decoding
  */
