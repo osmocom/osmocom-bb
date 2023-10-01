@@ -1213,7 +1213,7 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(p_gsm, "p-gsm");
 	SUP_WRITE(e_gsm, "e-gsm");
 	SUP_WRITE(r_gsm, "r-gsm");
-	SUP_WRITE(pcs, "gsm-850");
+	SUP_WRITE(gsm_850, "gsm-850");
 	SUP_WRITE(gsm_480, "gsm-480");
 	SUP_WRITE(gsm_450, "gsm-450");
 	SUP_WRITE(dcs, "dcs");
