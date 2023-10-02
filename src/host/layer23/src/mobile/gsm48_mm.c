@@ -3190,6 +3190,8 @@ static int gsm48_mm_init_mm(struct osmocom_ms *ms, struct msgb *msg,
 					     (msg_type & GSM48_MMXX_MASK),
 					     mmh->ref, mmh->transaction_id,
 					     sapi);
+		if (!nmsg)
+			return -ENOMEM;
 		nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
 		nmmh->cause = cause;
 		gsm48_mmxx_upmsg(ms, nmsg);
@@ -3410,6 +3412,8 @@ static int gsm48_mm_init_mm_reject(struct osmocom_ms *ms, struct msgb *msg)
 				     (msg_type & GSM48_MMXX_MASK),
 				     mmh->ref, mmh->transaction_id,
 				     sapi);
+	if (!nmsg)
+		return -ENOMEM;
 	nmmh = (struct gsm48_mmxx_hdr *)nmsg->data;
 	nmmh->cause = 17;
 	gsm48_mmxx_upmsg(ms, nmsg);
