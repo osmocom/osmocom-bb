@@ -100,6 +100,8 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	set->ch_cap = sup->ch_cap;
 	set->min_rxlev_dbm = sup->min_rxlev_dbm;
 	set->dsc_max = sup->dsc_max;
+	set->vgcs = sup->vgcs;
+	set->vbs = sup->vbs;
 
 	if (sup->half_v1 || sup->half_v3)
 		set->half = 1;
