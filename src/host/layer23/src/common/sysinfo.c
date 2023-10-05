@@ -1078,30 +1078,25 @@ int gsm48_decode_sysinfo6(struct gsm48_sysinfo *s,
 	return 0;
 }
 
-static int16_t arfcn_from_freq_index(struct gsm48_sysinfo *s, uint16_t index)
+/* Get ARFCN from BCCH allocation found in SI5/SI5bis an SI5ter. See TS 44.018 §10.5.2.20. */
+int16_t arfcn_from_freq_index(const struct gsm48_sysinfo *s, uint16_t index)
 {
 	uint16_t arfcn, i = 0;
 
-	/* First, search for the P-GSM ARFCN. */
-	for (arfcn = 1; arfcn < 124; arfcn++) {
-		if (!(s->freq[arfcn].mask & FREQ_TYPE_REP))
+	/* Search for ARFCN found in SI5 or SI5bis. (first sub list) */
+	for (arfcn = 1; arfcn <= 1024; arfcn++) {
+		if (!(s->freq[arfcn & 1023].mask & (FREQ_TYPE_REP_5 | FREQ_TYPE_REP_5bis)))
 			continue;
 		if (index == i++)
-			return arfcn;
+			return arfcn & 1023;
 	}
 
-	/* Second, search for ARFCN 0. */
-	if ((s->freq[arfcn].mask & FREQ_TYPE_REP)) {
-		if (index == i++)
-			return arfcn;
-	}
-
-	/* Third, search for all other ARFCN. */
-	for (arfcn = 125; arfcn < 1024; arfcn++) {
-		if (!(s->freq[arfcn].mask & FREQ_TYPE_REP))
+	/* Search for ARFCN found in SI5ter. (second sub list) */
+	for (arfcn = 1; arfcn <= 1024; arfcn++) {
+		if (!(s->freq[arfcn & 1023].mask & FREQ_TYPE_REP_5ter))
 			continue;
 		if (index == i++)
-			return arfcn;
+			return arfcn & 1023;
 	}
 
 	/* If not found, return EOF (-1) as idicator. */
