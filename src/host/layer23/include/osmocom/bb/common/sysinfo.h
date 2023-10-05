@@ -219,5 +219,6 @@ int gsm48_decode_sysinfo13(struct gsm48_sysinfo *s,
 int gsm48_decode_mobile_alloc(struct gsm_sysinfo_freq *freq,
 			      const uint8_t *ma, uint8_t len,
 			      uint16_t *hopping, uint8_t *hopp_len, int si4);
+int16_t arfcn_from_freq_index(const struct gsm48_sysinfo *s, uint16_t index);
 
 #endif /* _SYSINFO_H */

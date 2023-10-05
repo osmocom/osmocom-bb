@@ -2538,32 +2538,30 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 	 && s->si5
 	 && (!s->nb_ext_ind_si5 || s->si5bis)) {
 		struct gsm48_rr_meas *rrmeas = &ms->rrlayer.meas;
-		int n = 0, i, refer_pcs;
+		int i, refer_pcs;
+		int16_t arfcn;
 
 		LOGP(DRR, LOGL_NOTICE, "Complete set of SI5* for BA(%d)\n",
 			s->nb_ba_ind_si5);
 		rrmeas->nc_num = 0;
 		refer_pcs = gsm_refer_pcs(cs->arfcn, s);
 
-		/* collect channels from freq list (1..1023,0) */
-		for (i = 1; i <= 1024; i++) {
-			if ((s->freq[i & 1023].mask & FREQ_TYPE_REP)) {
-				if (n == 32) {
-					LOGP(DRR, LOGL_NOTICE, "SI5* report "
-						"exceeds 32 BCCHs\n");
-					break;
-				}
-				if (refer_pcs && i >= 512 && i <= 810)
-					rrmeas->nc_arfcn[n] = i | ARFCN_PCS;
-				else
-					rrmeas->nc_arfcn[n] = i & 1023;
-				rrmeas->nc_rxlev_dbm[n] = -128;
-				LOGP(DRR, LOGL_NOTICE, "SI5* report arfcn %s\n",
-					gsm_print_arfcn(rrmeas->nc_arfcn[n]));
-				n++;
-			}
+		/* Collect channels from freq list in correct order. */
+		for (i = 1; i < 32; i++) {
+			arfcn = arfcn_from_freq_index(s, i);
+			if (arfcn < 0)
+				break;
+			if (refer_pcs && arfcn >= 512 && arfcn <= 810)
+				rrmeas->nc_arfcn[i] = arfcn | ARFCN_PCS;
+			else
+				rrmeas->nc_arfcn[i] = arfcn;
+			rrmeas->nc_rxlev_dbm[i] = -128;
+			LOGP(DRR, LOGL_NOTICE, "SI5/SI5bis report arfcn %s (index %d)\n",
+			     gsm_print_arfcn(rrmeas->nc_arfcn[i]), i);
 		}
-		rrmeas->nc_num = n;
+		rrmeas->nc_num = i;
+		if (i == 32 && arfcn_from_freq_index(s, i) >= 0)
+			LOGP(DRR, LOGL_NOTICE, "SI5/SI5bis/SI5ter define more than 32 channels.\n");
 	}
 
 	/* send sysinfo event to other layers */
