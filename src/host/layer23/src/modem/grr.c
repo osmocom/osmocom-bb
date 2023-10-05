@@ -804,6 +804,7 @@ static const struct osmo_fsm_state grr_fsm_states[] = {
 	[GRR_ST_PACKET_ACCESS] = {
 		.name = "PACKET_ACCESS",
 		.out_state_mask = S(GRR_ST_PACKET_NOT_READY)
+				| S(GRR_ST_PACKET_ACCESS)
 				| S(GRR_ST_PACKET_TRANSFER),
 		.in_event_mask  = S(GRR_EV_BCCH_BLOCK_IND)
 				| S(GRR_EV_PCH_AGCH_BLOCK_IND)
