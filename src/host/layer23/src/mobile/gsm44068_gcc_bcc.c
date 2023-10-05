@@ -622,7 +622,7 @@ static void vgcs_gcc_fsm_u0p_action(struct osmo_fsm_inst *fi, uint32_t event, vo
 {
 	struct gsm_trans *trans = fi->priv;
 	uint8_t *cause = data;
-	uint8_t transaction_id;
+	int rc;
 
 	switch (event) {
 	case VGCS_GCC_EV_TERM_REQ:
@@ -649,13 +649,13 @@ static void vgcs_gcc_fsm_u0p_action(struct osmo_fsm_inst *fi, uint32_t event, vo
 		/* Change to GROUP CALL INITIATED state. */
 		osmo_fsm_inst_state_chg(fi, VGCS_GCC_ST_U1_GROUP_CALL_INITIATED, 0, 0);
 		/* Choose transaction ID. */
-		transaction_id = trans_assign_trans_id(trans->ms, trans->protocol, 0);
-		if (transaction_id < 0) {
+		rc = trans_assign_trans_id(trans->ms, trans->protocol, 0);
+		if (rc < 0) {
 			/* No free transaction ID. */
 			trans_free(trans);
 			return;
 		}
-		trans->transaction_id = transaction_id;
+		trans->transaction_id = rc;
 		/* Send SETUP towards network. */
 		gsm44068_tx_setup(trans, trans->callref, false, 0, false, NULL, 0, false, 0);
 		break;
@@ -1500,7 +1500,7 @@ static struct gsm_trans *trans_alloc_vgcs(struct osmocom_ms *ms, uint8_t pdisc, 
 	struct gsm_trans *trans;
 
 	trans = trans_alloc(ms, pdisc, 0xff, callref);
-	if (trans < 0)
+	if (!trans)
 		return NULL;
 	trans->gcc.fi = osmo_fsm_inst_alloc((pdisc == GSM48_PDISC_GROUP_CC) ? &vgcs_gcc_fsm : &vgcs_bcc_fsm,
 					    trans, trans, LOGL_DEBUG, NULL);
@@ -1664,7 +1664,7 @@ int gsm44068_rcv_gcc_bcc(struct osmocom_ms *ms, struct msgb *msg)
 				return 0;
 			/* Incoming notification, creation transaction. */
 			trans = trans_alloc_vgcs(ms, pdisc, 0xff, mmh->ref);
-			if (trans < 0)
+			if (!trans)
 				return -ENOMEM;
 		} else {
 			LOG_GCC_PR(pdisc, mmh->ref, LOGL_ERROR, "Received GCC/BCC message for unknown transaction.\n");
@@ -1816,7 +1816,7 @@ inval:
 
 	/* Create new transaction. ORIG will be set when entering U2sl state. */
 	trans = trans_alloc_vgcs(ms, protocol, 0xff, callref);
-	if (trans < 0)
+	if (!trans)
 		return -ENOMEM;
 
 	/* Setup new call. */
