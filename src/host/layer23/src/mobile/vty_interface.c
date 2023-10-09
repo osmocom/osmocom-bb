@@ -488,10 +488,16 @@ DEFUN(network_select, network_select_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(call_num, call_num_cmd, "call MS_NAME NUMBER",
-	"Make a call\nName of MS (see \"show ms\")\n"
-	"Phone number to call "
-	"(Use digits '0123456789*#abc', and '+' to dial international)\n")
+#define CALL_CMD "call MS_NAME"
+#define CALL_CMD_DESC \
+	"Call related commands\n" \
+	"Name of MS (see \"show ms\")\n"
+
+DEFUN(call_num, call_num_cmd,
+      CALL_CMD " NUMBER",
+      CALL_CMD_DESC
+      "Phone number to call "
+      "(Use digits '0123456789*#abc', and '+' to dial international)\n")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -526,10 +532,13 @@ DEFUN(call_num, call_num_cmd, "call MS_NAME NUMBER",
 	return CMD_SUCCESS;
 }
 
-DEFUN(call, call_cmd, "call MS_NAME (emergency|answer|hangup|hold)",
-	"Make a call\nName of MS (see \"show ms\")\n"
-	"Make an emergency call\nAnswer an incoming call\nHangup a call\n"
-	"Hold current active call\n")
+DEFUN(call, call_cmd,
+      CALL_CMD " (emergency|answer|hangup|hold)",
+      CALL_CMD_DESC
+      "Make an emergency call\n"
+      "Answer an incoming call\n"
+      "Hangup a call\n"
+      "Hold current active call\n")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -561,9 +570,11 @@ DEFUN(call, call_cmd, "call MS_NAME (emergency|answer|hangup|hold)",
 	return CMD_SUCCESS;
 }
 
-DEFUN(call_retr, call_retr_cmd, "call MS_NAME retrieve [NUMBER]",
-	"Make a call\nName of MS (see \"show ms\")\n"
-	"Retrieve call on hold\nNumber of call to retrieve")
+DEFUN(call_retr, call_retr_cmd,
+      CALL_CMD " retrieve [NUMBER]",
+      CALL_CMD_DESC
+      "Retrieve call on hold\n"
+      "Number of call to retrieve\n")
 {
 	struct osmocom_ms *ms;
 
@@ -576,9 +587,11 @@ DEFUN(call_retr, call_retr_cmd, "call MS_NAME retrieve [NUMBER]",
 	return CMD_SUCCESS;
 }
 
-DEFUN(call_dtmf, call_dtmf_cmd, "call MS_NAME dtmf DIGITS",
-	"Make a call\nName of MS (see \"show ms\")\n"
-	"One or more DTMF digits to transmit")
+DEFUN(call_dtmf, call_dtmf_cmd,
+      CALL_CMD " dtmf DIGITS",
+      CALL_CMD_DESC
+      "Send DTMF (Dual-Tone Multi-Frequency) tones\n"
+      "One or more DTMF digits to transmit\n")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
