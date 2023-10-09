@@ -533,7 +533,7 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 	return 0;
 }
 
-int mncc_call(struct osmocom_ms *ms, char *number)
+int mncc_call(struct osmocom_ms *ms, const char *number)
 {
 	struct gsm_call *call;
 	struct gsm_mncc setup;

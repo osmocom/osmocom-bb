@@ -497,7 +497,7 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
 	struct gsm_settings_abbrev *abbrev;
-	char *number;
+	const char *number;
 
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
@@ -510,7 +510,7 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 		return CMD_WARNING;
 	}
 
-	number = (char *)argv[1];
+	number = argv[1];
 	if (!strcmp(number, "emergency"))
 		mncc_call(ms, number);
 	else if (!strcmp(number, "answer"))
