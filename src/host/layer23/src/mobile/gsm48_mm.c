@@ -2710,7 +2710,7 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	gsm322_plmn_sendmsg(ms, nmsg);
 
 	/* follow on proceed */
-	if (TLVP_PRESENT(&tp, GSM48_IE_MOBILE_ID))
+	if (TLVP_PRESENT(&tp, GSM48_IE_FOLLOW_ON_PROC))
 		LOGP(DMM, LOGL_NOTICE, "follow-on proceed not supported.\n");
 
 	/* start RR release timer */
