@@ -488,15 +488,51 @@ DEFUN(network_select, network_select_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
-	"Make a call\nName of MS (see \"show ms\")\nPhone number to call "
-	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
+DEFUN(call_num, call_num_cmd, "call MS_NAME NUMBER",
+	"Make a call\nName of MS (see \"show ms\")\n"
+	"Phone number to call "
+	"(Use digits '0123456789*#abc', and '+' to dial international)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct gsm_settings_abbrev *abbrev;
+	const char *number;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+
+	if (set->ch_cap == GSM_CAP_SDCCH) {
+		vty_out(vty, "Basic call is not supported for SDCCH only "
+			"mobile%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	number = argv[1];
+	llist_for_each_entry(abbrev, &set->abbrev, list) {
+		if (!strcmp(number, abbrev->abbrev)) {
+			number = abbrev->number;
+			vty_out(vty, "Dialing number '%s'%s", number,
+				VTY_NEWLINE);
+			break;
+		}
+	}
+
+	if (vty_check_number(vty, number))
+		return CMD_WARNING;
+	mncc_call(ms, number);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call, call_cmd, "call MS_NAME (emergency|answer|hangup|hold)",
+	"Make a call\nName of MS (see \"show ms\")\n"
 	"Make an emergency call\nAnswer an incoming call\nHangup a call\n"
 	"Hold current active call\n")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
-	struct gsm_settings_abbrev *abbrev;
 	const char *number;
 
 	ms = l23_vty_get_ms(argv[0], vty);
@@ -519,19 +555,8 @@ DEFUN(call, call_cmd, "call MS_NAME (NUMBER|emergency|answer|hangup|hold)",
 		mncc_hangup(ms);
 	else if (!strcmp(number, "hold"))
 		mncc_hold(ms);
-	else {
-		llist_for_each_entry(abbrev, &set->abbrev, list) {
-			if (!strcmp(number, abbrev->abbrev)) {
-				number = abbrev->number;
-				vty_out(vty, "Dialing number '%s'%s", number,
-					VTY_NEWLINE);
-				break;
-			}
-		}
-		if (vty_check_number(vty, number))
-			return CMD_WARNING;
-		mncc_call(ms, number);
-	}
+	else /* shall not happen */
+		OSMO_ASSERT(0);
 
 	return CMD_SUCCESS;
 }
@@ -2506,6 +2531,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &network_search_cmd);
 	install_element(ENABLE_NODE, &network_show_cmd);
 	install_element(ENABLE_NODE, &network_select_cmd);
+	install_element(ENABLE_NODE, &call_num_cmd);
 	install_element(ENABLE_NODE, &call_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
