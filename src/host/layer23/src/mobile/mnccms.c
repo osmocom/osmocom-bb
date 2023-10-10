@@ -35,6 +35,13 @@
 static uint32_t new_callref = 1;
 static LLIST_HEAD(call_list);
 
+static const char * const gsm_call_type_str[] = {
+	[GSM_CALL_T_UNKNOWN]	= "unknown",
+	[GSM_CALL_T_VOICE]	= "voice",
+	[GSM_CALL_T_DATA]	= "data",
+	[GSM_CALL_T_DATA_FAX]	= "fax",
+};
+
 static int dtmf_statemachine(struct gsm_call *call,
 			     const struct gsm_mncc *mncc);
 static void timeout_dtmf(void *arg);
@@ -134,9 +141,9 @@ static int8_t mncc_get_bearer(const struct gsm_settings *set, uint8_t speech_ver
 	return speech_ver;
 }
 
-static void mncc_set_bearer(struct gsm_mncc *mncc,
-			    const struct gsm_settings *set,
-			    int8_t speech_ver)
+static void mncc_set_bcap_speech(struct gsm_mncc *mncc,
+				 const struct gsm_settings *set,
+				 int speech_ver)
 {
 	int i = 0;
 
@@ -190,6 +197,116 @@ static void mncc_set_bearer(struct gsm_mncc *mncc,
 	mncc->bearer_cap.speech_ver[i] = -1; /* end of list */
 	mncc->bearer_cap.transfer = GSM48_BCAP_ITCAP_SPEECH;
 	mncc->bearer_cap.mode = GSM48_BCAP_TMOD_CIRCUIT;
+}
+
+static void mncc_set_bcap_data(struct gsm_mncc *mncc,
+			       const struct gsm_settings *set,
+			       enum gsm_call_type call_type)
+{
+	const struct data_call_params *cp = &set->call_params.data;
+	struct gsm_mncc_bearer_cap *bcap = &mncc->bearer_cap;
+
+	mncc->fields |= MNCC_F_BEARER_CAP;
+
+	*bcap = (struct gsm_mncc_bearer_cap) {
+		/* .transfer is set below */
+		.mode = GSM48_BCAP_TMOD_CIRCUIT,
+		.coding = GSM48_BCAP_CODING_GSM_STD,
+		/* .radio is set below */
+		.data = {
+			/* TODO: make these fields configurable via *set */
+			.rate_adaption = GSM48_BCAP_RA_V110_X30,
+			.sig_access = GSM48_BCAP_SA_I440_I450,
+			.async = 1,
+			/* .transp is set below */
+			.nr_data_bits = 8,
+			.parity = GSM48_BCAP_PAR_NONE,
+			.nr_stop_bits = 1,
+			/* .user_rate is set below */
+			/* .interm_rate is set below */
+		},
+	};
+
+	/* Radio channel requirement (octet 3) */
+	if (set->ch_cap == GSM_CAP_SDCCH_TCHF_TCHH) {
+		if (set->half_prefer)
+			bcap->radio = GSM48_BCAP_RRQ_DUAL_HR;
+		else
+			bcap->radio = GSM48_BCAP_RRQ_DUAL_FR;
+		LOGP(DMNCC, LOGL_INFO, " support TCH/H also\n");
+	} else {
+		bcap->radio = GSM48_BCAP_RRQ_FR_ONLY;
+		LOGP(DMNCC, LOGL_INFO, " support TCH/F only\n");
+	}
+
+	/* Information transfer capability (octet 3) */
+	switch (call_type) {
+	case GSM_CALL_T_DATA:
+		if (cp->type == DATA_CALL_TYPE_ISDN)
+			bcap->transfer = GSM_MNCC_BCAP_UNR_DIG;
+		else /* == DATA_CALL_TYPE_ANALOG */
+			bcap->transfer = GSM_MNCC_BCAP_AUDIO;
+		break;
+	case GSM_CALL_T_DATA_FAX:
+		bcap->transfer = GSM_MNCC_BCAP_FAX_G3;
+		break;
+	case GSM_CALL_T_VOICE:
+	default: /* shall not happen */
+		OSMO_ASSERT(0);
+	}
+
+	/* User rate (octet 6a) */
+	switch (cp->rate) {
+	case DATA_CALL_RATE_V110_300:
+		bcap->data.user_rate = GSM48_BCAP_UR_300;
+		bcap->data.interm_rate = GSM48_BCAP_IR_8k;
+		break;
+	case DATA_CALL_RATE_V110_1200:
+		bcap->data.user_rate = GSM48_BCAP_UR_1200;
+		bcap->data.interm_rate = GSM48_BCAP_IR_8k;
+		break;
+	case DATA_CALL_RATE_V110_2400:
+		bcap->data.user_rate = GSM48_BCAP_UR_2400;
+		bcap->data.interm_rate = GSM48_BCAP_IR_8k;
+		break;
+	case DATA_CALL_RATE_V110_4800:
+		bcap->data.user_rate = GSM48_BCAP_UR_4800;
+		bcap->data.interm_rate = GSM48_BCAP_IR_8k;
+		break;
+	case DATA_CALL_RATE_V110_9600:
+		bcap->data.user_rate = GSM48_BCAP_UR_9600;
+		bcap->data.interm_rate = GSM48_BCAP_IR_16k;
+		break;
+	case DATA_CALL_RATE_V110_14400: /* TODO: the bcap encoder does not support 14400 bps */
+		LOGP(DMNCC, LOGL_INFO, " support for 14400 bps is incomplete\n");
+		bcap->data.user_rate = GSM48_BCAP_UR_9600;
+		bcap->data.interm_rate = GSM48_BCAP_IR_16k;
+		break;
+	}
+
+	/* Connection element (octet 6c) */
+	switch (cp->ce) {
+	case DATA_CALL_CE_TRANSP:
+		bcap->data.transp = GSM48_BCAP_TR_TRANSP;
+		break;
+	case DATA_CALL_CE_TRANSP_PREF:
+		bcap->data.transp = GSM48_BCAP_TR_TR_PREF;
+		break;
+	case DATA_CALL_CE_NON_TRANSP:
+		bcap->data.transp = GSM48_BCAP_TR_RLP;
+		break;
+	case DATA_CALL_CE_NON_TRANSP_PREF:
+		bcap->data.transp = GSM48_BCAP_TR_RLP_PREF;
+		break;
+	}
+
+	/* FAX calls are special (see 3GPP TS 24.008, Annex D.3) */
+	if (call_type == GSM_CALL_T_DATA_FAX) {
+		bcap->data.rate_adaption = GSM48_BCAP_RA_NONE;
+		bcap->data.async = 0; /* shall be sync */
+		bcap->data.transp = GSM48_BCAP_TR_TRANSP;
+		bcap->data.modem_type = GSM48_BCAP_MT_NONE;
+	}
 }
 
 /* Check the given Bearer Capability, select first supported speech codec version.
@@ -249,6 +366,59 @@ static int mncc_handle_bcap_speech(const struct gsm_mncc_bearer_cap *bcap,
 	return speech_ver;
 }
 
+/* Check the given Bearer Capability for a data call (CSD).
+ * Return 0 if the bearer is accepted, otherwise return -1. */
+static int mncc_handle_bcap_data(const struct gsm_mncc_bearer_cap *bcap,
+				 const struct gsm_settings *set)
+{
+	if (bcap->data.rate_adaption != GSM48_BCAP_RA_V110_X30) {
+		LOGP(DMNCC, LOGL_ERROR,
+		     "%s(): Rate adaption (octet 5) 0x%02x is not supported\n",
+		     __func__, bcap->data.rate_adaption);
+		return -ENOTSUP;
+	}
+	if (bcap->data.sig_access != GSM48_BCAP_SA_I440_I450) {
+		LOGP(DMNCC, LOGL_ERROR,
+		     "%s(): Signalling access protocol (octet 5) 0x%02x is not supported\n",
+		     __func__, bcap->data.sig_access);
+		return -ENOTSUP;
+	}
+
+#define BCAP_RATE(interm_rate, user_rate) \
+	((interm_rate << 8) | (user_rate << 0))
+
+	switch (BCAP_RATE(bcap->data.interm_rate, bcap->data.user_rate)) {
+	case BCAP_RATE(GSM48_BCAP_IR_8k, GSM48_BCAP_UR_300):
+	case BCAP_RATE(GSM48_BCAP_IR_8k, GSM48_BCAP_UR_1200):
+	case BCAP_RATE(GSM48_BCAP_IR_8k, GSM48_BCAP_UR_2400):
+		if (bcap->data.transp != GSM48_BCAP_TR_TRANSP) {
+			LOGP(DMNCC, LOGL_ERROR,
+			     "%s(): wrong user-rate 0x%02x for a non-transparent call\n",
+			     __func__, bcap->data.user_rate);
+			return -EINVAL;
+		}
+		/* fall-through */
+	case BCAP_RATE(GSM48_BCAP_IR_8k, GSM48_BCAP_UR_4800):
+	case BCAP_RATE(GSM48_BCAP_IR_16k, GSM48_BCAP_UR_9600):
+		if (bcap->data.transp != GSM48_BCAP_TR_TRANSP) {
+			LOGP(DMNCC, LOGL_ERROR,
+			     "%s(): only transparent calls are supported so far\n",
+			     __func__);
+			return -ENOTSUP;
+		}
+		break;
+	default:
+		LOGP(DMNCC, LOGL_ERROR,
+		     "%s(): User rate 0x%02x (octets 6a) is not supported (IR=0x%02x)\n",
+		     __func__, bcap->data.user_rate, bcap->data.interm_rate);
+		return -ENOTSUP;
+	}
+
+#undef BCAP_RATE
+
+	return 0;
+}
+
 static int mncc_handle_bcap(struct gsm_mncc *mncc_out,		/* CC Call Confirmed */
 			    const struct gsm_mncc *mncc_in,	/* CC Setup */
 			    const struct gsm_settings *set)
@@ -262,7 +432,7 @@ static int mncc_handle_bcap(struct gsm_mncc *mncc_out,		/* CC Call Confirmed */
 	/* if the Bearer Capability 1 IE is not present */
 	if (~mncc_in->fields & MNCC_F_BEARER_CAP) {
 		/* ... include our own Bearer Capability, assuming a speech call */
-		mncc_set_bearer(mncc_out, set, -1);
+		mncc_set_bcap_speech(mncc_out, set, -1);
 		return 0;
 	}
 
@@ -289,12 +459,15 @@ static int mncc_handle_bcap(struct gsm_mncc *mncc_out,		/* CC Call Confirmed */
 		 * or if given codec is unimplemented
 		 */
 		if (speech_ver < 0)
-			mncc_set_bearer(mncc_out, set, -1);
+			mncc_set_bcap_speech(mncc_out, set, -1);
 		else if (bcap->speech_ver[1] >= 0 || speech_ver != 0)
-			mncc_set_bearer(mncc_out, set, speech_ver);
+			mncc_set_bcap_speech(mncc_out, set, speech_ver);
 		break;
 	}
 	case GSM48_BCAP_ITCAP_UNR_DIG_INF:
+	case GSM48_BCAP_ITCAP_3k1_AUDIO:
+	case GSM48_BCAP_ITCAP_FAX_G3:
+		return mncc_handle_bcap_data(bcap, set);
 	default:
 		LOGP(DMNCC, LOGL_ERROR,
 		     "%s(): Information transfer capability 0x%02x is not supported\n",
@@ -402,6 +575,7 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 			return -ENOMEM;
 		call->ms = ms;
 		call->callref = data->callref;
+		call->type = GSM_CALL_T_UNKNOWN;
 		llist_add_tail(&call->entry, &call_list);
 	}
 
@@ -530,6 +704,21 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 			cause = GSM48_CC_CAUSE_INCOMPAT_DEST;
 			goto release;
 		}
+		switch (mncc.bearer_cap.transfer) {
+		case GSM48_BCAP_ITCAP_SPEECH:
+			call->type = GSM_CALL_T_VOICE;
+			break;
+		case GSM48_BCAP_ITCAP_UNR_DIG_INF:
+		case GSM48_BCAP_ITCAP_3k1_AUDIO:
+			call->type = GSM_CALL_T_DATA;
+			break;
+		case GSM48_BCAP_ITCAP_FAX_G3:
+			call->type = GSM_CALL_T_DATA_FAX;
+			break;
+		default:
+			call->type = GSM_CALL_T_UNKNOWN;
+			break;
+		}
 		/* CC capabilities (optional) */
 		if (ms->settings.cc_dtmf) {
 			mncc.fields |= MNCC_F_CCCAP;
@@ -596,7 +785,8 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 	return 0;
 }
 
-int mncc_call(struct osmocom_ms *ms, const char *number)
+int mncc_call(struct osmocom_ms *ms, const char *number,
+	      enum gsm_call_type call_type)
 {
 	struct gsm_call *call;
 	struct gsm_mncc setup;
@@ -616,6 +806,7 @@ int mncc_call(struct osmocom_ms *ms, const char *number)
 		return -ENOMEM;
 	call->ms = ms;
 	call->callref = new_callref++;
+	call->type = call_type;
 	call->init = true;
 	llist_add_tail(&call->entry, &call_list);
 
@@ -627,7 +818,8 @@ int mncc_call(struct osmocom_ms *ms, const char *number)
 		/* emergency */
 		setup.emergency = 1;
 	} else {
-		LOGP(DMNCC, LOGL_INFO, "Make call to %s\n", number);
+		LOGP(DMNCC, LOGL_INFO, "Make %s call to %s\n",
+		     gsm_call_type_str[call_type], number);
 		/* called number */
 		setup.fields |= MNCC_F_CALLED;
 		if (number[0] == '+') {
@@ -640,7 +832,10 @@ int mncc_call(struct osmocom_ms *ms, const char *number)
 		OSMO_STRLCPY_ARRAY(setup.called.number, number);
 
 		/* bearer capability (mandatory) */
-		mncc_set_bearer(&setup, &ms->settings, -1);
+		if (call_type == GSM_CALL_T_VOICE)
+			mncc_set_bcap_speech(&setup, &ms->settings, -1);
+		else
+			mncc_set_bcap_data(&setup, &ms->settings, call_type);
 
 		/* CLIR */
 		if (ms->settings.clir)

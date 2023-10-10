@@ -7,12 +7,20 @@
 
 struct osmocom_ms;
 
+enum gsm_call_type {
+	GSM_CALL_T_UNKNOWN = 0,
+	GSM_CALL_T_VOICE,
+	GSM_CALL_T_DATA, /* UDI or 3.1 kHz audio */
+	GSM_CALL_T_DATA_FAX,
+};
+
 struct gsm_call {
 	struct llist_head	entry;
 
 	struct osmocom_ms	*ms;
 
 	uint32_t		callref;
+	enum gsm_call_type	type;
 
 	bool			init; /* call initiated, no response yet */
 	bool			hold; /* call on hold */
@@ -24,7 +32,8 @@ struct gsm_call {
 	char			dtmf[32]; /* dtmf sequence */
 };
 
-int mncc_call(struct osmocom_ms *ms, const char *number);
+int mncc_call(struct osmocom_ms *ms, const char *number,
+	      enum gsm_call_type call_type);
 int mncc_hangup(struct osmocom_ms *ms);
 int mncc_answer(struct osmocom_ms *ms);
 int mncc_hold(struct osmocom_ms *ms);

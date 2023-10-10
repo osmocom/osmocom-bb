@@ -494,14 +494,18 @@ DEFUN(network_select, network_select_cmd,
 	"Name of MS (see \"show ms\")\n"
 
 DEFUN(call_num, call_num_cmd,
-      CALL_CMD " NUMBER",
+      CALL_CMD " NUMBER [(voice|data|fax)]",
       CALL_CMD_DESC
       "Phone number to call "
-      "(Use digits '0123456789*#abc', and '+' to dial international)\n")
+      "(Use digits '0123456789*#abc', and '+' to dial international)\n"
+      "Initiate a regular voice call (default)\n"
+      "Initiate a data call (UDI or 3.1 kHz audio)\n"
+      "Initiate a data call (Facsimile group 3)\n")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
 	struct gsm_settings_abbrev *abbrev;
+	enum gsm_call_type call_type;
 	const char *number;
 
 	ms = l23_vty_get_ms(argv[0], vty);
@@ -527,7 +531,17 @@ DEFUN(call_num, call_num_cmd,
 
 	if (vty_check_number(vty, number))
 		return CMD_WARNING;
-	mncc_call(ms, number);
+
+	if (argc < 3 || !strcmp(argv[2], "voice"))
+		call_type = GSM_CALL_T_VOICE; /* implicit default */
+	else if (!strcmp(argv[2], "data"))
+		call_type = GSM_CALL_T_DATA;
+	else if (!strcmp(argv[2], "fax"))
+		call_type = GSM_CALL_T_DATA_FAX;
+	else
+		return CMD_WARNING;
+
+	mncc_call(ms, number, call_type);
 
 	return CMD_SUCCESS;
 }
@@ -557,7 +571,7 @@ DEFUN(call, call_cmd,
 
 	number = argv[1];
 	if (!strcmp(number, "emergency"))
-		mncc_call(ms, number);
+		mncc_call(ms, number, GSM_CALL_T_VOICE);
 	else if (!strcmp(number, "answer"))
 		mncc_answer(ms);
 	else if (!strcmp(number, "hangup"))
@@ -608,6 +622,130 @@ DEFUN(call_dtmf, call_dtmf_cmd,
 	}
 
 	mncc_dtmf(ms, (char *)argv[1]);
+
+	return CMD_SUCCESS;
+}
+
+#define CALL_PARAMS_CMD \
+	CALL_CMD " params"
+#define CALL_PARAMS_CMD_DESC \
+	CALL_CMD_DESC \
+	"Call related parameters\n"
+
+#define CALL_PARAMS_DATA_CMD \
+	CALL_PARAMS_CMD " data"
+#define CALL_PARAMS_DATA_CMD_DESC \
+	CALL_PARAMS_CMD_DESC \
+	"Parameters for data calls\n"
+
+DEFUN(call_params_data_type,
+      call_params_data_type_cmd,
+      CALL_PARAMS_DATA_CMD " type (isdn|analog-modem)",
+      CALL_PARAMS_DATA_CMD_DESC
+      "Data call type (does not apply to FAX calls)\n"
+      "ISDN (Unrestricted Digital Information)\n"
+      "Analog modem (3.1 kHz audio, ex PLMN)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct data_call_params *cp;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	cp = &set->call_params.data;
+
+	if (!strcmp(argv[1], "isdn"))
+		cp->type = DATA_CALL_TYPE_ISDN;
+	else if (!strcmp(argv[1], "analog-modem"))
+		cp->type = DATA_CALL_TYPE_ANALOG;
+	else /* should not happen */
+		return CMD_WARNING;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_params_data_rate,
+      call_params_data_rate_cmd,
+      CALL_PARAMS_DATA_CMD " rate (65|66|68|70|71|75)",
+      CALL_PARAMS_DATA_CMD_DESC
+      "Data rate (values like in AT+CBST)\n"
+      "300 bps (V.110)\n"
+      "1200 bps (V.110)\n"
+      "2400 bps (V.110 or X.31 flag stuffing)\n"
+      "4800 bps (V.110 or X.31 flag stuffing)\n"
+      "9600 bps (V.110 or X.31 flag stuffing)\n"
+      "14400 bps (V.110 or X.31 flag stuffing)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct data_call_params *cp;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	cp = &set->call_params.data;
+
+	switch (atoi(argv[1])) {
+	case 65:
+		cp->rate = DATA_CALL_RATE_V110_300;
+		break;
+	case 66:
+		cp->rate = DATA_CALL_RATE_V110_1200;
+		break;
+	case 68:
+		cp->rate = DATA_CALL_RATE_V110_2400;
+		break;
+	case 70:
+		cp->rate = DATA_CALL_RATE_V110_4800;
+		break;
+	case 71:
+		cp->rate = DATA_CALL_RATE_V110_9600;
+		break;
+	case 75:
+		cp->rate = DATA_CALL_RATE_V110_14400;
+		break;
+	default: /* should not happen */
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_params_data_ce,
+      call_params_data_ce_cmd,
+      CALL_PARAMS_DATA_CMD " ce (transparent|non-transparent) [prefer]",
+      CALL_PARAMS_DATA_CMD_DESC
+      "Connection element (does not apply to FAX calls)\n"
+      "Transparent connection\n"
+      "Non-transparent connection (RLP)\n"
+      "Prefer the selected mode, but also accept other(s)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct data_call_params *cp;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	cp = &set->call_params.data;
+
+	if (!strcmp(argv[1], "transparent")) {
+		if (argc > 2)
+			cp->ce = DATA_CALL_CE_TRANSP_PREF;
+		else
+			cp->ce = DATA_CALL_CE_TRANSP;
+	} else if (!strcmp(argv[1], "non-transparent")) {
+		if (argc > 2)
+			cp->ce = DATA_CALL_CE_NON_TRANSP_PREF;
+		else
+			cp->ce = DATA_CALL_CE_NON_TRANSP;
+	} else { /* should not happen */
+		return CMD_WARNING;
+	}
 
 	return CMD_SUCCESS;
 }
@@ -1311,6 +1449,12 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(full_v3, "full-speech-v3");
 	SUP_WRITE(half_v1, "half-speech-v1");
 	SUP_WRITE(half_v3, "half-speech-v3");
+	SUP_WRITE(csd_tch_f144, "full-data-14400");
+	SUP_WRITE(csd_tch_f96, "full-data-9600");
+	SUP_WRITE(csd_tch_f48, "full-data-4800");
+	SUP_WRITE(csd_tch_h48, "half-data-4800");
+	SUP_WRITE(csd_tch_f24, "full-data-2400");
+	SUP_WRITE(csd_tch_h24, "half-data-2400");
 	if (!l23_vty_hide_default || sup->min_rxlev_dbm != set->min_rxlev_dbm)
 		vty_out(vty, "  min-rxlev %d%s", set->min_rxlev_dbm,
 			VTY_NEWLINE);
@@ -2273,6 +2417,13 @@ SUP_EN_DI(full_v3, "full-speech-v3", "Full rate speech V3 (AMR)", 0);
 SUP_EN_DI(half_v1, "half-speech-v1", "Half rate speech V1", 0);
 SUP_EN_DI(half_v3, "half-speech-v3", "Half rate speech V3 (AMR)", 0);
 
+SUP_EN_DI(csd_tch_f144, "full-data-14400", "CSD TCH/F14.4", 0);
+SUP_EN_DI(csd_tch_f96, "full-data-9600", "CSD TCH/F9.6", 0);
+SUP_EN_DI(csd_tch_f48, "full-data-4800", "CSD TCH/F4.8", 0);
+SUP_EN_DI(csd_tch_h48, "half-data-4800", "CSD TCH/H4.8", 0);
+SUP_EN_DI(csd_tch_f24, "full-data-2400", "CSD TCH/F2.4", 0);
+SUP_EN_DI(csd_tch_h24, "half-data-2400", "CSD TCH/H2.4", 0);
+
 DEFUN(cfg_ms_sup_min_rxlev, cfg_ms_sup_min_rxlev_cmd, "min-rxlev <-110--47>",
 	"Set the minimum receive level to select a cell\n"
 	"Minimum receive level from -110 dBm to -47 dBm")
@@ -2541,6 +2692,9 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
+	install_element(ENABLE_NODE, &call_params_data_type_cmd);
+	install_element(ENABLE_NODE, &call_params_data_rate_cmd);
+	install_element(ENABLE_NODE, &call_params_data_ce_cmd);
 	install_element(ENABLE_NODE, &sms_cmd);
 	install_element(ENABLE_NODE, &service_cmd);
 	install_element(ENABLE_NODE, &vgcs_enter_cmd);
@@ -2665,6 +2819,18 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_di_half_v1_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_en_half_v3_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_di_half_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_f144_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_f144_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_f96_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_f96_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_f48_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_f48_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_h48_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_h48_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_f24_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_f24_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_h24_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_h24_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_min_rxlev_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);

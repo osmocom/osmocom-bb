@@ -1,6 +1,8 @@
 #ifndef _settings_h
 #define _settings_h
 
+#include <stdbool.h>
+
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
@@ -82,6 +84,35 @@ struct test_sim_settings {
 	} locigprs;
 };
 
+enum data_call_type {
+	DATA_CALL_TYPE_ISDN,
+	DATA_CALL_TYPE_ANALOG,
+};
+
+enum data_call_rate {
+	DATA_CALL_RATE_V110_300,
+	DATA_CALL_RATE_V110_1200,
+	DATA_CALL_RATE_V110_2400,
+	DATA_CALL_RATE_V110_4800,
+	DATA_CALL_RATE_V110_9600,
+	DATA_CALL_RATE_V110_14400,
+};
+
+/* Connection Element (transparency) */
+enum data_call_ce {
+	DATA_CALL_CE_TRANSP,
+	DATA_CALL_CE_TRANSP_PREF,
+	DATA_CALL_CE_NON_TRANSP,
+	DATA_CALL_CE_NON_TRANSP_PREF,
+};
+
+/* Data (CSD) call parameters */
+struct data_call_params {
+	enum data_call_type	type;
+	enum data_call_rate	rate;
+	enum data_call_ce	ce;
+};
+
 struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];
@@ -161,6 +192,14 @@ struct gsm_settings {
 	uint8_t			ch_cap; /* channel capability */
 	int8_t			min_rxlev_dbm; /* min dBm to access */
 
+	/* CSD modes */
+	bool			csd_tch_f144;
+	bool			csd_tch_f96;
+	bool			csd_tch_f48;
+	bool			csd_tch_h48;
+	bool			csd_tch_f24;
+	bool			csd_tch_h24;
+
 	/* support for ASCI */
 	bool			vgcs; /* support of VGCS */
 	bool			vbs; /* support of VBS */
@@ -192,6 +231,11 @@ struct gsm_settings {
 	/* ASCI settings */
 	bool			uplink_release_local;
 	bool			asci_allow_any;
+
+	/* call parameters */
+	struct {
+		struct data_call_params data;
+	} call_params;
 };
 
 struct gsm_settings_abbrev {

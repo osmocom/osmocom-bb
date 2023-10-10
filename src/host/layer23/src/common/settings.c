@@ -100,6 +100,14 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	set->ch_cap = sup->ch_cap;
 	set->min_rxlev_dbm = sup->min_rxlev_dbm;
 	set->dsc_max = sup->dsc_max;
+
+	set->csd_tch_f144 = sup->csd_tch_f144;
+	set->csd_tch_f96 = sup->csd_tch_f96;
+	set->csd_tch_f48 = sup->csd_tch_f48;
+	set->csd_tch_h48 = sup->csd_tch_h48;
+	set->csd_tch_f24 = sup->csd_tch_f24;
+	set->csd_tch_h24 = sup->csd_tch_h24;
+
 	set->vgcs = sup->vgcs;
 	set->vbs = sup->vbs;
 
@@ -117,6 +125,12 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	INIT_LLIST_HEAD(&set->abbrev);
 
 	set->uplink_release_local = true;
+
+	set->call_params.data = (struct data_call_params) {
+		.type = DATA_CALL_TYPE_ISDN,
+		.rate = DATA_CALL_RATE_V110_9600,
+		.ce = DATA_CALL_CE_TRANSP,
+	};
 
 	return 0;
 }

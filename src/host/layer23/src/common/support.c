@@ -97,6 +97,14 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->full_v3 = 0;
 	sup->half_v1 = 1;
 	sup->half_v3 = 0;
+
+	/* CSD modes */
+	sup->csd_tch_f144 = 1;
+	sup->csd_tch_f96 = 1;
+	sup->csd_tch_f48 = 1;
+	sup->csd_tch_h48 = 1;
+	sup->csd_tch_f24 = 1;
+	sup->csd_tch_h24 = 1;
 }
 
 /* (3.2.1) maximum channels to scan within each band */
@@ -173,6 +181,14 @@ void gsm_support_dump(struct osmocom_ms *ms,
 	print(priv, " Full-Rate V3 : %s\n", SUP_SET(full_v3));
 	print(priv, " Half-Rate V1 : %s\n", SUP_SET(half_v1));
 	print(priv, " Half-Rate V3 : %s\n", SUP_SET(half_v3));
+
+	print(priv, " CSD TCH/F14.4: %s\n", SUP_SET(csd_tch_f144));
+	print(priv, " CSD TCH/F9.6 : %s\n", SUP_SET(csd_tch_f96));
+	print(priv, " CSD TCH/F4.8 : %s\n", SUP_SET(csd_tch_f48));
+	print(priv, " CSD TCH/H4.8 : %s\n", SUP_SET(csd_tch_h48));
+	print(priv, " CSD TCH/F2.4 : %s\n", SUP_SET(csd_tch_f24));
+	print(priv, " CSD TCH/H2.4 : %s\n", SUP_SET(csd_tch_h24));
+
 	print(priv, " Min RXLEV    : %d\n", set->min_rxlev_dbm);
 }
 

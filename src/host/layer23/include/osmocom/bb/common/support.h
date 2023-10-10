@@ -91,6 +91,14 @@ struct gsm_support {
 	uint8_t half_v1;
 	uint8_t half_v3;
 
+	/* CSD modes */
+	uint8_t csd_tch_f144;
+	uint8_t csd_tch_f96;
+	uint8_t csd_tch_f48;
+	uint8_t csd_tch_h48;
+	uint8_t csd_tch_f24;
+	uint8_t csd_tch_h24;
+
 	/* EDGE / UMTS / CDMA */
 	uint8_t edge_ms_sup;
 	uint8_t edge_psk_sup;
