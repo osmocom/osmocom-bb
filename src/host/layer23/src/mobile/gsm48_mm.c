@@ -4632,10 +4632,9 @@ static struct mmdatastate {
 #define MMDATASLLEN \
 	(sizeof(mmdatastatelist) / sizeof(struct mmdatastate))
 
-static int create_conn_and_push_mm_hdr(struct gsm48_mmlayer *mm, struct msgb *msg, int rr_est, int rr_prim)
+static int create_conn_and_push_mm_hdr(struct gsm48_mmlayer *mm, struct msgb *msg, int rr_est, int rr_prim,
+				       uint8_t sapi)
 {
-	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
-	uint8_t sapi = rrh->sapi;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	uint8_t pdisc = gh->proto_discr & 0x0f;
 	uint8_t transaction_id;
@@ -4694,6 +4693,8 @@ static int create_conn_and_push_mm_hdr(struct gsm48_mmlayer *mm, struct msgb *ms
 static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
+	uint8_t sapi = rrh->sapi;
 	struct gsm48_hdr *gh = msgb_l3(msg);
 	uint8_t pdisc = gh->proto_discr & 0x0f;
 	uint8_t msg_type = gh->msg_type & 0xbf;
@@ -4729,34 +4730,34 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 		break; /* follow the selection procedure below */
 
 	case GSM48_PDISC_CC:
-		rc = create_conn_and_push_mm_hdr(mm, msg, GSM48_MMCC_EST_IND, GSM48_MMCC_DATA_IND);
+		rc = create_conn_and_push_mm_hdr(mm, msg, GSM48_MMCC_EST_IND, GSM48_MMCC_DATA_IND, sapi);
 		if (rc == 0)
 			rc = gsm48_rcv_cc(ms, msg);
 		msgb_free(msg);
 		return rc;
 
 	case GSM48_PDISC_NC_SS:
-		rc = create_conn_and_push_mm_hdr(mm, msg, GSM48_MMSS_EST_IND, GSM48_MMSS_DATA_IND);
+		rc = create_conn_and_push_mm_hdr(mm, msg, GSM48_MMSS_EST_IND, GSM48_MMSS_DATA_IND, sapi);
 		if (rc == 0)
 			rc = gsm480_rcv_ss(ms, msg);
 		msgb_free(msg);
 		return rc;
 
 	case GSM48_PDISC_SMS:
-		rc = create_conn_and_push_mm_hdr(mm, msg, GSM48_MMSMS_EST_IND, GSM48_MMSMS_DATA_IND);
+		rc = create_conn_and_push_mm_hdr(mm, msg, GSM48_MMSMS_EST_IND, GSM48_MMSMS_DATA_IND, sapi);
 		if (rc == 0)
 			rc = gsm411_rcv_sms(ms, msg);
 		msgb_free(msg);
 		return rc;
 
 	case GSM48_PDISC_GROUP_CC:
-		rc = create_conn_and_push_mm_hdr(mm, msg, -1, GSM48_MMGCC_DATA_IND);
+		rc = create_conn_and_push_mm_hdr(mm, msg, -1, GSM48_MMGCC_DATA_IND, sapi);
 		if (rc == 0)
 			rc = gsm44068_rcv_gcc_bcc(ms, msg);
 		msgb_free(msg);
 		return rc;
 	case GSM48_PDISC_BCAST_CC:
-		rc = create_conn_and_push_mm_hdr(mm, msg, -1, GSM48_MMBCC_DATA_IND);
+		rc = create_conn_and_push_mm_hdr(mm, msg, -1, GSM48_MMBCC_DATA_IND, sapi);
 		if (rc == 0)
 			rc = gsm44068_rcv_gcc_bcc(ms, msg);
 		msgb_free(msg);
