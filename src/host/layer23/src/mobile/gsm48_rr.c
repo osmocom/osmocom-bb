@@ -374,6 +374,62 @@ static uint8_t gsm48_rr_check_mode(struct osmocom_ms *ms, uint8_t chan_nr,
 			LOGP(DRR, LOGL_INFO, "Mode: half-rate speech V3\n");
 		}
 		break;
+	case GSM48_CMODE_DATA_14k5:
+		if (ch_type != RSL_CHAN_Bm_ACCHs) {
+			LOGP(DRR, LOGL_ERROR,
+			     "TCH/F is expected for mode %s\n",
+			     gsm48_chan_mode_name(mode));
+			return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		} else if (!set->csd_tch_f144) {
+			LOGP(DRR, LOGL_ERROR,
+			     "Not supporting TCH/F14.4 data (%s)\n",
+			     gsm48_chan_mode_name(mode));
+			return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		}
+		LOGP(DRR, LOGL_INFO, "Mode: TCH/F14.4 data (%s)\n",
+		     gsm48_chan_mode_name(mode));
+		break;
+	case GSM48_CMODE_DATA_12k0:
+		if (ch_type != RSL_CHAN_Bm_ACCHs) {
+			LOGP(DRR, LOGL_ERROR,
+			     "TCH/F is expected for mode %s\n",
+			     gsm48_chan_mode_name(mode));
+			return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		} else if (!set->csd_tch_f96) {
+			LOGP(DRR, LOGL_ERROR,
+			     "Not supporting TCH/F9.6 data (%s)\n",
+			     gsm48_chan_mode_name(mode));
+			return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		}
+		LOGP(DRR, LOGL_INFO, "Mode: TCH/F9.6 data (%s)\n",
+		     gsm48_chan_mode_name(mode));
+		break;
+	case GSM48_CMODE_DATA_6k0:
+		if ((ch_type == RSL_CHAN_Bm_ACCHs && !set->csd_tch_f48)
+		 || (ch_type == RSL_CHAN_Lm_ACCHs && !set->csd_tch_h48)) {
+			LOGP(DRR, LOGL_ERROR,
+			     "Not supporting TCH/%c4.8 data (%s)\n",
+			     ch_type == RSL_CHAN_Bm_ACCHs ? 'F' : 'H',
+			     gsm48_chan_mode_name(mode));
+			return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		}
+		LOGP(DRR, LOGL_INFO, "Mode: TCH/%c4.8 data (%s)\n",
+		     ch_type == RSL_CHAN_Bm_ACCHs ? 'F' : 'H',
+		     gsm48_chan_mode_name(mode));
+		break;
+	case GSM48_CMODE_DATA_3k6:
+		if ((ch_type == RSL_CHAN_Bm_ACCHs && !set->csd_tch_f24)
+		 || (ch_type == RSL_CHAN_Lm_ACCHs && !set->csd_tch_h24)) {
+			LOGP(DRR, LOGL_ERROR,
+			     "Not supporting TCH/%c2.4 data (%s)\n",
+			     ch_type == RSL_CHAN_Bm_ACCHs ? 'F' : 'H',
+			     gsm48_chan_mode_name(mode));
+			return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;
+		}
+		LOGP(DRR, LOGL_INFO, "Mode: TCH/%c2.4 data (%s)\n",
+		     ch_type == RSL_CHAN_Bm_ACCHs ? 'F' : 'H',
+		     gsm48_chan_mode_name(mode));
+		break;
 	default:
 		LOGP(DRR, LOGL_ERROR, "Mode 0x%02x not supported!\n", mode);
 		return GSM48_RR_CAUSE_CHAN_MODE_UNACCT;

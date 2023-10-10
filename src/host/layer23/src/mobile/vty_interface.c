@@ -494,10 +494,12 @@ DEFUN(network_select, network_select_cmd,
 	"Name of MS (see \"show ms\")\n"
 
 DEFUN(call_num, call_num_cmd,
-      CALL_CMD " NUMBER",
+      CALL_CMD " NUMBER [(voice|data)]",
       CALL_CMD_DESC
       "Phone number to call "
-      "(Use digits '0123456789*#abc', and '+' to dial international)\n")
+      "(Use digits '0123456789*#abc', and '+' to dial international)\n"
+      "Initiate a regular voice call (default)\n"
+      "Initiate a CSD (Circuit Switched Data) call\n")
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
@@ -527,7 +529,11 @@ DEFUN(call_num, call_num_cmd,
 
 	if (vty_check_number(vty, number))
 		return CMD_WARNING;
-	mncc_call(ms, number);
+
+	if (argc > 2 && !strcmp(argv[2], "data")) /* data call: explicit selection */
+		mncc_call(ms, number, true);
+	else /* voice call: explicit selection or implicit default */
+		mncc_call(ms, number, false);
 
 	return CMD_SUCCESS;
 }
@@ -557,7 +563,7 @@ DEFUN(call, call_cmd,
 
 	number = argv[1];
 	if (!strcmp(number, "emergency"))
-		mncc_call(ms, number);
+		mncc_call(ms, number, false);
 	else if (!strcmp(number, "answer"))
 		mncc_answer(ms);
 	else if (!strcmp(number, "hangup"))
@@ -1311,6 +1317,12 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(full_v3, "full-speech-v3");
 	SUP_WRITE(half_v1, "half-speech-v1");
 	SUP_WRITE(half_v3, "half-speech-v3");
+	SUP_WRITE(csd_tch_f144, "full-data-14400");
+	SUP_WRITE(csd_tch_f96, "full-data-9600");
+	SUP_WRITE(csd_tch_f48, "full-data-4800");
+	SUP_WRITE(csd_tch_h48, "half-data-4800");
+	SUP_WRITE(csd_tch_f24, "full-data-2400");
+	SUP_WRITE(csd_tch_h24, "half-data-2400");
 	if (!l23_vty_hide_default || sup->min_rxlev_dbm != set->min_rxlev_dbm)
 		vty_out(vty, "  min-rxlev %d%s", set->min_rxlev_dbm,
 			VTY_NEWLINE);
@@ -2248,6 +2260,13 @@ SUP_EN_DI(full_v3, "full-speech-v3", "Full rate speech V3 (AMR)", 0);
 SUP_EN_DI(half_v1, "half-speech-v1", "Half rate speech V1", 0);
 SUP_EN_DI(half_v3, "half-speech-v3", "Half rate speech V3 (AMR)", 0);
 
+SUP_EN_DI(csd_tch_f144, "full-data-14400", "CSD TCH/F14.4", 0);
+SUP_EN_DI(csd_tch_f96, "full-data-9600", "CSD TCH/F9.6", 0);
+SUP_EN_DI(csd_tch_f48, "full-data-4800", "CSD TCH/F4.8", 0);
+SUP_EN_DI(csd_tch_h48, "half-data-4800", "CSD TCH/H4.8", 0);
+SUP_EN_DI(csd_tch_f24, "full-data-2400", "CSD TCH/F2.4", 0);
+SUP_EN_DI(csd_tch_h24, "half-data-2400", "CSD TCH/H2.4", 0);
+
 DEFUN(cfg_ms_sup_min_rxlev, cfg_ms_sup_min_rxlev_cmd, "min-rxlev <-110--47>",
 	"Set the minimum receive level to select a cell\n"
 	"Minimum receive level from -110 dBm to -47 dBm")
@@ -2638,6 +2657,18 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_di_half_v1_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_en_half_v3_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_di_half_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_f144_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_f144_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_f96_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_f96_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_f48_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_f48_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_h48_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_h48_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_f24_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_f24_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_csd_tch_h24_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_csd_tch_h24_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_min_rxlev_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);

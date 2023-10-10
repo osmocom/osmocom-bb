@@ -1,6 +1,6 @@
 #pragma once
 
-int mncc_call(struct osmocom_ms *ms, const char *number);
+int mncc_call(struct osmocom_ms *ms, const char *number, bool data);
 int mncc_hangup(struct osmocom_ms *ms);
 int mncc_answer(struct osmocom_ms *ms);
 int mncc_hold(struct osmocom_ms *ms);

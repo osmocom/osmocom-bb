@@ -1,6 +1,8 @@
 #ifndef _settings_h
 #define _settings_h
 
+#include <stdbool.h>
+
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
@@ -160,6 +162,14 @@ struct gsm_settings {
 	uint8_t			half_v3;
 	uint8_t			ch_cap; /* channel capability */
 	int8_t			min_rxlev_dbm; /* min dBm to access */
+
+	/* CSD modes */
+	bool			csd_tch_f144;
+	bool			csd_tch_f96;
+	bool			csd_tch_f48;
+	bool			csd_tch_h48;
+	bool			csd_tch_f24;
+	bool			csd_tch_h24;
 
 	/* support for ASCI */
 	bool			vgcs; /* support of VGCS */
