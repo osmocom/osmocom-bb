@@ -104,6 +104,8 @@ typedef signed short API_SIGNED;
 #define B_PLAY_UL         (1 << 3) // Play UL
 #define B_DCO_ON          (1 << 4) // DCO ON/OFF
 #define B_AUDIO_ASYNC     (1 << 1) // WCP reserved
+#define B_MUTE_VOCODEC_DL (1 << 14) // DL voice decoder
+#define B_MUTE_VOCODEC_UL (1 << 15) // UL voice encoder
 
 // ****************************************************************
 // PARAMETER AREA (PARAM) MCU<->DSP COMMUNICATION DEFINITIONS

@@ -85,6 +85,18 @@ static void tch_get_params(struct gsm_time *time, uint8_t chan_nr,
 			*tch_mode = SIG_ONLY_MODE;
 		}
 	}
+
+	/* enable/disable the voice decoder (Downlink) */
+	if (l1s.audio_mode & AUDIO_RX_SPEAKER)
+		dsp_api.ndb->d_tch_mode &= ~B_MUTE_VOCODEC_DL; /* unmute */
+	else
+		dsp_api.ndb->d_tch_mode |= B_MUTE_VOCODEC_DL; /* mute */
+
+	/* enable/disable the voice encoder (Uplink) */
+	if (l1s.audio_mode & AUDIO_TX_MICROPHONE)
+		dsp_api.ndb->d_tch_mode &= ~B_MUTE_VOCODEC_UL; /* unmute */
+	else
+		dsp_api.ndb->d_tch_mode |= B_MUTE_VOCODEC_UL; /* mute */
 }
 
 
