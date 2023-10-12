@@ -78,6 +78,8 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
 	switch (ms->settings.audio.io_handler) {
 	case AUDIO_IOH_LOOPBACK:
+		/* Remove the DL info header */
+		msgb_pull_to_l2(msg);
 		/* Send voice frame back */
 		return gsm_send_voice_msg(ms, msg);
 	case AUDIO_IOH_MNCC_SOCK:
