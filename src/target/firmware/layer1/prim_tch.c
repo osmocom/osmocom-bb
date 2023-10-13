@@ -307,7 +307,7 @@ skip_rx_facch:
 			goto skip_rx_traffic;
 		if (~traffic_buf[0] & (1 << B_BLUD))
 			goto skip_rx_traffic;
-		if (~dsp_api.ndb->a_dd_0[0] & (1 << B_BFI)) /* FIXME: use traffic_buf[] */
+		if (~traffic_buf[0] & (1 << B_BFI))
 			goto skip_rx_traffic;
 
 		/* Allocate msgb */
