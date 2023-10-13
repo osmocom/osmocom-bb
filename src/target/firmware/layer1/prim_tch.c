@@ -313,8 +313,6 @@ skip_rx_facch:
 			goto skip_rx_traffic;
 		if (~traffic_buf[0] & (1 << B_BLUD))
 			goto skip_rx_traffic;
-		if (~traffic_buf[0] & (1 << B_BFI))
-			goto skip_rx_traffic;
 
 		/* Allocate msgb */
 		/* FIXME: we actually want all allocation out of L1S! */
@@ -340,6 +338,8 @@ skip_rx_facch:
 			dl->num_biterr = 0xff;
 		else
 			dl->num_biterr = num_biterr;
+
+		dl->fire_crc = ((traffic_buf[0] & 0xffff) & ((1 << B_FIRE1) | (1 << B_FIRE0))) >> B_FIRE0;
 
 		/* Update rx level for pm report */
 		pu_update_rx_level(dl->rx_level);
