@@ -156,14 +156,30 @@ static __attribute__ ((constructor)) void prim_tch_init(void)
 #define FACCH_MEAS_HIST	8	/* Up to 8 bursts history */
 struct l1s_rx_tch_state {
 	struct l1s_meas_hdr meas[FACCH_MEAS_HIST];
+	uint8_t meas_id;
 };
 
 static struct l1s_rx_tch_state rx_tch;
 
 
+static inline void l1s_tch_meas_avg(struct l1ctl_info_dl *dl,
+				    unsigned int meas_num)
+{
+	uint32_t avg_snr = 0;
+	int32_t avg_dbm8 = 0;
+
+	for (unsigned int i = 0; i < meas_num; i++) {
+		int j = (rx_tch.meas_id + FACCH_MEAS_HIST - i) % FACCH_MEAS_HIST;
+		avg_snr += rx_tch.meas[j].snr;
+		avg_dbm8 += rx_tch.meas[j].pm_dbm8;
+	}
+
+	dl->snr = avg_snr / meas_num;
+	dl->rx_level = dbm2rxlev(avg_dbm8 / (8 * meas_num));
+}
+
 static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 {
-	static uint8_t meas_id = 0;
 	uint8_t mf_task_id = p3 & 0xff;
 	struct gsm_time rx_time;
 	uint8_t chan_nr;
@@ -179,27 +195,27 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 	chan_nr = mframe_task2chan_nr(mf_task_id, tn);
 	tch_get_params(&rx_time, chan_nr, &fn_report, &tch_f_hn, &tch_sub, NULL);
 
-	meas_id = (meas_id + 1) % FACCH_MEAS_HIST; /* absolute value doesn't matter */
+	rx_tch.meas_id = (rx_tch.meas_id + 1) % FACCH_MEAS_HIST; /* absolute value doesn't matter */
 
 	/* Collect measurements */
-	rx_tch.meas[meas_id].toa_qbit = dsp_api.db_r->a_serv_demod[D_TOA];
-	rx_tch.meas[meas_id].pm_dbm8 =
+	rx_tch.meas[rx_tch.meas_id].toa_qbit = dsp_api.db_r->a_serv_demod[D_TOA];
+	rx_tch.meas[rx_tch.meas_id].pm_dbm8 =
 		agc_inp_dbm8_by_pm(dsp_api.db_r->a_serv_demod[D_PM] >> 3);
-	rx_tch.meas[meas_id].freq_err =
+	rx_tch.meas[rx_tch.meas_id].freq_err =
 		ANGLE_TO_FREQ(dsp_api.db_r->a_serv_demod[D_ANGLE]);
-	rx_tch.meas[meas_id].snr = dsp_api.db_r->a_serv_demod[D_SNR];
+	rx_tch.meas[rx_tch.meas_id].snr = dsp_api.db_r->a_serv_demod[D_SNR];
 
 	/* feed computed frequency error into AFC loop */
-	if (rx_tch.meas[meas_id].snr > AFC_SNR_THRESHOLD)
-		afc_input(rx_tch.meas[meas_id].freq_err, arfcn, 1);
+	if (rx_tch.meas[rx_tch.meas_id].snr > AFC_SNR_THRESHOLD)
+		afc_input(rx_tch.meas[rx_tch.meas_id].freq_err, arfcn, 1);
 	else
-		afc_input(rx_tch.meas[meas_id].freq_err, arfcn, 0);
+		afc_input(rx_tch.meas[rx_tch.meas_id].freq_err, arfcn, 0);
 
 	/* feed computed TOA into TA loop */
-	toa_input(rx_tch.meas[meas_id].toa_qbit << 2, rx_tch.meas[meas_id].snr);
+	toa_input(rx_tch.meas[rx_tch.meas_id].toa_qbit << 2, rx_tch.meas[rx_tch.meas_id].snr);
 
 	/* Tell the RF frontend to set the gain appropriately */
-	rffe_compute_gain(rx_tch.meas[meas_id].pm_dbm8 / 8,
+	rffe_compute_gain(rx_tch.meas[rx_tch.meas_id].pm_dbm8 / 8,
 		CAL_DSP_TGT_BB_LVL);
 
 	/* FACCH Block end ? */
@@ -219,9 +235,6 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		struct l1ctl_info_dl *dl;
 		struct l1ctl_data_ind *di;
 		uint16_t num_biterr;
-		uint32_t avg_snr = 0;
-		int32_t avg_dbm8 = 0;
-		int i, n;
 
 		/* Allocate msgb */
 			/* FIXME: we actually want all allocation out of L1S! */
@@ -241,15 +254,7 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		dl->frame_nr = htonl(rx_time.fn);
 
 		/* Average SNR & RX level */
-		n = tch_f_hn ? 8 : 6;
-		for (i=0; i<n; i++) {
-			int j = (meas_id + FACCH_MEAS_HIST - i) % FACCH_MEAS_HIST;
-			avg_snr += rx_tch.meas[j].snr;
-			avg_dbm8 += rx_tch.meas[j].pm_dbm8;
-		}
-
-		dl->snr = avg_snr / n;
-		dl->rx_level = dbm2rxlev(avg_dbm8 / (8*n));
+		l1s_tch_meas_avg(dl, tch_f_hn ? 8 : 6);
 
 		/* Errors & CRC status */
 		num_biterr = dsp_api.ndb->a_fd[2] & 0xffff;
@@ -299,6 +304,7 @@ skip_rx_facch:
 		struct l1ctl_info_dl *dl;
 		struct l1ctl_traffic_ind *ti;
 		struct msgb *msg;
+		uint16_t num_biterr;
 
 		traffic_buf = tch_sub ? dsp_api.ndb->a_dd_1 : dsp_api.ndb->a_dd_0;
 
@@ -320,6 +326,23 @@ skip_rx_facch:
 
 		dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
 		ti = (struct l1ctl_traffic_ind *) msgb_put(msg, sizeof(*ti));
+
+		dl->chan_nr = chan_nr;
+		dl->band_arfcn = htons(arfcn);
+		dl->frame_nr = htonl(rx_time.fn);
+
+		/* Average SNR & RX level */
+		l1s_tch_meas_avg(dl, tch_f_hn ? 8 : 4);
+
+		/* Errors & CRC status */
+		num_biterr = traffic_buf[2] & 0xffff;
+		if (num_biterr > 0xff)
+			dl->num_biterr = 0xff;
+		else
+			dl->num_biterr = num_biterr;
+
+		/* Update rx level for pm report */
+		pu_update_rx_level(dl->rx_level);
 
 		/* Copy actual data, skipping the information block [0,1,2] */
 		dsp_memcpy_from_api(msgb_put(msg, 33), &traffic_buf[3], 33, 1);
