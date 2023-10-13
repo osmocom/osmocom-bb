@@ -296,42 +296,45 @@ skip_rx_facch:
 
 	if (traffic_rx_now) {
 		volatile uint16_t *traffic_buf;
+		struct l1ctl_info_dl *dl;
+		struct l1ctl_traffic_ind *ti;
+		struct msgb *msg;
 
 		traffic_buf = tch_sub ? dsp_api.ndb->a_dd_1 : dsp_api.ndb->a_dd_0;
 
-		if (traffic_buf[0] & (1<<B_BLUD)) {
-			/* Send the data to upper layers (if interested and good frame) */
-			if ((l1s.audio_mode & AUDIO_RX_TRAFFIC_IND) &&
-			    !(dsp_api.ndb->a_dd_0[0] & (1<<B_BFI))) {
-				struct msgb *msg;
-				struct l1ctl_info_dl *dl;
-				struct l1ctl_traffic_ind *ti;
-				uint8_t *payload;
+		/* Send the data to upper layers (if interested and good frame) */
+		if (~l1s.audio_mode & AUDIO_RX_TRAFFIC_IND)
+			goto skip_rx_traffic;
+		if (~traffic_buf[0] & (1 << B_BLUD))
+			goto skip_rx_traffic;
+		if (~dsp_api.ndb->a_dd_0[0] & (1 << B_BFI)) /* FIXME: use traffic_buf[] */
+			goto skip_rx_traffic;
 
-				/* Allocate msgb */
-				/* FIXME: we actually want all allocation out of L1S! */
-				msg = l1ctl_msgb_alloc(L1CTL_TRAFFIC_IND);
-				if(!msg) {
-					printf("TCH traffic: unable to allocate msgb\n");
-					goto skip_rx_traffic;
-				}
+		/* Allocate msgb */
+		/* FIXME: we actually want all allocation out of L1S! */
+		msg = l1ctl_msgb_alloc(L1CTL_TRAFFIC_IND);
+		if (!msg) {
+			printf("TCH traffic: unable to allocate msgb\n");
+			goto skip_rx_traffic;
+		}
 
-				dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
-				ti = (struct l1ctl_traffic_ind *) msgb_put(msg, sizeof(*ti));
-				payload = (uint8_t *) msgb_put(msg, 33);
+		dl = (struct l1ctl_info_dl *) msgb_put(msg, sizeof(*dl));
+		ti = (struct l1ctl_traffic_ind *) msgb_put(msg, sizeof(*ti));
 
-				/* Copy actual data, skipping the information block [0,1,2] */
-				dsp_memcpy_from_api(payload, &traffic_buf[3], 33, 1);
+		/* Copy actual data, skipping the information block [0,1,2] */
+		dsp_memcpy_from_api(msgb_put(msg, 33), &traffic_buf[3], 33, 1);
 
-				/* Give message to up layer */
-				l1_queue_for_l2(msg);
-			}
+		/* Give message to up layer */
+		l1_queue_for_l2(msg);
 
 skip_rx_traffic:
-			/* Reset traffic buffer header in NDB (needed by DSP) */
-			traffic_buf[0] = 0;
-			traffic_buf[2] = 0xffff;
-		}
+		/* Reset A_DD_0 header in NDB (needed by DSP) */
+		dsp_api.ndb->a_dd_0[0] = 0;
+		dsp_api.ndb->a_dd_0[2] = 0xffff;
+
+		/* Reset A_DD_1 header in NDB (needed by DSP) */
+		dsp_api.ndb->a_dd_1[0] = 0;
+		dsp_api.ndb->a_dd_1[2] = 0xffff;
 	}
 
 	/* mark READ page as being used */
