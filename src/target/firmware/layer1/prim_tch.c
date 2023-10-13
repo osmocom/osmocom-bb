@@ -434,7 +434,6 @@ static int l1s_tch_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 	if (traffic_tx_now) {
 		volatile uint16_t *traffic_buf;
 		struct msgb *msg;
-		const uint8_t *data;
 
 		/* Reset play mode */
 		dsp_api.ndb->d_tch_mode &= ~B_PLAY_UL;
@@ -448,30 +447,25 @@ static int l1s_tch_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 
 		/* Pull Traffic data (if any) */
 		msg = msgb_dequeue(&l1s.tx_queue[L1S_CHAN_TRAFFIC]);
+		if (msg == NULL)
+			goto skip_tx_traffic;
 
 		/* Copy actual data, skipping the information block [0,1,2] */
-		if (msg) {
-			data = msg->l2h;
-			dsp_memcpy_to_api(&traffic_buf[3], data, 33, 1);
+		dsp_memcpy_to_api(&traffic_buf[3], msgb_l2(msg), 33, 1);
 
-			traffic_buf[0] = (1 << B_BLUD);	/* 1st word: Set B_BLU bit. */
-			traffic_buf[1] = 0;		/* 2nd word: cleared. */
-			traffic_buf[2] = 0;		/* 3nd word: cleared. */
-		}
+		traffic_buf[0] = (1 << B_BLUD);	/* 1st word: Set B_BLU bit. */
+		traffic_buf[1] = 0;		/* 2nd word: cleared. */
+		traffic_buf[2] = 0;		/* 3nd word: cleared. */
 
-		if (msg)
-			dsp_api.ndb->d_tch_mode |= B_PLAY_UL;
+		dsp_api.ndb->d_tch_mode |= B_PLAY_UL;
 
 		/* Indicate completion (FIXME: early but easier this way for now) */
-		if (msg) {
-			last_tx_tch_fn = l1s.next_time.fn;
-			last_tx_tch_type |= TX_TYPE_TRAFFIC;
-			l1s_compl_sched(L1_COMPL_TX_TCH);
-		}
+		last_tx_tch_fn = l1s.next_time.fn;
+		last_tx_tch_type |= TX_TYPE_TRAFFIC;
+		l1s_compl_sched(L1_COMPL_TX_TCH);
 
 		/* Free msg now that we're done with it */
-		if (msg)
-			msgb_free(msg);
+		msgb_free(msg);
 	}
 skip_tx_traffic:
 
