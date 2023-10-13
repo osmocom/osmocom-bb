@@ -961,6 +961,8 @@ static int rx_l1_neigh_pm_ind(struct osmocom_ms *ms, struct msgb *msg)
 static int rx_l1_gprs_dl_block_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	const struct l1ctl_gprs_dl_block_ind *ind = (void *)msg->l1h;
+	uint8_t gsmtap_chan;
+	uint32_t fn;
 
 	if (msgb_l1len(msg) < sizeof(*ind)) {
 		LOGP(DL1C, LOGL_ERROR,
@@ -977,8 +979,20 @@ static int rx_l1_gprs_dl_block_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	msg->l2h = (void *)&ind->data[0];
 
+	fn = ntohl(ind->hdr.fn);
+	if ((fn % 104) == 12)
+		gsmtap_chan = GSMTAP_CHANNEL_PTCCH;
+	else
+		gsmtap_chan = GSMTAP_CHANNEL_PDTCH;
+
+	gsmtap_send(l23_cfg.gsmtap.inst,
+		    ms->rrlayer.cd_now.arfcn,
+		    ind->hdr.tn, gsmtap_chan, 0, fn,
+		    rxlev2dbm(ind->meas.rx_lev), 0,
+		    msgb_l2(msg), msgb_l2len(msg));
+
 	DEBUGP(DL1C, "Rx GPRS DL block (fn=%u, tn=%u, len=%u): %s\n",
-	       ntohl(ind->hdr.fn), ind->hdr.tn, msgb_l2len(msg), msgb_hexdump_l2(msg));
+	       fn, ind->hdr.tn, msgb_l2len(msg), msgb_hexdump_l2(msg));
 
 	/* distribute or drop */
 	if (ms->l1_entity.l1_gprs_dl_block_ind)
@@ -1036,6 +1050,11 @@ int l1ctl_tx_gprs_ul_block_req(struct osmocom_ms *ms, uint32_t fn, uint8_t tn,
 
 	DEBUGP(DL1C, "Tx GPRS UL block (fn=%u, tn=%u, len=%zu): %s\n",
 	       fn, tn, data_len, osmo_hexdump(data, data_len));
+
+	gsmtap_send(l23_cfg.gsmtap.inst,
+		    ms->rrlayer.cd_now.arfcn | GSMTAP_ARFCN_F_UPLINK,
+		    tn, GSMTAP_CHANNEL_PDTCH, 0, fn, 127, 0,
+		    data, data_len);
 
 	return osmo_send_l1(ms, msg);
 }
