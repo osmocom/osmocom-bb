@@ -34,7 +34,8 @@
 static uint32_t new_callref = 1;
 static LLIST_HEAD(call_list);
 
-static int dtmf_statemachine(struct gsm_call *call, struct gsm_mncc *mncc);
+static int dtmf_statemachine(struct gsm_call *call,
+			     const struct gsm_mncc *mncc);
 static void timeout_dtmf(void *arg);
 
 /*
@@ -258,7 +259,7 @@ int mncc_recv_external(struct osmocom_ms *ms, int msg_type, void *arg)
 int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 {
 	struct gsm_settings *set = &ms->settings;
-	struct gsm_mncc *data = arg;
+	const struct gsm_mncc *data = arg;
 	struct gsm_call *call = get_call_ref(data->callref);
 	struct gsm_mncc mncc;
 	uint8_t cause;
@@ -727,7 +728,8 @@ int mncc_retrieve(struct osmocom_ms *ms, int number)
  * DTMF
  */
 
-static int dtmf_statemachine(struct gsm_call *call, struct gsm_mncc *mncc)
+static int dtmf_statemachine(struct gsm_call *call,
+			     const struct gsm_mncc *mncc)
 {
 	struct osmocom_ms *ms = call->ms;
 	struct gsm_mncc dtmf;
