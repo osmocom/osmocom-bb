@@ -269,7 +269,7 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		/* Give message to up layer */
 		l1_queue_for_l2(msg);
 
-	skip_rx_facch:
+skip_rx_facch:
 		/* Reset A_FD header (needed by DSP) */
 		/* B_FIRE1 =1, B_FIRE0 =0 , BLUD =0 */
 		dsp_api.ndb->a_fd[0] = (1<<B_FIRE1);
@@ -327,7 +327,7 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 				l1_queue_for_l2(msg);
 			}
 
-	skip_rx_traffic:
+skip_rx_traffic:
 			/* Reset traffic buffer header in NDB (needed by DSP) */
 			traffic_buf[0] = 0;
 			traffic_buf[2] = 0xffff;
