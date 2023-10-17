@@ -83,14 +83,8 @@
  * init
  */
 
-static struct osmo_fsm vgcs_gcc_fsm;
-static struct osmo_fsm vgcs_bcc_fsm;
-
 int gsm44068_gcc_init(struct osmocom_ms *ms)
 {
-	OSMO_ASSERT(osmo_fsm_register(&vgcs_gcc_fsm) == 0);
-	OSMO_ASSERT(osmo_fsm_register(&vgcs_bcc_fsm) == 0);
-
 	LOGP(DGCC, LOGL_INFO, "init GCC/BCC\n");
 
 	return 0;
@@ -1483,6 +1477,12 @@ static struct osmo_fsm vgcs_bcc_fsm = {
 	.event_names = vgcs_gcc_fsm_event_names,
 	.timer_cb = vgcs_gcc_fsm_timer_cb,
 };
+
+static __attribute__((constructor)) void on_dso_load(void)
+{
+	OSMO_ASSERT(osmo_fsm_register(&vgcs_gcc_fsm) == 0);
+	OSMO_ASSERT(osmo_fsm_register(&vgcs_bcc_fsm) == 0);
+}
 
 static const char *gsm44068_gcc_state_name(struct osmo_fsm_inst *fi)
 {
