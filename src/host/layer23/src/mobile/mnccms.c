@@ -192,6 +192,119 @@ static void mncc_set_bearer(struct gsm_mncc *mncc,
 	mncc->bearer_cap.mode = GSM48_BCAP_TMOD_CIRCUIT;
 }
 
+/* Check the given Bearer Capability, select first supported speech codec version.
+ * The choice between half-rate and full-rate is made based on current settings.
+ * Return a selected codec or -1 if no speech codec was selected. */
+static int mncc_handle_bcap_speech(const struct gsm_mncc_bearer_cap *bcap,
+				   const struct gsm_settings *set)
+{
+	int speech_ver_half = -1;
+	int speech_ver = -1;
+
+	for (unsigned int i = 0; bcap->speech_ver[i] >= 0; i++) {
+		int temp = mncc_get_bearer(set, bcap->speech_ver[i]);
+		switch (temp) {
+		case GSM48_BCAP_SV_AMR_H:
+		case GSM48_BCAP_SV_HR:
+			/* only the first half rate */
+			if (speech_ver_half < 0)
+				speech_ver_half = temp;
+			break;
+		default:
+			if (temp < 0)
+				continue;
+			/* only the first full rate */
+			if (speech_ver < 0)
+				speech_ver = temp;
+			break;
+		}
+	}
+
+	/* half and full given */
+	if (speech_ver_half >= 0 && speech_ver >= 0) {
+		if (set->half_prefer) {
+			LOGP(DMNCC, LOGL_INFO, " both supported"
+				" codec rates are given, using "
+				"preferred half rate\n");
+			speech_ver = speech_ver_half;
+		} else {
+			LOGP(DMNCC, LOGL_INFO, " both supported"
+				" codec rates are given, using "
+				"preferred full rate\n");
+		}
+	} else if (speech_ver_half < 0 && speech_ver < 0) {
+		LOGP(DMNCC, LOGL_INFO, " no supported codec "
+			"rate is given\n");
+	/* only half rate is given, use it */
+	} else if (speech_ver_half >= 0) {
+		LOGP(DMNCC, LOGL_INFO, " only supported half "
+			"rate codec is given, using it\n");
+		speech_ver = speech_ver_half;
+	/* only full rate is given, use it */
+	} else {
+		LOGP(DMNCC, LOGL_INFO, " only supported full "
+			"rate codec is given, using it\n");
+	}
+
+	return speech_ver;
+}
+
+static int mncc_handle_bcap(struct gsm_mncc *mncc_out,		/* CC Call Confirmed */
+			    const struct gsm_mncc *mncc_in,	/* CC Setup */
+			    const struct gsm_settings *set)
+{
+	const struct gsm_mncc_bearer_cap *bcap = &mncc_in->bearer_cap;
+
+	/* 3GPP TS 24.008, section 9.3.2.2 defines several cases in which the
+	 * Bearer Capability 1 IE is to be included, provided that at least
+	 * one of these conditions is met. */
+
+	/* if the Bearer Capability 1 IE is not present */
+	if (~mncc_in->fields & MNCC_F_BEARER_CAP) {
+		/* ... include our own Bearer Capability, assuming a speech call */
+		mncc_set_bearer(mncc_out, set, -1);
+		return 0;
+	}
+
+	if (bcap->mode != GSM48_BCAP_TMOD_CIRCUIT) {
+		LOGP(DMNCC, LOGL_ERROR,
+		     "%s(): Transfer mode 0x%02x is not supported\n",
+		     __func__, bcap->mode);
+		return -ENOTSUP;
+	}
+	if (bcap->coding != GSM48_BCAP_CODING_GSM_STD) {
+		LOGP(DMNCC, LOGL_ERROR,
+		     "%s(): Coding standard 0x%02x is not supported\n",
+		     __func__, bcap->coding);
+		return -ENOTSUP;
+	}
+
+	switch (bcap->transfer) {
+	case GSM48_BCAP_ITCAP_SPEECH:
+	{
+		int speech_ver = mncc_handle_bcap_speech(bcap, set);
+		/* include bearer cap, if not given in setup (see above)
+		 * or if multiple codecs are given
+		 * or if not only full rate
+		 * or if given codec is unimplemented
+		 */
+		if (speech_ver < 0)
+			mncc_set_bearer(mncc_out, set, -1);
+		else if (bcap->speech_ver[1] >= 0 || speech_ver != 0)
+			mncc_set_bearer(mncc_out, set, speech_ver);
+		break;
+	}
+	case GSM48_BCAP_ITCAP_UNR_DIG_INF:
+	default:
+		LOGP(DMNCC, LOGL_ERROR,
+		     "%s(): Information transfer capability 0x%02x is not supported\n",
+		     __func__, bcap->transfer);
+		return -ENOTSUP;
+	}
+
+	return 0;
+}
+
 /*
  * MNCCms dummy application
  */
@@ -264,7 +377,6 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 	struct gsm_call *call = get_call_ref(data->callref);
 	struct gsm_mncc mncc;
 	uint8_t cause;
-	int8_t	speech_ver = -1, speech_ver_half = -1, temp;
 	int first_call = 0;
 
 	/* call does not exist */
@@ -397,53 +509,6 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 			cause = GSM48_CC_CAUSE_USER_BUSY;
 			goto release;
 		}
-		/* select first supported speech_ver */
-		if ((data->fields & MNCC_F_BEARER_CAP)) {
-			int i;
-
-			for (i = 0; data->bearer_cap.speech_ver[i] >= 0; i++) {
-				temp = mncc_get_bearer(set, data->bearer_cap.speech_ver[i]);
-				switch (temp) {
-				case GSM48_BCAP_SV_AMR_H:
-				case GSM48_BCAP_SV_HR:
-					/* only the first half rate */
-					if (speech_ver_half < 0)
-						speech_ver_half = temp;
-					break;
-				default:
-					if (temp < 0)
-						continue;
-					/* only the first full rate */
-					if (speech_ver < 0)
-						speech_ver = temp;
-					break;
-				}
-			}
-			/* half and full given */
-			if (speech_ver_half >= 0 && speech_ver >= 0) {
-				if (set->half_prefer) {
-					LOGP(DMNCC, LOGL_INFO, " both supported"
-						" codec rates are given, using "
-						"preferred half rate\n");
-					speech_ver = speech_ver_half;
-				} else
-					LOGP(DMNCC, LOGL_INFO, " both supported"
-						" codec rates are given, using "
-						"preferred full rate\n");
-			} else if (speech_ver_half < 0 && speech_ver < 0) {
-				LOGP(DMNCC, LOGL_INFO, " no supported codec "
-					"rate is given\n");
-			/* only half rate is given, use it */
-			} else if (speech_ver_half >= 0) {
-				LOGP(DMNCC, LOGL_INFO, " only supported half "
-					"rate codec is given, using it\n");
-				speech_ver = speech_ver_half;
-			/* only full rate is given, use it */
-			} else {
-				LOGP(DMNCC, LOGL_INFO, " only supported full "
-					"rate codec is given, using it\n");
-			}
-		}
 		/* presentation allowed if present == 0 */
 		if (data->calling.present || !data->calling.number[0])
 			l23_vty_ms_notify(ms, "Incoming call (anonymous)\n");
@@ -460,16 +525,11 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 			data->calling.number, call->callref);
 		memset(&mncc, 0, sizeof(struct gsm_mncc));
 		mncc.callref = call->callref;
-		/* only include bearer cap, if not given in setup
-		 * or if multiple codecs are given
-		 * or if not only full rate
-		 * or if given codec is unimplemented
-		 */
-		if (!(data->fields & MNCC_F_BEARER_CAP) || speech_ver < 0)
-			mncc_set_bearer(&mncc, set, -1);
-		else if (data->bearer_cap.speech_ver[1] >= 0
-		      || speech_ver != 0)
-			mncc_set_bearer(&mncc, set, speech_ver);
+		/* Bearer capability (optional) */
+		if (mncc_handle_bcap(&mncc, data, &ms->settings) != 0) {
+			cause = GSM48_CC_CAUSE_INCOMPAT_DEST;
+			goto release;
+		}
 		/* CC capabilities (optional) */
 		if (ms->settings.cc_dtmf) {
 			mncc.fields |= MNCC_F_CCCAP;
