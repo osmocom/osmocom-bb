@@ -1125,6 +1125,8 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate)
 		if (!nmsg)
 			return;
 		gsm48_mmevent_msg(ms, nmsg);
+		/* Stop here and wait for the IMSI_DETACH event being handled. */
+		return;
 	}
 
 	/* 4.4.2 start T3212 in MM IDLE mode if not started or has expired */
@@ -2152,6 +2154,8 @@ static int gsm48_mm_imsi_detach_vgcs(struct osmocom_ms *ms, struct msgb *msg)
 	struct msgb *nmsg;
 	struct gsm48_mmxx_hdr *nmmh;
 	int msg_type;
+
+	LOGP(DMM, LOGL_INFO, "IMSI detach delayed until group receive/transmit mode is left.\n");
 
 	/* remember to detach later */
 	mm->delay_detach = 1;
@@ -3889,9 +3893,9 @@ static int gsm48_mm_group_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* Change mode back to normal or limited service. */
 	if (mm->substate == GSM48_MM_SST_RX_VGCS_LIMITED)
-		mm->substate = GSM48_MM_SST_LIMITED_SERVICE;
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
 	if (mm->substate == GSM48_MM_SST_RX_VGCS_NORMAL)
-		mm->substate = GSM48_MM_SST_NORMAL_SERVICE;
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_NORMAL_SERVICE);
 
 	/* Return IDLE, if not already. Also select the sub-state to use. */
 	gsm48_mm_return_idle(ms, NULL);
@@ -3937,9 +3941,9 @@ static int gsm48_mm_group_rel_req(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* Change mode back to normal or limited service. */
 	if (mm->substate == GSM48_MM_SST_RX_VGCS_LIMITED)
-		mm->substate = GSM48_MM_SST_LIMITED_SERVICE;
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
 	if (mm->substate == GSM48_MM_SST_RX_VGCS_NORMAL)
-		mm->substate = GSM48_MM_SST_NORMAL_SERVICE;
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_NORMAL_SERVICE);
 
 	/* We are already IDLE. Also select the sub-state to use. */
 	gsm48_mm_return_idle(ms, NULL);
