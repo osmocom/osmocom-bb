@@ -22,6 +22,7 @@
 #include <stdlib.h>
 
 #include <osmocom/core/talloc.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
@@ -84,7 +85,7 @@ struct gsm_call *get_call_ref(uint32_t callref)
 static int8_t mncc_get_bearer(struct gsm_settings *set, uint8_t speech_ver)
 {
 	switch (speech_ver) {
-	case 4:
+	case GSM48_BCAP_SV_AMR_F:
 		if (set->full_v3)
 			LOGP(DMNCC, LOGL_INFO, " net suggests full rate v3\n");
 		else {
@@ -92,7 +93,7 @@ static int8_t mncc_get_bearer(struct gsm_settings *set, uint8_t speech_ver)
 			speech_ver = -1;
 		}
 		break;
-	case 2:
+	case GSM48_BCAP_SV_EFR:
 		if (set->full_v2)
 			LOGP(DMNCC, LOGL_INFO, " net suggests full rate v2\n");
 		else {
@@ -100,7 +101,7 @@ static int8_t mncc_get_bearer(struct gsm_settings *set, uint8_t speech_ver)
 			speech_ver = -1;
 		}
 		break;
-	case 0: /* mandatory */
+	case GSM48_BCAP_SV_FR: /* mandatory */
 		if (set->full_v1)
 			LOGP(DMNCC, LOGL_INFO, " net suggests full rate v1\n");
 		else {
@@ -108,7 +109,7 @@ static int8_t mncc_get_bearer(struct gsm_settings *set, uint8_t speech_ver)
 			speech_ver = -1;
 		}
 		break;
-	case 5:
+	case GSM48_BCAP_SV_AMR_H:
 		if (set->half_v3)
 			LOGP(DMNCC, LOGL_INFO, " net suggests half rate v3\n");
 		else {
@@ -116,7 +117,7 @@ static int8_t mncc_get_bearer(struct gsm_settings *set, uint8_t speech_ver)
 			speech_ver = -1;
 		}
 		break;
-	case 1:
+	case GSM48_BCAP_SV_HR:
 		if (set->half_v1)
 			LOGP(DMNCC, LOGL_INFO, " net suggests half rate v1\n");
 		else {
@@ -140,13 +141,13 @@ static void mncc_set_bearer(struct osmocom_ms *ms, int8_t speech_ver,
 	int i = 0;
 
 	mncc->fields |= MNCC_F_BEARER_CAP;
-	mncc->bearer_cap.coding = 0;
+	mncc->bearer_cap.coding = GSM48_BCAP_CODING_GSM_STD;
 	if (set->ch_cap == GSM_CAP_SDCCH_TCHF_TCHH
 	 && (set->half_v1 || set->half_v3)) {
-		mncc->bearer_cap.radio = 3;
+		mncc->bearer_cap.radio = GSM48_BCAP_RRQ_DUAL_FR;
 		LOGP(DMNCC, LOGL_INFO, " support TCH/H also\n");
 	} else {
-		mncc->bearer_cap.radio = 1;
+		mncc->bearer_cap.radio = GSM48_BCAP_RRQ_FR_ONLY;
 		LOGP(DMNCC, LOGL_INFO, " support TCH/F only\n");
 	}
 	mncc->bearer_cap.speech_ctm = 0;
@@ -154,41 +155,41 @@ static void mncc_set_bearer(struct osmocom_ms *ms, int8_t speech_ver,
 	if (speech_ver < 0) {
 		/* if half rate is supported and preferred */
 		if (set->half_v3 && set->half && set->half_prefer) {
-			mncc->bearer_cap.speech_ver[i++] = 5;
+			mncc->bearer_cap.speech_ver[i++] = GSM48_BCAP_SV_AMR_H;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v3\n");
 		}
 		if (set->half_v1 && set->half && set->half_prefer) {
-			mncc->bearer_cap.speech_ver[i++] = 1;
+			mncc->bearer_cap.speech_ver[i++] = GSM48_BCAP_SV_HR;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v1\n");
 		}
 		/* if full rate is supported */
 		if (set->full_v3) {
-			mncc->bearer_cap.speech_ver[i++] = 4;
+			mncc->bearer_cap.speech_ver[i++] = GSM48_BCAP_SV_AMR_F;
 			LOGP(DMNCC, LOGL_INFO, " support full rate v3\n");
 		}
 		if (set->full_v2) {
-			mncc->bearer_cap.speech_ver[i++] = 2;
+			mncc->bearer_cap.speech_ver[i++] = GSM48_BCAP_SV_EFR;
 			LOGP(DMNCC, LOGL_INFO, " support full rate v2\n");
 		}
 		if (set->full_v1) { /* mandatory, so it's always true */
-			mncc->bearer_cap.speech_ver[i++] = 0;
+			mncc->bearer_cap.speech_ver[i++] = GSM48_BCAP_SV_FR;
 			LOGP(DMNCC, LOGL_INFO, " support full rate v1\n");
 		}
 		/* if half rate is supported and not preferred */
 		if (set->half_v3 && set->half && !set->half_prefer) {
-			mncc->bearer_cap.speech_ver[i++] = 5;
+			mncc->bearer_cap.speech_ver[i++] = GSM48_BCAP_SV_AMR_H;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v3\n");
 		}
 		if (set->half_v1 && set->half && !set->half_prefer) {
-			mncc->bearer_cap.speech_ver[i++] = 1;
+			mncc->bearer_cap.speech_ver[i++] = GSM48_BCAP_SV_HR;
 			LOGP(DMNCC, LOGL_INFO, " support half rate v1\n");
 		}
 	/* if specific speech_ver is given (it must be supported) */
 	} else
 		mncc->bearer_cap.speech_ver[i++] = speech_ver;
 	mncc->bearer_cap.speech_ver[i] = -1; /* end of list */
-	mncc->bearer_cap.transfer = 0;
-	mncc->bearer_cap.mode = 0;
+	mncc->bearer_cap.transfer = GSM48_BCAP_ITCAP_SPEECH;
+	mncc->bearer_cap.mode = GSM48_BCAP_TMOD_CIRCUIT;
 }
 
 /*
@@ -401,19 +402,21 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 			int i;
 
 			for (i = 0; data->bearer_cap.speech_ver[i] >= 0; i++) {
-
-				temp = mncc_get_bearer(set,
-					data->bearer_cap.speech_ver[i]);
-				if (temp < 0)
-					continue;
-				if (temp == 5 || temp == 1) { /* half */
+				temp = mncc_get_bearer(set, data->bearer_cap.speech_ver[i]);
+				switch (temp) {
+				case GSM48_BCAP_SV_AMR_H:
+				case GSM48_BCAP_SV_HR:
 					/* only the first half rate */
 					if (speech_ver_half < 0)
 						speech_ver_half = temp;
-				} else {
+					break;
+				default:
+					if (temp < 0)
+						continue;
 					/* only the first full rate */
 					if (speech_ver < 0)
 						speech_ver = temp;
+					break;
 				}
 			}
 			/* half and full given */
