@@ -90,7 +90,7 @@ static int8_t mncc_get_bearer(const struct gsm_settings *set, uint8_t speech_ver
 			LOGP(DMNCC, LOGL_INFO, " net suggests full rate v3\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " full rate v3 not supported\n");
-			speech_ver = -1;
+			return -1;
 		}
 		break;
 	case GSM48_BCAP_SV_EFR:
@@ -98,7 +98,7 @@ static int8_t mncc_get_bearer(const struct gsm_settings *set, uint8_t speech_ver
 			LOGP(DMNCC, LOGL_INFO, " net suggests full rate v2\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " full rate v2 not supported\n");
-			speech_ver = -1;
+			return -1;
 		}
 		break;
 	case GSM48_BCAP_SV_FR: /* mandatory */
@@ -106,7 +106,7 @@ static int8_t mncc_get_bearer(const struct gsm_settings *set, uint8_t speech_ver
 			LOGP(DMNCC, LOGL_INFO, " net suggests full rate v1\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " full rate v1 not supported\n");
-			speech_ver = -1;
+			return -1;
 		}
 		break;
 	case GSM48_BCAP_SV_AMR_H:
@@ -114,7 +114,7 @@ static int8_t mncc_get_bearer(const struct gsm_settings *set, uint8_t speech_ver
 			LOGP(DMNCC, LOGL_INFO, " net suggests half rate v3\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " half rate v3 not supported\n");
-			speech_ver = -1;
+			return -1;
 		}
 		break;
 	case GSM48_BCAP_SV_HR:
@@ -122,13 +122,13 @@ static int8_t mncc_get_bearer(const struct gsm_settings *set, uint8_t speech_ver
 			LOGP(DMNCC, LOGL_INFO, " net suggests half rate v1\n");
 		else {
 			LOGP(DMNCC, LOGL_INFO, " half rate v1 not supported\n");
-			speech_ver = -1;
+			return -1;
 		}
 		break;
 	default:
 		LOGP(DMNCC, LOGL_INFO, " net suggests unknown speech version "
 			"%d\n", speech_ver);
-		speech_ver = -1;
+		return -1;
 	}
 
 	return speech_ver;
