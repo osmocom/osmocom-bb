@@ -1236,7 +1236,14 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &cs->sel_si;
-	bool vgcs = mm->vgcs.enabled;
+
+	/* When we are in group transmit mode, we return to group receive mode. */
+	if (mm->vgcs.enabled) {
+		LOGP(DMM, LOGL_INFO, "Return to group receive mode.\n");
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, (mm->vgcs.normal_service) ? GSM48_MM_SST_RX_VGCS_NORMAL
+										: GSM48_MM_SST_RX_VGCS_LIMITED);
+		return 0;
+	}
 
 	if (cs->state != GSM322_C3_CAMPED_NORMALLY
 	 && cs->state != GSM322_C7_CAMPED_ANY_CELL) {
@@ -1286,9 +1293,7 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
 				GSM48_MM_SST_ATTEMPT_UPDATE);
 		else
-			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				     (vgcs) ? GSM48_MM_SST_RX_VGCS_NORMAL
-					    : GSM48_MM_SST_NORMAL_SERVICE);
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_NORMAL_SERVICE);
 
 		return 0;
 	}
@@ -1299,39 +1304,30 @@ static int gsm48_mm_return_idle(struct osmocom_ms *ms, struct msgb *msg)
 		if (gsm_subscr_is_forbidden_plmn(subscr, &cs->sel_cgi.lai.plmn)) {
 			/* location update not allowed */
 			LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed PLMN.\n");
-			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
-					    : GSM48_MM_SST_LIMITED_SERVICE);
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
 		} else
 		if (gsm322_is_forbidden_la(ms, &cs->sel_cgi.lai)) {
 			/* location update not allowed */
 			LOGP(DMM, LOGL_INFO, "Loc. upd. not allowed LA.\n");
-			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
-					    : GSM48_MM_SST_LIMITED_SERVICE);
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
 		} else
 		/* 4.4.4.9 if cell is barred, don't start */
 		if ((!subscr->acc_barr && s->cell_barr)
 		 || (!subscr->acc_barr && !((subscr->acc_class & 0xfbff) &
 					(s->class_barr ^ 0xffff)))) {
 			LOGP(DMM, LOGL_INFO, "Loc. upd. no access.\n");
-			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
-					    : GSM48_MM_SST_LIMITED_SERVICE);
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
 		} else {
 			/* location update allowed */
 			LOGP(DMM, LOGL_INFO, "Loc. upd. allowed.\n");
 			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
-					    : GSM48_MM_SST_LIMITED_SERVICE);
+				GSM48_MM_SST_LOC_UPD_NEEDED);
 		}
 	} else {
 		/* location update not allowed */
 		LOGP(DMM, LOGL_INFO, "We are camping on any cell as returning "
 			"to MM IDLE\n");
-		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-			     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
-				    : GSM48_MM_SST_LIMITED_SERVICE);
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
 	}
 
 	return 0;
