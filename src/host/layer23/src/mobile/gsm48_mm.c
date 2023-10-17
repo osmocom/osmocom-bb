@@ -1358,7 +1358,13 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = &cs->sel_si;
 	struct gsm_settings *set = &ms->settings;
-	bool vgcs = mm->vgcs.enabled;
+
+	if (mm->vgcs.enabled) {
+		LOGP(DMM, LOGL_ERROR, "Cell selection in group receive mode, this should not happen.\n");
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, (mm->vgcs.normal_service) ? GSM48_MM_SST_RX_VGCS_NORMAL
+										: GSM48_MM_SST_RX_VGCS_LIMITED);
+		return 0;
+	}
 
 	/* no SIM is inserted */
 	if (!subscr->sim_valid) {
@@ -1377,9 +1383,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 			struct msgb *nmsg;
 
 			LOGP(DMM, LOGL_INFO, "Valid in location area.\n");
-			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				     (vgcs) ? GSM48_MM_SST_RX_VGCS_NORMAL
-					    : GSM48_MM_SST_NORMAL_SERVICE);
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_NORMAL_SERVICE);
 
 			/* send message to PLMN search process */
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_SUCCESS);
@@ -1393,9 +1397,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 			struct msgb *nmsg;
 
 			LOGP(DMM, LOGL_INFO, "Attachment not required.\n");
-			new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-				     (vgcs) ? GSM48_MM_SST_RX_VGCS_NORMAL
-					    : GSM48_MM_SST_NORMAL_SERVICE);
+			new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_NORMAL_SERVICE);
 
 			/* send message to PLMN search process */
 			nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_SUCCESS);
@@ -1416,9 +1418,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 		struct msgb *nmsg;
 
 		LOGP(DMM, LOGL_INFO, "Selected cell is forbidden.\n");
-		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-			     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
-				    : GSM48_MM_SST_LIMITED_SERVICE);
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
 
 		/* send message to PLMN search process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
@@ -1438,9 +1438,7 @@ static int gsm48_mm_cell_selected(struct osmocom_ms *ms, struct msgb *msg)
 		struct msgb *nmsg;
 
 		LOGP(DMM, LOGL_INFO, "Selected cell not found.\n");
-		new_mm_state(mm, GSM48_MM_ST_MM_IDLE,
-			     (vgcs) ? GSM48_MM_SST_RX_VGCS_LIMITED
-				    : GSM48_MM_SST_LIMITED_SERVICE);
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
 
 		/* send message to PLMN search process */
 		nmsg = gsm322_msgb_alloc(GSM322_EVENT_REG_FAILED);
