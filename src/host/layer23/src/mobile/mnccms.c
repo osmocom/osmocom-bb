@@ -82,7 +82,7 @@ struct gsm_call *get_call_ref(uint32_t callref)
 	return NULL;
 }
 
-static int8_t mncc_get_bearer(struct gsm_settings *set, uint8_t speech_ver)
+static int8_t mncc_get_bearer(const struct gsm_settings *set, uint8_t speech_ver)
 {
 	switch (speech_ver) {
 	case GSM48_BCAP_SV_AMR_F:
@@ -134,10 +134,10 @@ static int8_t mncc_get_bearer(struct gsm_settings *set, uint8_t speech_ver)
 	return speech_ver;
 }
 
-static void mncc_set_bearer(struct osmocom_ms *ms, int8_t speech_ver,
-	struct gsm_mncc *mncc)
+static void mncc_set_bearer(struct gsm_mncc *mncc,
+			    const struct gsm_settings *set,
+			    int8_t speech_ver)
 {
-	struct gsm_settings *set = &ms->settings;
 	int i = 0;
 
 	mncc->fields |= MNCC_F_BEARER_CAP;
@@ -259,7 +259,7 @@ int mncc_recv_external(struct osmocom_ms *ms, int msg_type, void *arg)
 
 int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 {
-	struct gsm_settings *set = &ms->settings;
+	const struct gsm_settings *set = &ms->settings;
 	const struct gsm_mncc *data = arg;
 	struct gsm_call *call = get_call_ref(data->callref);
 	struct gsm_mncc mncc;
@@ -466,10 +466,10 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		 * or if given codec is unimplemented
 		 */
 		if (!(data->fields & MNCC_F_BEARER_CAP) || speech_ver < 0)
-			mncc_set_bearer(ms, -1, &mncc);
+			mncc_set_bearer(&mncc, set, -1);
 		else if (data->bearer_cap.speech_ver[1] >= 0
 		      || speech_ver != 0)
-			mncc_set_bearer(ms, speech_ver, &mncc);
+			mncc_set_bearer(&mncc, set, speech_ver);
 		/* CC capabilities (optional) */
 		if (ms->settings.cc_dtmf) {
 			mncc.fields |= MNCC_F_CCCAP;
@@ -580,7 +580,7 @@ int mncc_call(struct osmocom_ms *ms, const char *number)
 		OSMO_STRLCPY_ARRAY(setup.called.number, number);
 
 		/* bearer capability (mandatory) */
-		mncc_set_bearer(ms, -1, &setup);
+		mncc_set_bearer(&setup, &ms->settings, -1);
 
 		/* CLIR */
 		if (ms->settings.clir)
