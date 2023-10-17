@@ -3816,10 +3816,11 @@ static int gsm48_mm_group_req(struct osmocom_ms *ms, struct msgb *msg)
 	mm->vgcs.enabled = true;
 	mm->vgcs.group_call = (mmh->msg_type == GSM48_MMGCC_GROUP_REQ);
 	mm->vgcs.callref = mmh->ref;
-	mm->vgcs.normal_service = (mm->substate == GSM48_MM_SST_NORMAL_SERVICE);
+	mm->vgcs.normal_service = (mm->substate == GSM48_MM_SST_NORMAL_SERVICE ||
+				   mm->substate == GSM48_MM_SST_PLMN_SEARCH_NORMAL);
 
 	/* Change to VGCS substate. */
-	new_mm_state(mm, GSM48_MM_ST_MM_IDLE, (mm->substate == GSM48_MM_SST_NORMAL_SERVICE)
+	new_mm_state(mm, GSM48_MM_ST_MM_IDLE, (mm->vgcs.normal_service)
 					      ? GSM48_MM_SST_RX_VGCS_NORMAL : GSM48_MM_SST_RX_VGCS_LIMITED);
 
 	/* Group recevie mode request to RR layer */
@@ -4180,10 +4181,12 @@ static struct downstate {
 				SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr}, /* emergency only */
 
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
+				    SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
 	 GSM48_MMBCC_GROUP_REQ, gsm48_mm_group_req},
 
-	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE),
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_ATTEMPT_UPDATE) |
+				    SBIT(GSM48_MM_SST_LOC_UPD_NEEDED),
 	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_req},
 
 	/* 4.2.2.3 Limited service */
@@ -4216,9 +4219,21 @@ static struct downstate {
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MMBCC_EST_REQ, gsm48_mm_init_mm_no_rr},
 
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
+	 GSM48_MMBCC_GROUP_REQ, gsm48_mm_group_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
+	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_req},
+
 	/* 4.2.2.6 PLMN search */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH),
+	 GSM48_MMBCC_GROUP_REQ, gsm48_mm_group_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH),
+	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_req},
 
 	/* 4.2.2.7 Receiving group call, normal service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_NORMAL),
@@ -4270,9 +4285,6 @@ static struct downstate {
 
 	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
 	 GSM48_MMSMS_EST_REQ, gsm48_mm_init_mm_more},
-
-	{SBIT(GSM48_MM_ST_MM_CONN_ACTIVE), ALL_STATES,
-	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_req},
 
 	{SBIT(GSM48_MM_ST_WAIT_NETWORK_CMD), ALL_STATES,
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_wait},
