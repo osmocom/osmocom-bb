@@ -2011,8 +2011,10 @@ DEFUN(cfg_ms_support, cfg_ms_support_cmd, "support",
 	return CMD_SUCCESS;
 }
 
-#define SUP_EN(cfg, cfg_cmd, item, cmd, desc, restart) \
-DEFUN(cfg, cfg_cmd, cmd, "Enable " desc "support") \
+#define SUP_EN(item, cmd, desc, restart) \
+DEFUN(cfg_ms_sup_en_##item, \
+      cfg_ms_sup_en_##item##_cmd, \
+      cmd, "Enable " desc "support") \
 { \
 	struct osmocom_ms *ms = vty->index; \
 	struct gsm_settings *set = &ms->settings; \
@@ -2029,8 +2031,10 @@ DEFUN(cfg, cfg_cmd, cmd, "Enable " desc "support") \
 	return CMD_SUCCESS; \
 }
 
-#define SUP_DI(cfg, cfg_cmd, item, cmd, desc, restart) \
-DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
+#define SUP_DI(item, cmd, desc, restart) \
+DEFUN(cfg_ms_sup_di_##item, \
+      cfg_ms_sup_di_##item##_cmd, \
+      "no " cmd, NO_STR "Disable " desc " support") \
 { \
 	struct osmocom_ms *ms = vty->index; \
 	struct gsm_settings *set = &ms->settings; \
@@ -2047,8 +2051,15 @@ DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
 	return CMD_SUCCESS; \
 }
 
-#define SET_EN(cfg, cfg_cmd, item, cmd, desc, restart) \
-DEFUN(cfg, cfg_cmd, cmd, "Enable " desc "support") \
+#define SUP_EN_DI(item, cmd, desc, restart) \
+	SUP_EN(item, cmd, desc, restart); \
+	SUP_DI(item, cmd, desc, restart)
+
+
+#define SET_EN(item, cmd, desc, restart) \
+DEFUN(cfg_ms_set_en_##item, \
+      cfg_ms_set_en_##item##_cmd, \
+      cmd, "Enable " desc "support") \
 { \
 	struct osmocom_ms *ms = vty->index; \
 	struct gsm_settings *set = &ms->settings; \
@@ -2058,8 +2069,10 @@ DEFUN(cfg, cfg_cmd, cmd, "Enable " desc "support") \
 	return CMD_SUCCESS; \
 }
 
-#define SET_DI(cfg, cfg_cmd, item, cmd, desc, restart) \
-DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
+#define SET_DI(item, cmd, desc, restart) \
+DEFUN(cfg_ms_set_di_##item, \
+      cfg_ms_set_di_##item##_cmd, \
+      "no " cmd, NO_STR "Disable " desc " support") \
 { \
 	struct osmocom_ms *ms = vty->index; \
 	struct gsm_settings *set = &ms->settings; \
@@ -2069,52 +2082,28 @@ DEFUN(cfg, cfg_cmd, "no " cmd, NO_STR "Disable " desc " support") \
 	return CMD_SUCCESS; \
 }
 
-SET_EN(cfg_ms_sup_dtmf, cfg_ms_sup_dtmf_cmd, cc_dtmf, "dtmf", "DTMF", 0);
-SET_DI(cfg_ms_sup_no_dtmf, cfg_ms_sup_no_dtmf_cmd, cc_dtmf, "dtmf", "DTMF", 0);
-SUP_EN(cfg_ms_sup_sms, cfg_ms_sup_sms_cmd, sms_ptp, "sms", "SMS", 0);
-SUP_DI(cfg_ms_sup_no_sms, cfg_ms_sup_no_sms_cmd, sms_ptp, "sms", "SMS", 0);
-SUP_EN(cfg_ms_sup_a5_1, cfg_ms_sup_a5_1_cmd, a5_1, "a5/1", "A5/1", 0);
-SUP_DI(cfg_ms_sup_no_a5_1, cfg_ms_sup_no_a5_1_cmd, a5_1, "a5/1", "A5/1", 0);
-SUP_EN(cfg_ms_sup_a5_2, cfg_ms_sup_a5_2_cmd, a5_2, "a5/2", "A5/2", 0);
-SUP_DI(cfg_ms_sup_no_a5_2, cfg_ms_sup_no_a5_2_cmd, a5_2, "a5/2", "A5/2", 0);
-SUP_EN(cfg_ms_sup_a5_3, cfg_ms_sup_a5_3_cmd, a5_3, "a5/3", "A5/3", 0);
-SUP_DI(cfg_ms_sup_no_a5_3, cfg_ms_sup_no_a5_3_cmd, a5_3, "a5/3", "A5/3", 0);
-SUP_EN(cfg_ms_sup_a5_4, cfg_ms_sup_a5_4_cmd, a5_4, "a5/4", "A5/4", 0);
-SUP_DI(cfg_ms_sup_no_a5_4, cfg_ms_sup_no_a5_4_cmd, a5_4, "a5/4", "A5/4", 0);
-SUP_EN(cfg_ms_sup_a5_5, cfg_ms_sup_a5_5_cmd, a5_5, "a5/5", "A5/5", 0);
-SUP_DI(cfg_ms_sup_no_a5_5, cfg_ms_sup_no_a5_5_cmd, a5_5, "a5/5", "A5/5", 0);
-SUP_EN(cfg_ms_sup_a5_6, cfg_ms_sup_a5_6_cmd, a5_6, "a5/6", "A5/6", 0);
-SUP_DI(cfg_ms_sup_no_a5_6, cfg_ms_sup_no_a5_6_cmd, a5_6, "a5/6", "A5/6", 0);
-SUP_EN(cfg_ms_sup_a5_7, cfg_ms_sup_a5_7_cmd, a5_7, "a5/7", "A5/7", 0);
-SUP_DI(cfg_ms_sup_no_a5_7, cfg_ms_sup_no_a5_7_cmd, a5_7, "a5/7", "A5/7", 0);
-SUP_EN(cfg_ms_sup_p_gsm, cfg_ms_sup_p_gsm_cmd, p_gsm, "p-gsm", "P-GSM (900)",
-	1);
-SUP_DI(cfg_ms_sup_no_p_gsm, cfg_ms_sup_no_p_gsm_cmd, p_gsm, "p-gsm",
-	"P-GSM (900)", 1);
-SUP_EN(cfg_ms_sup_e_gsm, cfg_ms_sup_e_gsm_cmd, e_gsm, "e-gsm", "E-GSM (850)",
-	1);
-SUP_DI(cfg_ms_sup_no_e_gsm, cfg_ms_sup_no_e_gsm_cmd, e_gsm, "e-gsm",
-	"E-GSM (850)", 1);
-SUP_EN(cfg_ms_sup_r_gsm, cfg_ms_sup_r_gsm_cmd, r_gsm, "r-gsm", "R-GSM (850)",
-	1);
-SUP_DI(cfg_ms_sup_no_r_gsm, cfg_ms_sup_no_r_gsm_cmd, r_gsm, "r-gsm",
-	"R-GSM (850)", 1);
-SUP_EN(cfg_ms_sup_dcs, cfg_ms_sup_dcs_cmd, dcs, "dcs", "DCS (1800)", 1);
-SUP_DI(cfg_ms_sup_no_dcs, cfg_ms_sup_no_dcs_cmd, dcs, "dcs", "DCS (1800)", 1);
-SUP_EN(cfg_ms_sup_gsm_850, cfg_ms_sup_gsm_850_cmd, gsm_850, "gsm-850",
-	"GSM 850", 1);
-SUP_DI(cfg_ms_sup_no_gsm_850, cfg_ms_sup_no_gsm_850_cmd, gsm_850, "gsm-850",
-	"GSM 850", 1);
-SUP_EN(cfg_ms_sup_pcs, cfg_ms_sup_pcs_cmd, pcs, "pcs", "PCS (1900)", 1);
-SUP_DI(cfg_ms_sup_no_pcs, cfg_ms_sup_no_pcs_cmd, pcs, "pcs", "PCS (1900)", 1);
-SUP_EN(cfg_ms_sup_gsm_480, cfg_ms_sup_gsm_480_cmd, gsm_480, "gsm-480",
-	"GSM 480", 1);
-SUP_DI(cfg_ms_sup_no_gsm_480, cfg_ms_sup_no_gsm_480_cmd, gsm_480, "gsm-480",
-	"GSM 480", 1);
-SUP_EN(cfg_ms_sup_gsm_450, cfg_ms_sup_gsm_450_cmd, gsm_450, "gsm-450",
-	"GSM 450", 1);
-SUP_DI(cfg_ms_sup_no_gsm_450, cfg_ms_sup_no_gsm_450_cmd, gsm_450, "gsm-450",
-	"GSM 450", 1);
+#define SET_EN_DI(item, cmd, desc, restart) \
+	SET_EN(item, cmd, desc, restart); \
+	SET_DI(item, cmd, desc, restart)
+
+
+SET_EN_DI(cc_dtmf, "dtmf", "DTMF", 0);
+SUP_EN_DI(sms_ptp, "sms", "SMS", 0);
+SUP_EN_DI(a5_1, "a5/1", "A5/1", 0);
+SUP_EN_DI(a5_2, "a5/2", "A5/2", 0);
+SUP_EN_DI(a5_3, "a5/3", "A5/3", 0);
+SUP_EN_DI(a5_4, "a5/4", "A5/4", 0);
+SUP_EN_DI(a5_5, "a5/5", "A5/5", 0);
+SUP_EN_DI(a5_6, "a5/6", "A5/6", 0);
+SUP_EN_DI(a5_7, "a5/7", "A5/7", 0);
+SUP_EN_DI(p_gsm, "p-gsm", "P-GSM (900)", 1);
+SUP_EN_DI(e_gsm, "e-gsm", "E-GSM (850)", 1);
+SUP_EN_DI(r_gsm, "r-gsm", "R-GSM (850)", 1);
+SUP_EN_DI(dcs, "dcs", "DCS (1800)", 1);
+SUP_EN_DI(gsm_850, "gsm-850", "GSM 850", 1);
+SUP_EN_DI(pcs, "pcs", "PCS (1900)", 1);
+SUP_EN_DI(gsm_480, "gsm-480", "GSM 480", 1);
+SUP_EN_DI(gsm_450, "gsm-450", "GSM 450", 1);
 
 DEFUN(cfg_ms_sup_class_900, cfg_ms_sup_class_900_cmd, "class-900 (1|2|3|4|5)",
 	"Select power class for GSM 900\n"
@@ -2253,26 +2242,11 @@ DEFUN(cfg_ms_sup_ch_cap, cfg_ms_sup_ch_cap_cmd,
 	return CMD_SUCCESS;
 }
 
-SUP_EN(cfg_ms_sup_full_v1, cfg_ms_sup_full_v1_cmd, full_v1, "full-speech-v1",
-	"Full rate speech V1", 0);
-SUP_DI(cfg_ms_sup_no_full_v1, cfg_ms_sup_no_full_v1_cmd, full_v1,
-	"full-speech-v1", "Full rate speech V1", 0);
-SUP_EN(cfg_ms_sup_full_v2, cfg_ms_sup_full_v2_cmd, full_v2, "full-speech-v2",
-	"Full rate speech V2 (EFR)", 0);
-SUP_DI(cfg_ms_sup_no_full_v2, cfg_ms_sup_no_full_v2_cmd, full_v2,
-	"full-speech-v2", "Full rate speech V2 (EFR)", 0);
-SUP_EN(cfg_ms_sup_full_v3, cfg_ms_sup_full_v3_cmd, full_v3, "full-speech-v3",
-	"Full rate speech V3 (AMR)", 0);
-SUP_DI(cfg_ms_sup_no_full_v3, cfg_ms_sup_no_full_v3_cmd, full_v3,
-	"full-speech-v3", "Full rate speech V3 (AMR)", 0);
-SUP_EN(cfg_ms_sup_half_v1, cfg_ms_sup_half_v1_cmd, half_v1, "half-speech-v1",
-	"Half rate speech V1", 0);
-SUP_DI(cfg_ms_sup_no_half_v1, cfg_ms_sup_no_half_v1_cmd, half_v1,
-	"half-speech-v1", "Half rate speech V1", 0);
-SUP_EN(cfg_ms_sup_half_v3, cfg_ms_sup_half_v3_cmd, half_v3, "half-speech-v3",
-	"Half rate speech V3 (AMR)", 0);
-SUP_DI(cfg_ms_sup_no_half_v3, cfg_ms_sup_no_half_v3_cmd, half_v3,
-	"half-speech-v3", "Half rate speech V3 (AMR)", 0);
+SUP_EN_DI(full_v1, "full-speech-v1", "Full rate speech V1", 0);
+SUP_EN_DI(full_v2, "full-speech-v2", "Full rate speech V2 (EFR)", 0);
+SUP_EN_DI(full_v3, "full-speech-v3", "Full rate speech V3 (AMR)", 0);
+SUP_EN_DI(half_v1, "half-speech-v1", "Half rate speech V1", 0);
+SUP_EN_DI(half_v3, "half-speech-v3", "Half rate speech V3 (AMR)", 0);
 
 DEFUN(cfg_ms_sup_min_rxlev, cfg_ms_sup_min_rxlev_cmd, "min-rxlev <-110--47>",
 	"Set the minimum receive level to select a cell\n"
@@ -2324,14 +2298,8 @@ DEFUN(cfg_ms_sup_no_skip_max_per_band, cfg_ms_sup_no_skip_max_per_band_cmd,
 	return CMD_SUCCESS;
 }
 
-SUP_EN(cfg_ms_sup_vgcs, cfg_ms_sup_vgcs_cmd, vgcs, "vgcs",
-	"Voice Group Call Service (VGCS)", 0);
-SUP_DI(cfg_ms_sup_no_vgcs, cfg_ms_sup_no_vgcs_cmd, vgcs,
-	"vgcs", "Voice Group Call Service (VBS)", 0);
-SUP_EN(cfg_ms_sup_vbs, cfg_ms_sup_vbs_cmd, vbs, "vbs",
-	"Voice Broadcast Service (VBS)", 0);
-SUP_DI(cfg_ms_sup_no_vbs, cfg_ms_sup_no_vbs_cmd, vbs,
-	"vbs", "Voice Broadcast Service (VBS)", 0);
+SUP_EN_DI(vgcs, "vgcs", "Voice Group Call Service (VGCS)", 0);
+SUP_EN_DI(vbs, "vbs", "Voice Broadcast Service (VBS)", 0);
 
 /* per audio config */
 DEFUN(cfg_ms_audio, cfg_ms_audio_cmd, "audio",
@@ -2620,64 +2588,64 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_uplink_release_local_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_dtmf_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_dtmf_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_sms_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_sms_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_1_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_1_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_2_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_2_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_3_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_3_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_4_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_4_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_5_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_5_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_6_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_6_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_a5_7_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_a5_7_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_p_gsm_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_p_gsm_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_e_gsm_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_e_gsm_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_r_gsm_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_r_gsm_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_dcs_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_dcs_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_gsm_850_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_gsm_850_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_pcs_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_pcs_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_gsm_480_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_gsm_480_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_gsm_450_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_gsm_450_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_set_en_cc_dtmf_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_set_di_cc_dtmf_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_sms_ptp_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_sms_ptp_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_a5_1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_a5_1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_a5_2_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_a5_2_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_a5_3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_a5_3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_a5_4_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_a5_4_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_a5_5_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_a5_5_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_a5_6_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_a5_6_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_a5_7_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_a5_7_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_p_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_p_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_e_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_e_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_r_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_r_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_dcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_dcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_gsm_850_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_gsm_850_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_pcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_pcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_gsm_480_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_gsm_480_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_gsm_450_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_gsm_450_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_class_900_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_class_dcs_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_class_850_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_class_pcs_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_class_400_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_ch_cap_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_full_v1_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_full_v1_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_full_v2_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_full_v2_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_full_v3_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_full_v3_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_half_v1_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_half_v1_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_half_v3_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_half_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_full_v1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_full_v1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_full_v2_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_full_v2_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_full_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_full_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_half_v1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_half_v1_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_half_v3_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_half_v3_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_min_rxlev_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_dsc_max_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_skip_max_per_band_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_no_skip_max_per_band_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_vgcs_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_vgcs_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_vbs_cmd);
-	install_element(SUPPORT_NODE, &cfg_ms_sup_no_vbs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_vgcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_vgcs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_vbs_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_vbs_cmd);
 	install_element(MS_NODE, &cfg_ms_script_load_run_cmd);
 	install_element(MS_NODE, &cfg_ms_no_script_load_run_cmd);
 
