@@ -84,6 +84,34 @@ struct test_sim_settings {
 	} locigprs;
 };
 
+enum bcap_data_trans_cap {
+	BCAP_DATA_TRANS_CAP_UDI,
+	BCAP_DATA_TRANS_CAP_3100KHZ_AUDIO,
+	BCAP_DATA_TRANS_CAP_FACSIMILE_GROUP3,
+};
+
+enum bcap_data_rate {
+	BCAP_DATA_RATE_V110_300,
+	BCAP_DATA_RATE_V110_1200,
+	BCAP_DATA_RATE_V110_2400,
+	BCAP_DATA_RATE_V110_4800,
+	BCAP_DATA_RATE_V110_9600,
+	BCAP_DATA_RATE_V110_14400,
+};
+
+enum bcap_data_ce {
+	BCAP_DATA_CE_TRANSP,
+	BCAP_DATA_CE_TRANSP_PREF,
+	BCAP_DATA_CE_NON_TRANSP,
+	BCAP_DATA_CE_NON_TRANSP_PREF,
+};
+
+struct bcap_data_settings {
+	enum bcap_data_trans_cap	trans_cap;
+	enum bcap_data_rate		data_rate;
+	enum bcap_data_ce		ce;
+};
+
 struct gsm_settings {
 	char			layer2_socket_path[128];
 	char			sap_socket_path[128];
@@ -170,6 +198,9 @@ struct gsm_settings {
 	bool			csd_tch_h48;
 	bool			csd_tch_f24;
 	bool			csd_tch_h24;
+
+	/* CSD Bearer Capability */
+	struct bcap_data_settings bcap_data;
 
 	/* support for ASCI */
 	bool			vgcs; /* support of VGCS */

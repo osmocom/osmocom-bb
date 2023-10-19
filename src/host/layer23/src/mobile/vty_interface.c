@@ -618,6 +618,130 @@ DEFUN(call_dtmf, call_dtmf_cmd,
 	return CMD_SUCCESS;
 }
 
+#define CALL_BCAP_CMD \
+	CALL_CMD " bcap"
+#define CALL_BCAP_CMD_DESC \
+	CALL_CMD_DESC \
+	"Bearer Capability configuration\n"
+
+#define CALL_BCAP_DATA_CMD \
+	CALL_BCAP_CMD " data"
+#define CALL_BCAP_DATA_CMD_DESC \
+	CALL_BCAP_CMD_DESC \
+	"Bearer Capability for data calls\n"
+
+DEFUN(call_bcap_data_trans_cap, call_bcap_data_trans_cap_cmd,
+      CALL_BCAP_DATA_CMD "trans-cap (udi|3100khz-audio|facsimile)",
+      CALL_BCAP_DATA_CMD_DESC
+      "Information transfer capability (octet 3)\n"
+      "Unrestricted Digital Information\n"
+      "3.1 kHz audio, ex PLMN\n"
+      "Facsimile group 3\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct bcap_data_settings *bcap;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	bcap = &set->bcap_data;
+
+	if (!strcmp(argv[1], "udi"))
+		bcap->trans_cap = BCAP_DATA_TRANS_CAP_UDI;
+	else if (!strcmp(argv[1], "3100khz-audio"))
+		bcap->trans_cap = BCAP_DATA_TRANS_CAP_3100KHZ_AUDIO;
+	else if (!strcmp(argv[1], "facsimile"))
+		bcap->trans_cap = BCAP_DATA_TRANS_CAP_FACSIMILE_GROUP3;
+	else /* should not happen */
+		return CMD_WARNING;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_bcap_data_rate, call_bcap_data_rate_cmd,
+      CALL_BCAP_DATA_CMD "speed (65|66|68|70|71|75)",
+      CALL_BCAP_DATA_CMD_DESC
+      "Data rate (values like in AT+CBST)\n"
+      "300 bps (V.110)\n"
+      "1200 bps (V.110)\n"
+      "2400 bps (V.110 or X.31 flag stuffing)\n"
+      "4800 bps (V.110 or X.31 flag stuffing)\n"
+      "9600 bps (V.110 or X.31 flag stuffing)\n"
+      "14400 bps (V.110 or X.31 flag stuffing)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct bcap_data_settings *bcap;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	bcap = &set->bcap_data;
+
+	switch (atoi(argv[1])) {
+	case 65:
+		bcap->data_rate = BCAP_DATA_RATE_V110_300;
+		break;
+	case 66:
+		bcap->data_rate = BCAP_DATA_RATE_V110_1200;
+		break;
+	case 68:
+		bcap->data_rate = BCAP_DATA_RATE_V110_2400;
+		break;
+	case 70:
+		bcap->data_rate = BCAP_DATA_RATE_V110_4800;
+		break;
+	case 71:
+		bcap->data_rate = BCAP_DATA_RATE_V110_9600;
+		break;
+	case 75:
+		bcap->data_rate = BCAP_DATA_RATE_V110_14400;
+		break;
+	default: /* should not happen */
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_bcap_data_ce, call_bcap_data_ce_cmd,
+      CALL_BCAP_DATA_CMD "ce (transparent|non-transparent) [prefer]",
+      CALL_BCAP_DATA_CMD_DESC
+      "Connection element (octet 6c)\n"
+      "Transparent connection\n"
+      "Non-transparent connection (RLP)\n"
+      "Prefer the selected mode, but also accept other(s)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct bcap_data_settings *bcap;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	bcap = &set->bcap_data;
+
+	if (!strcmp(argv[1], "transparent")) {
+		if (argc > 2)
+			bcap->ce = BCAP_DATA_CE_TRANSP_PREF;
+		else
+			bcap->ce = BCAP_DATA_CE_TRANSP;
+	} else if (!strcmp(argv[1], "non-transparent")) {
+		if (argc > 2)
+			bcap->ce = BCAP_DATA_CE_NON_TRANSP_PREF;
+		else
+			bcap->ce = BCAP_DATA_CE_NON_TRANSP;
+	} else { /* should not happen */
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 	"Send an SMS\nName of MS (see \"show ms\")\nPhone number to send SMS "
 	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
