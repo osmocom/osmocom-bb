@@ -116,6 +116,8 @@ int gsm_settings_init(struct osmocom_ms *ms)
 
 	INIT_LLIST_HEAD(&set->abbrev);
 
+	set->uplink_release_local = true;
+
 	return 0;
 }
 

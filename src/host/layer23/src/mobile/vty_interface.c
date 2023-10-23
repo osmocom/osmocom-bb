@@ -1326,7 +1326,7 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 			set->any_timeout, VTY_NEWLINE);
 	if (!l23_vty_hide_default || !set->uplink_release_local)
 		vty_out(vty, " %suplink-release-local%s",
-			(set->uplink_release_local) ? "no " : "", VTY_NEWLINE);
+			(!set->uplink_release_local) ? "no " : "", VTY_NEWLINE);
 	if (!l23_vty_hide_default || set->asci_allow_any)
 		vty_out(vty, " %sasci-allow-any%s",
 			(set->asci_allow_any) ? "" : "no ", VTY_NEWLINE);
