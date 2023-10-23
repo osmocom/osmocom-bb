@@ -64,7 +64,7 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm44068_gcc_bcc.h>
-#include <osmocom/bb/mobile/voice.h>
+#include <osmocom/bb/mobile/tch.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <l1ctl_proto.h>
 

@@ -31,10 +31,10 @@
 #include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/mncc_sock.h>
-#include <osmocom/bb/mobile/voice.h>
+#include <osmocom/bb/mobile/tch.h>
 
 /* Forward a Downlink voice frame to the external MNCC handler */
-static int gsm_forward_mncc(struct osmocom_ms *ms, struct msgb *msg)
+static int tch_forward_mncc(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_data_frame *mncc;
 
@@ -74,16 +74,16 @@ exit_free:
 }
 
 /* Receive a Downlink voice frame from the lower layers */
-static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
+static int tch_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
 	switch (ms->settings.tch_voice.io_handler) {
 	case TCH_VOICE_IOH_LOOPBACK:
 		/* Remove the DL info header */
 		msgb_pull_to_l2(msg);
 		/* Send voice frame back */
-		return gsm_send_voice_msg(ms, msg);
+		return tch_send_voice_msg(ms, msg);
 	case TCH_VOICE_IOH_MNCC_SOCK:
-		return gsm_forward_mncc(ms, msg);
+		return tch_forward_mncc(ms, msg);
 	case TCH_VOICE_IOH_GAPK:
 #ifdef WITH_GAPK_IO
 		/* Enqueue a frame to the DL TCH buffer */
@@ -103,14 +103,14 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* Send an Uplink voice frame to the lower layers */
-int gsm_send_voice_msg(struct osmocom_ms *ms, struct msgb *msg)
+int tch_send_voice_msg(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* Forward to RR */
 	return gsm48_rr_tx_traffic(ms, msg);
 }
 
-/* gsm_send_voice_msg() wrapper accepting an MNCC structure */
-int gsm_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *frame)
+/* tch_send_voice_msg() wrapper accepting an MNCC structure */
+int tch_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *frame)
 {
 	struct msgb *nmsg;
 	int len;
@@ -139,13 +139,13 @@ int gsm_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *fra
 	nmsg->l2h = msgb_put(nmsg, len);
 	memcpy(nmsg->l2h, frame->data, len);
 
-	return gsm_send_voice_msg(ms, nmsg);
+	return tch_send_voice_msg(ms, nmsg);
 }
 
-/* Initialize voice router */
-int gsm_voice_init(struct osmocom_ms *ms)
+/* Initialize the TCH router */
+int tch_init(struct osmocom_ms *ms)
 {
-	ms->l1_entity.l1_traffic_ind = gsm_recv_voice;
+	ms->l1_entity.l1_traffic_ind = tch_recv_voice;
 
 	return 0;
 }

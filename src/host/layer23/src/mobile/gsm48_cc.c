@@ -33,7 +33,7 @@
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm48_cc.h>
 #include <osmocom/bb/mobile/gsm44068_gcc_bcc.h>
-#include <osmocom/bb/mobile/voice.h>
+#include <osmocom/bb/mobile/tch.h>
 #include <l1ctl_proto.h>
 
 static int gsm48_cc_tx_release(struct gsm_trans *trans, void *arg);
@@ -1978,7 +1978,7 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 	case GSM_TCHH_FRAME:
 	case GSM_TCH_FRAME_AMR:
 	case GSM_BAD_FRAME:
-		return gsm_send_voice_frame(ms, arg);
+		return tch_send_voice_frame(ms, arg);
 	case MNCC_LCHAN_MODIFY:
 		return 0;
 	case MNCC_FRAME_RECV:

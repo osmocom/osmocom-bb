@@ -36,7 +36,7 @@
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/logging.h>
 
-#include <osmocom/bb/mobile/voice.h>
+#include <osmocom/bb/mobile/tch.h>
 #include <osmocom/bb/mobile/gapk_io.h>
 
 /* The RAW PCM format is common for both audio source and sink */
@@ -585,7 +585,7 @@ int gapk_io_serve_ms(struct osmocom_ms *ms)
 					     &gapk_io->tch_ul_fb_len);
 
 		/* Push a voice frame to the lower layers */
-		gsm_send_voice_msg(ms, tch_msg);
+		tch_send_voice_msg(ms, tch_msg);
 
 		work |= 1;
 	}

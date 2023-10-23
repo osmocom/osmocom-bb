@@ -41,7 +41,7 @@
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/mncc.h>
-#include <osmocom/bb/mobile/voice.h>
+#include <osmocom/bb/mobile/tch.h>
 #include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/primitives.h>
 
@@ -256,7 +256,7 @@ static int mobile_init(struct osmocom_ms *ms)
 	gsm480_ss_init(ms);
 	gsm411_sms_init(ms);
 	gsm44068_gcc_init(ms);
-	gsm_voice_init(ms);
+	tch_init(ms);
 	gsm_subscr_init(ms);
 	gsm48_rr_init(ms);
 	gsm48_mm_init(ms);

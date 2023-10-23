@@ -30,9 +30,9 @@ libmobile_a_SOURCES = \
 	mnccms.c \
 	mncc_sock.c \
 	primitives.c \
+	tch.c \
 	transaction.c \
 	vty_interface.c \
-	voice.c \
 	$(NULL)
 
 bin_PROGRAMS = mobile
