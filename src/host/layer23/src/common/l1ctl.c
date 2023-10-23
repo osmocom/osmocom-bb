@@ -844,7 +844,6 @@ static int rx_l1_traffic_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct l1ctl_info_dl *dl;
 	struct l1ctl_traffic_ind *ti;
-	size_t frame_len;
 	uint8_t *frame;
 
 	if (msgb_l1len(msg) < sizeof(*dl)) {
@@ -861,11 +860,8 @@ static int rx_l1_traffic_ind(struct osmocom_ms *ms, struct msgb *msg)
 	msg->l2h = dl->payload;
 	msg->l3h = frame;
 
-	/* Calculate the frame length */
-	frame_len = msgb_l3len(msg);
-
-	DEBUGP(DL1C, "TRAFFIC IND len=%zu (%s)\n", frame_len,
-		osmo_hexdump(frame, frame_len));
+	LOGP(DL1C, LOGL_DEBUG, "Rx TRAFFIC.ind (fn=%u, chan_nr=0x%02x, len=%u): %s\n",
+	     ntohl(dl->frame_nr), dl->chan_nr, msgb_l3len(msg), msgb_hexdump_l3(msg));
 
 	/* distribute or drop */
 	if (ms->l1_entity.l1_traffic_ind)
@@ -882,7 +878,6 @@ int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
 	struct l1ctl_hdr *l1h;
 	struct l1ctl_info_ul *l1i_ul;
 	struct l1ctl_traffic_req *tr;
-	size_t frame_len;
 	uint8_t *frame;
 
 	/* Header handling */
@@ -890,11 +885,8 @@ int l1ctl_tx_traffic_req(struct osmocom_ms *ms, struct msgb *msg,
 	frame = (uint8_t *) tr->data;
 	msg->l3h = frame;
 
-	/* Calculate the frame length */
-	frame_len = msgb_l3len(msg);
-
-	DEBUGP(DL1C, "TRAFFIC REQ len=%zu (%s)\n", frame_len,
-		osmo_hexdump(frame, frame_len));
+	LOGP(DL1C, LOGL_DEBUG, "Tx TRAFFIC.req (chan_nr=0x%02x, len=%u): %s\n",
+	     chan_nr, msgb_l3len(msg), msgb_hexdump_l3(msg));
 
 	/* prepend uplink info header */
 	l1i_ul = (struct l1ctl_info_ul *) msgb_push(msg, sizeof(*l1i_ul));
