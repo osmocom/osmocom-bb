@@ -49,9 +49,9 @@ struct cmd_node support_node = {
 	1
 };
 
-struct cmd_node audio_node = {
-	AUDIO_NODE,
-	"%s(audio)# ",
+struct cmd_node tch_voice_node = {
+	TCH_VOICE_NODE,
+	"%s(tch-voice)# ",
 	1
 };
 
@@ -1475,7 +1475,7 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, " %sasci-allow-any%s",
 			(set->asci_allow_any) ? "" : "no ", VTY_NEWLINE);
 
-	vty_out(vty, " audio%s", VTY_NEWLINE);
+	vty_out(vty, " tch-voice%s", VTY_NEWLINE);
 	vty_out(vty, "  io-handler %s%s",
 		audio_io_handler_name(set->audio.io_handler), VTY_NEWLINE);
 	if (set->audio.io_handler == AUDIO_IOH_GAPK) {
@@ -2477,13 +2477,19 @@ DEFUN(cfg_ms_sup_no_skip_max_per_band, cfg_ms_sup_no_skip_max_per_band_cmd,
 SUP_EN_DI(vgcs, "vgcs", "Voice Group Call Service (VGCS)", 0);
 SUP_EN_DI(vbs, "vbs", "Voice Broadcast Service (VBS)", 0);
 
-/* per audio config */
-DEFUN(cfg_ms_audio, cfg_ms_audio_cmd, "audio",
-	"Configure audio settings")
+/* TCH config */
+DEFUN(cfg_ms_tch_voice,
+      cfg_ms_tch_voice_cmd,
+      "tch-voice", "Configure TCH (Traffic CHannel) params for voice calls\n")
 {
-	vty->node = AUDIO_NODE;
+	vty->node = TCH_VOICE_NODE;
 	return CMD_SUCCESS;
 }
+
+ALIAS_DEPRECATED(cfg_ms_tch_voice, /* alias to 'tch-voice' */
+		 cfg_ms_audio_cmd,
+		 "audio", "(deprecated alias for 'tch-voice')\n");
+
 
 static int set_audio_io_handler(struct vty *vty, enum audio_io_handler val)
 {
@@ -2501,7 +2507,7 @@ static int set_audio_io_handler(struct vty *vty, enum audio_io_handler val)
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_audio_io_handler, cfg_ms_audio_io_handler_cmd,
+DEFUN(cfg_ms_tch_voice_io_handler, cfg_ms_tch_voice_io_handler_cmd,
 	"io-handler (none|gapk|l1phy|mncc-sock|loopback)",
 	"Set TCH frame I/O handler\n"
 	"No handler, drop TCH frames (default)\n"
@@ -2531,13 +2537,13 @@ DEFUN(cfg_ms_audio_io_handler, cfg_ms_audio_io_handler_cmd,
 	return set_audio_io_handler(vty, val);
 }
 
-DEFUN(cfg_ms_audio_no_io_handler, cfg_ms_audio_no_io_handler_cmd,
+DEFUN(cfg_ms_tch_voice_no_io_handler, cfg_ms_tch_voice_no_io_handler_cmd,
 	"no io-handler", NO_STR "Disable TCH frame processing")
 {
 	return set_audio_io_handler(vty, AUDIO_IOH_NONE);
 }
 
-DEFUN(cfg_ms_audio_io_tch_format, cfg_ms_audio_io_tch_format_cmd,
+DEFUN(cfg_ms_tch_voice_io_tch_format, cfg_ms_tch_voice_io_tch_format_cmd,
 	"io-tch-format (rtp|ti)",
 	"Set TCH I/O frame format used by the L1 PHY (for GAPK only)\n"
 	"RTP format (RFC3551 for FR/EFR, RFC5993 for HR, RFC4867 for AMR)\n"
@@ -2558,7 +2564,7 @@ DEFUN(cfg_ms_audio_io_tch_format, cfg_ms_audio_io_tch_format_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_audio_alsa_out_dev, cfg_ms_audio_alsa_out_dev_cmd,
+DEFUN(cfg_ms_tch_voice_alsa_out_dev, cfg_ms_tch_voice_alsa_out_dev_cmd,
 	"alsa-output-dev (default|NAME)",
 	"Set ALSA output (playback) device name (for GAPK only)\n"
 	"Default system playback device (default)\n"
@@ -2572,7 +2578,7 @@ DEFUN(cfg_ms_audio_alsa_out_dev, cfg_ms_audio_alsa_out_dev_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_ms_audio_alsa_in_dev, cfg_ms_audio_alsa_in_dev_cmd,
+DEFUN(cfg_ms_tch_voice_alsa_in_dev, cfg_ms_tch_voice_alsa_in_dev_cmd,
 	"alsa-input-dev (default|NAME)",
 	"Set ALSA input (capture) device name (for GAPK only)\n"
 	"Default system recording device (default)\n"
@@ -2757,6 +2763,7 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_codec_half_cmd);
 	install_element(MS_NODE, &cfg_ms_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_no_abbrev_cmd);
+	install_element(MS_NODE, &cfg_ms_tch_voice_cmd);
 	install_element(MS_NODE, &cfg_ms_audio_cmd);
 	install_element(MS_NODE, &cfg_ms_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
@@ -2842,12 +2849,12 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_script_load_run_cmd);
 	install_element(MS_NODE, &cfg_ms_no_script_load_run_cmd);
 
-	install_node(&audio_node, config_write_dummy);
-	install_element(AUDIO_NODE, &cfg_ms_audio_io_handler_cmd);
-	install_element(AUDIO_NODE, &cfg_ms_audio_no_io_handler_cmd);
-	install_element(AUDIO_NODE, &cfg_ms_audio_io_tch_format_cmd);
-	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_out_dev_cmd);
-	install_element(AUDIO_NODE, &cfg_ms_audio_alsa_in_dev_cmd);
+	install_node(&tch_voice_node, config_write_dummy);
+	install_element(TCH_VOICE_NODE, &cfg_ms_tch_voice_io_handler_cmd);
+	install_element(TCH_VOICE_NODE, &cfg_ms_tch_voice_no_io_handler_cmd);
+	install_element(TCH_VOICE_NODE, &cfg_ms_tch_voice_io_tch_format_cmd);
+	install_element(TCH_VOICE_NODE, &cfg_ms_tch_voice_alsa_out_dev_cmd);
+	install_element(TCH_VOICE_NODE, &cfg_ms_tch_voice_alsa_in_dev_cmd);
 
 	return 0;
 }
