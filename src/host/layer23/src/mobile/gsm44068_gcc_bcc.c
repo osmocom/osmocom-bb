@@ -138,10 +138,11 @@ enum vgcs_gcc_fsm_event {
 	VGCS_GCC_EV_DI_CONNECT,			/* network indicates connect */
 	VGCS_GCC_EV_TIMEOUT,			/* several timeout events */
 	VGCS_GCC_EV_SETUP_IND,			/* notification of ongoing call received */
+	VGCS_GCC_EV_REL_IND,			/* notification of call being gone */
 	VGCS_GCC_EV_JOIN_GC_REQ,		/* user wants to join ongoing call */
 	VGCS_GCC_EV_JOIN_GC_CNF,		/* MM confirms joining ongoing call */
 	VGCS_GCC_EV_ABORT_REQ,			/* user rejects or leaves call */
-	VGCS_GCC_EV_ABORT_IND,			/* MM indicates call gone / channel released or failed */
+	VGCS_GCC_EV_ABORT_IND,			/* MM indicates channel released or failed */
 	VGCS_GCC_EV_TALK_REQ,			/* user wants to talk */
 	VGCS_GCC_EV_TALK_CNF,			/* MM confirms talk */
 	VGCS_GCC_EV_TALK_REJ,			/* MM rejects talk */
@@ -162,6 +163,7 @@ static const struct value_string vgcs_gcc_fsm_event_names[] = {
 	OSMO_VALUE_STRING(VGCS_GCC_EV_DI_CONNECT),
 	OSMO_VALUE_STRING(VGCS_GCC_EV_TIMEOUT),
 	OSMO_VALUE_STRING(VGCS_GCC_EV_SETUP_IND),
+	OSMO_VALUE_STRING(VGCS_GCC_EV_REL_IND),
 	OSMO_VALUE_STRING(VGCS_GCC_EV_JOIN_GC_REQ),
 	OSMO_VALUE_STRING(VGCS_GCC_EV_JOIN_GC_CNF),
 	OSMO_VALUE_STRING(VGCS_GCC_EV_ABORT_REQ),
@@ -1104,7 +1106,7 @@ static void vgcs_gcc_fsm_u2nc_action(struct osmo_fsm_inst *fi, uint32_t event, v
 		/* Change to GROUP CALL PRESENT state. */
 		osmo_fsm_inst_state_chg(fi, VGCS_GCC_ST_U3_GROUP_CALL_PRESENT, 0, 0);
 		break;
-	case VGCS_GCC_EV_ABORT_IND:
+	case VGCS_GCC_EV_REL_IND:
 		/* The MM layer indicates that group channel is gone. */
 		LOG_GCC(trans, LOGL_INFO, "Group call notification is gone.\n");
 		/* Change to NULL state. */
@@ -1165,12 +1167,12 @@ static void vgcs_gcc_fsm_u3_action(struct osmo_fsm_inst *fi, uint32_t event, voi
 		/* Free transaction. */
 		trans_free(trans);
 		break;
-	case VGCS_GCC_EV_ABORT_IND:
+	case VGCS_GCC_EV_REL_IND:
 		/* The notified call is gone. */
 		LOG_GCC(trans, LOGL_INFO, "Received call from network is gone.\n");
 		/* Change to NULL state. */
 		osmo_fsm_inst_state_chg(fi, VGCS_GCC_ST_U0_NULL, 0, 0);
-		/* Notify termination at VTY. (No cause, because notification is gone.) */
+		/* Notify termination at VTY. */
 		vgcs_vty_notify(trans, "Released\n");
 		/* Free transaction. */
 		trans_free(trans);
@@ -1193,6 +1195,7 @@ static void vgcs_gcc_fsm_u4_onenter(struct osmo_fsm_inst *fi, uint32_t prev_stat
 static void vgcs_gcc_fsm_u4_action(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 	struct gsm_trans *trans = fi->priv;
+	uint8_t *cause = data;
 
 	switch (event) {
 	case VGCS_GCC_EV_JOIN_GC_CNF:
@@ -1209,15 +1212,23 @@ static void vgcs_gcc_fsm_u4_action(struct osmo_fsm_inst *fi, uint32_t event, voi
 		/* Free transaction. */
 		trans_free(trans);
 		break;
-	case VGCS_GCC_EV_ABORT_IND:
+	case VGCS_GCC_EV_REL_IND:
 		/* The notified call is gone. */
 		LOG_GCC(trans, LOGL_INFO, "Received call from network is gone.\n");
 		/* Change to NULL state. */
 		osmo_fsm_inst_state_chg(fi, VGCS_GCC_ST_U0_NULL, 0, 0);
-		/* Notify termination at VTY. (No cause, because notification is gone.) */
+		/* Notify termination at VTY. */
 		vgcs_vty_notify(trans, "Released\n");
 		/* Free transaction. */
 		trans_free(trans);
+		break;
+	case VGCS_GCC_EV_ABORT_IND:
+		/* The notified call is gone. */
+		LOG_GCC(trans, LOGL_INFO, "Call rejected.\n");
+		/* Change back to U3 state, so that call may be joined later. */
+		osmo_fsm_inst_state_chg(fi, VGCS_GCC_ST_U3_GROUP_CALL_PRESENT, 0, 0);
+		/* Notify termination at VTY. */
+		vgcs_vty_notify(trans, "Released (cause %d)\n", *cause);
 		break;
 	case VGCS_GCC_EV_TIMEOUT:
 		/* Group channel timed out. */
@@ -1417,7 +1428,7 @@ static const struct osmo_fsm_state vgcs_gcc_fsm_states[] = {
 		.in_event_mask = S(VGCS_GCC_EV_SETUP_IND) |
 				 S(VGCS_GCC_EV_TERM_REQ) |
 				 S(VGCS_GCC_EV_ABORT_REQ) |
-				 S(VGCS_GCC_EV_ABORT_IND) |
+				 S(VGCS_GCC_EV_REL_IND) |
 				 S(VGCS_GCC_EV_TIMEOUT),
 		.out_state_mask = S(VGCS_GCC_ST_U2r_U6_GROUP_CALL_ACTIVE) |
 				  S(VGCS_GCC_ST_U4_GROUP_CALL_CONN_REQUEST) |
@@ -1430,7 +1441,7 @@ static const struct osmo_fsm_state vgcs_gcc_fsm_states[] = {
 		.name = "GROUP CALL PRESENT (U3)",
 		.in_event_mask = S(VGCS_GCC_EV_JOIN_GC_REQ) |
 				 S(VGCS_GCC_EV_ABORT_REQ) |
-				 S(VGCS_GCC_EV_ABORT_IND),
+				 S(VGCS_GCC_EV_REL_IND),
 		.out_state_mask = S(VGCS_GCC_ST_U0_NULL) |
 				  S(VGCS_GCC_ST_U4_GROUP_CALL_CONN_REQUEST) |
 				  S(VGCS_GCC_ST_U2nc_GROUP_CALL_ACTIVE),
@@ -1441,9 +1452,11 @@ static const struct osmo_fsm_state vgcs_gcc_fsm_states[] = {
 		.name = "GROUP CALL CONNECTION REQUEST (U4)",
 		.in_event_mask = S(VGCS_GCC_EV_JOIN_GC_CNF) |
 				 S(VGCS_GCC_EV_ABORT_REQ) |
+				 S(VGCS_GCC_EV_REL_IND) |
 				 S(VGCS_GCC_EV_ABORT_IND) |
 				 S(VGCS_GCC_EV_TIMEOUT),
 		.out_state_mask = S(VGCS_GCC_ST_U2r_U6_GROUP_CALL_ACTIVE) |
+				  S(VGCS_GCC_ST_U3_GROUP_CALL_PRESENT) |
 				  S(VGCS_GCC_ST_U0_NULL),
 		.onenter = vgcs_gcc_fsm_u4_onenter,
 		.action = vgcs_gcc_fsm_u4_action,
@@ -1610,7 +1623,6 @@ int gsm44068_rcv_gcc_bcc(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t pdisc;
 	struct gsm_trans *trans;
 	int rc = 0;
-	uint8_t cause;
 
 	/* Check for message class and get protocol type. */
 	switch ((msg_type & GSM48_MMXX_MASK)) {
@@ -1684,6 +1696,9 @@ int gsm44068_rcv_gcc_bcc(struct osmocom_ms *ms, struct msgb *msg)
 	case GSM48_MMBCC_ERR_IND:
 	case GSM48_MMGCC_REL_IND:
 	case GSM48_MMBCC_REL_IND:
+		/* Ignore release confirm or release collision. */
+		if (trans->gcc.fi->state == VGCS_GCC_ST_U3_GROUP_CALL_PRESENT)
+			break;
 		/* If MM fails or is rejected during U0.p state, this is a MM-EST-REJ. */
 		if (trans->gcc.fi->state == VGCS_GCC_ST_U0p_MM_CONNECTION_PENDING)
 			osmo_fsm_inst_dispatch(trans->gcc.fi, VGCS_GCC_EV_MM_EST_REJ, &mmh->cause);
@@ -1713,9 +1728,8 @@ int gsm44068_rcv_gcc_bcc(struct osmocom_ms *ms, struct msgb *msg)
 			if (trans->gcc.fi->state == VGCS_GCC_ST_U3_GROUP_CALL_PRESENT ||
 			    trans->gcc.fi->state == VGCS_GCC_ST_U4_GROUP_CALL_CONN_REQUEST ||
 			    trans->gcc.fi->state == VGCS_GCC_ST_U2nc_GROUP_CALL_ACTIVE) {
-				/* If notification is gone, abort pending received call. */
-				cause = GSM48_CC_CAUSE_NORM_CALL_CLEAR;
-				osmo_fsm_inst_dispatch(trans->gcc.fi, VGCS_GCC_EV_ABORT_IND, &cause);
+				/* If notification is gone, release pending received call. */
+				osmo_fsm_inst_dispatch(trans->gcc.fi, VGCS_GCC_EV_REL_IND, NULL);
 			}
 			break;
 		}
