@@ -2085,6 +2085,8 @@ static int gsm48_rr_uplink_access_abort(struct osmocom_ms *ms, uint8_t cause)
 static int gsm48_rr_tx_talker_indication(struct osmocom_ms *ms)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	struct gsm_subscriber *subscr = &ms->subscr;
+	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct msgb *nmsg;
 	struct gsm48_hdr *gh;
 	struct gsm48_talker_indication *ti;
@@ -2103,8 +2105,18 @@ static int gsm48_rr_tx_talker_indication(struct osmocom_ms *ms)
 	/* classmark 2 */
 	ti->cm2_len = sizeof(ti->cm2);
 	gsm48_rr_enc_cm2(ms, &ti->cm2, rr->cd_now.arfcn);
-	/* mobile identity (Use TMSI if available.) */
-	gsm48_encode_mi_lv(ms, nmsg, GSM_MI_TYPE_TMSI, false);
+
+	/* mobile identity */
+	if (ms->subscr.tmsi != GSM_RESERVED_TMSI && (osmo_lai_cmp(&subscr->lai, &cs->sel_cgi.lai) == 0)) {
+		gsm48_encode_mi_lv(ms, nmsg, GSM_MI_TYPE_TMSI, false);
+		LOGP(DRR, LOGL_INFO, "Sending TALKER INDICATION with TMSI.\n");
+	} else if (subscr->imsi[0]) {
+		gsm48_encode_mi_lv(ms, nmsg, GSM_MI_TYPE_IMSI, false);
+		LOGP(DRR, LOGL_INFO, "Sending TALKER INDICATION with IMSI.\n");
+	} else {
+		gsm48_encode_mi_lv(ms, nmsg, GSM_MI_TYPE_NONE, false);
+		LOGP(DRR, LOGL_INFO, "Sending TALKER INDICATION without TMSI/IMSI.\n");
+	}
 
 	/* start establishmnet */
 	return gsm48_send_rsl(ms, RSL_MT_EST_REQ, nmsg, 0);
