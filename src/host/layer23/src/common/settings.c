@@ -48,10 +48,10 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	snprintf(set->mncc_socket_path, sizeof(set->mncc_socket_path) - 1,
 		 "%s_%s", mncc_socket_path, ms->name);
 
-	/* Audio settings: drop TCH frames by default */
-	set->audio.io_handler = AUDIO_IOH_NONE;
-	OSMO_STRLCPY_ARRAY(set->audio.alsa_output_dev, alsa_dev_default);
-	OSMO_STRLCPY_ARRAY(set->audio.alsa_input_dev, alsa_dev_default);
+	/* TCH voice: drop frames by default */
+	set->tch_voice.io_handler = TCH_VOICE_IOH_NONE;
+	OSMO_STRLCPY_ARRAY(set->tch_voice.alsa_output_dev, alsa_dev_default);
+	OSMO_STRLCPY_ARRAY(set->tch_voice.alsa_input_dev, alsa_dev_default);
 
 	/* Built-in MNCC handler */
 	set->mncc_handler = MNCC_HANDLER_INTERNAL;
@@ -226,18 +226,18 @@ int gsm_random_imei(struct gsm_settings *set)
 	return 0;
 }
 
-const struct value_string audio_io_handler_names[] = {
-	{ AUDIO_IOH_NONE,	"none" },
-	{ AUDIO_IOH_GAPK,	"gapk" },
-	{ AUDIO_IOH_L1PHY,	"l1phy" },
-	{ AUDIO_IOH_MNCC_SOCK,	"mncc-sock" },
-	{ AUDIO_IOH_LOOPBACK,	"loopback" },
+const struct value_string tch_voice_io_handler_names[] = {
+	{ TCH_VOICE_IOH_NONE,		"none" },
+	{ TCH_VOICE_IOH_GAPK,		"gapk" },
+	{ TCH_VOICE_IOH_L1PHY,		"l1phy" },
+	{ TCH_VOICE_IOH_MNCC_SOCK,	"mncc-sock" },
+	{ TCH_VOICE_IOH_LOOPBACK,	"loopback" },
 	{ 0, NULL }
 };
 
-const struct value_string audio_io_format_names[] = {
-	{ AUDIO_IOF_RTP,	"rtp" },
-	{ AUDIO_IOF_TI,		"ti" },
+const struct value_string tch_voice_io_format_names[] = {
+	{ TCH_VOICE_IOF_RTP,		"rtp" },
+	{ TCH_VOICE_IOF_TI,		"ti" },
 	{ 0, NULL }
 };
 

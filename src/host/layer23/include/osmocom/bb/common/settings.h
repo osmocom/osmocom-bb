@@ -26,39 +26,39 @@ enum mncc_handler_t {
 	MNCC_HANDLER_DUMMY,
 };
 
-/* TCH frame I/O handler */
-enum audio_io_handler {
+/* TCH I/O handler for voice calls */
+enum tch_voice_io_handler {
 	/* No handler, drop frames */
-	AUDIO_IOH_NONE = 0,
+	TCH_VOICE_IOH_NONE = 0,
 	/* libosmo-gapk based handler */
-	AUDIO_IOH_GAPK,
+	TCH_VOICE_IOH_GAPK,
 	/* L1 PHY (e.g. Calypso DSP) */
-	AUDIO_IOH_L1PHY,
+	TCH_VOICE_IOH_L1PHY,
 	/* External MNCC app (via MNCC socket) */
-	AUDIO_IOH_MNCC_SOCK,
+	TCH_VOICE_IOH_MNCC_SOCK,
 	/* Return to sender */
-	AUDIO_IOH_LOOPBACK,
+	TCH_VOICE_IOH_LOOPBACK,
 };
 
-extern const struct value_string audio_io_handler_names[];
-static inline const char *audio_io_handler_name(enum audio_io_handler val)
-{ return get_value_string(audio_io_handler_names, val); }
+extern const struct value_string tch_voice_io_handler_names[];
+static inline const char *tch_voice_io_handler_name(enum tch_voice_io_handler val)
+{ return get_value_string(tch_voice_io_handler_names, val); }
 
-/* TCH frame I/O format */
-enum audio_io_format {
-	/* RTP format (RFC3551 for FR/EFR, RFC5993 for HR, RFC4867 for AMR) */
-	AUDIO_IOF_RTP,
+/* TCH I/O format for voice calls */
+enum tch_voice_io_format {
+	/* RFC3551 for FR/EFR, RFC5993 for HR, RFC4867 for AMR */
+	TCH_VOICE_IOF_RTP,
 	/* Texas Instruments format, used by Calypso based phones (e.g. Motorola C1xx) */
-	AUDIO_IOF_TI,
+	TCH_VOICE_IOF_TI,
 };
 
-extern const struct value_string audio_io_format_names[];
-static inline const char *audio_io_format_name(enum audio_io_format val)
-{ return get_value_string(audio_io_format_names, val); }
+extern const struct value_string tch_voice_io_format_names[];
+static inline const char *tch_voice_io_format_name(enum tch_voice_io_format val)
+{ return get_value_string(tch_voice_io_format_names, val); }
 
-struct audio_settings {
-	enum audio_io_handler	io_handler;
-	enum audio_io_format	io_format;
+struct tch_voice_settings {
+	enum tch_voice_io_handler io_handler;
+	enum tch_voice_io_format io_format;
 	char alsa_output_dev[128];
 	char alsa_input_dev[128];
 };
@@ -121,8 +121,8 @@ struct gsm_settings {
 	/* MNCC handler */
 	enum mncc_handler_t	mncc_handler;
 
-	/* Audio settings */
-	struct audio_settings	audio;
+	/* TCH settings */
+	struct tch_voice_settings tch_voice;
 
 	/* IMEI */
 	char			imei[GSM23003_IMEI_NUM_DIGITS + 1];

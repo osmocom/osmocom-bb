@@ -409,16 +409,16 @@ int gapk_io_init_ms(struct osmocom_ms *ms, enum osmo_gapk_codec_type codec)
 		return -ENOTSUP;
 	}
 
-	switch (set->audio.io_format) {
-	case AUDIO_IOF_RTP:
+	switch (set->tch_voice.io_format) {
+	case TCH_VOICE_IOF_RTP:
 		phy_fmt = phy_fmt_pick_rtp(codec);
 		break;
-	case AUDIO_IOF_TI:
+	case TCH_VOICE_IOF_TI:
 		phy_fmt = phy_fmt_pick_ti(codec);
 		break;
 	default:
 		LOGP(DGAPK, LOGL_ERROR, "Unhandled I/O format %s\n",
-		     audio_io_format_name(set->audio.io_format));
+		     tch_voice_io_format_name(set->tch_voice.io_format));
 		return -ENOTSUP;
 	}
 
@@ -447,8 +447,8 @@ int gapk_io_init_ms(struct osmocom_ms *ms, enum osmo_gapk_codec_type codec)
 	osmo_gapk_set_talloc_ctx(gapk_io);
 
 	/* Prepare both source and sink chains */
-	rc |= prepare_audio_source(gapk_io, set->audio.alsa_input_dev);
-	rc |= prepare_audio_sink(gapk_io, set->audio.alsa_output_dev);
+	rc |= prepare_audio_source(gapk_io, set->tch_voice.alsa_input_dev);
+	rc |= prepare_audio_sink(gapk_io, set->tch_voice.alsa_output_dev);
 
 	/* Fall back to ms instance */
 	osmo_gapk_set_talloc_ctx(ms);

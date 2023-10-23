@@ -1477,14 +1477,14 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 
 	vty_out(vty, " tch-voice%s", VTY_NEWLINE);
 	vty_out(vty, "  io-handler %s%s",
-		audio_io_handler_name(set->audio.io_handler), VTY_NEWLINE);
-	if (set->audio.io_handler == AUDIO_IOH_GAPK) {
+		tch_voice_io_handler_name(set->tch_voice.io_handler), VTY_NEWLINE);
+	if (set->tch_voice.io_handler == TCH_VOICE_IOH_GAPK) {
 		vty_out(vty, "  io-tch-format %s%s",
-			audio_io_format_name(set->audio.io_format), VTY_NEWLINE);
+			tch_voice_io_format_name(set->tch_voice.io_format), VTY_NEWLINE);
 		vty_out(vty, "  alsa-output-dev %s%s",
-			set->audio.alsa_output_dev, VTY_NEWLINE);
+			&set->tch_voice.alsa_output_dev[0], VTY_NEWLINE);
 		vty_out(vty, "  alsa-input-dev %s%s",
-			set->audio.alsa_input_dev, VTY_NEWLINE);
+			&set->tch_voice.alsa_input_dev[0], VTY_NEWLINE);
 	}
 
 	if (ms->lua_script)
@@ -2491,15 +2491,15 @@ ALIAS_DEPRECATED(cfg_ms_tch_voice, /* alias to 'tch-voice' */
 		 "audio", "(deprecated alias for 'tch-voice')\n");
 
 
-static int set_audio_io_handler(struct vty *vty, enum audio_io_handler val)
+static int set_tch_voice_io_handler(struct vty *vty, enum tch_voice_io_handler val)
 {
 	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
 	struct gsm_settings *set = &ms->settings;
 
 	/* Don't restart on unchanged value */
-	if (val == set->audio.io_handler)
+	if (val == set->tch_voice.io_handler)
 		return CMD_SUCCESS;
-	set->audio.io_handler = val;
+	set->tch_voice.io_handler = val;
 
 	/* Restart required */
 	vty_restart_if_started(vty, ms);
@@ -2509,7 +2509,7 @@ static int set_audio_io_handler(struct vty *vty, enum audio_io_handler val)
 
 DEFUN(cfg_ms_tch_voice_io_handler, cfg_ms_tch_voice_io_handler_cmd,
 	"io-handler (none|gapk|l1phy|mncc-sock|loopback)",
-	"Set TCH frame I/O handler\n"
+	"Set TCH frame I/O handler for voice calls\n"
 	"No handler, drop TCH frames (default)\n"
 	"libosmo-gapk based I/O handler (requires ALSA)\n"
 	"L1 PHY (e.g. Calypso DSP in Motorola C1xx phones)\n"
@@ -2517,30 +2517,30 @@ DEFUN(cfg_ms_tch_voice_io_handler, cfg_ms_tch_voice_io_handler_cmd,
 	"Return TCH frame payload back to sender\n")
 {
 	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
-	int val = get_string_value(audio_io_handler_names, argv[0]);
+	int val = get_string_value(tch_voice_io_handler_names, argv[0]);
 
-	if (val == AUDIO_IOH_MNCC_SOCK) {
+	if (val == TCH_VOICE_IOH_MNCC_SOCK) {
 		if (ms->settings.mncc_handler != MNCC_HANDLER_INTERNAL) {
-			vty_out(vty, "Audio I/O handler 'mncc-sock' can only be used "
+			vty_out(vty, "TCH voice I/O handler 'mncc-sock' can only be used "
 				"with MNCC handler 'external'%s", VTY_NEWLINE);
 			return CMD_WARNING;
 		}
 	}
 
 #ifndef WITH_GAPK_IO
-	if (val == AUDIO_IOH_GAPK) {
+	if (val == TCH_VOICE_IOH_GAPK) {
 		vty_out(vty, "GAPK I/O is not compiled in (--with-gapk-io)%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 #endif
 
-	return set_audio_io_handler(vty, val);
+	return set_tch_voice_io_handler(vty, val);
 }
 
 DEFUN(cfg_ms_tch_voice_no_io_handler, cfg_ms_tch_voice_no_io_handler_cmd,
-	"no io-handler", NO_STR "Disable TCH frame processing")
+	"no io-handler", NO_STR "Disable TCH frame handling for voice calls\n")
 {
-	return set_audio_io_handler(vty, AUDIO_IOH_NONE);
+	return set_tch_voice_io_handler(vty, TCH_VOICE_IOH_NONE);
 }
 
 DEFUN(cfg_ms_tch_voice_io_tch_format, cfg_ms_tch_voice_io_tch_format_cmd,
@@ -2549,17 +2549,17 @@ DEFUN(cfg_ms_tch_voice_io_tch_format, cfg_ms_tch_voice_io_tch_format_cmd,
 	"RTP format (RFC3551 for FR/EFR, RFC5993 for HR, RFC4867 for AMR)\n"
 	"Texas Instruments format, used by Calypso based phones (e.g. Motorola C1xx)\n")
 {
-	int val = get_string_value(audio_io_format_names, argv[0]);
+	int val = get_string_value(tch_voice_io_format_names, argv[0]);
 	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	if (set->audio.io_handler != AUDIO_IOH_GAPK) {
+	if (set->tch_voice.io_handler != TCH_VOICE_IOH_GAPK) {
 		vty_out(vty, "This parameter is only valid for GAPK%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
 	OSMO_ASSERT(val >= 0);
-	set->audio.io_format = val;
+	set->tch_voice.io_format = val;
 
 	return CMD_SUCCESS;
 }
@@ -2573,7 +2573,7 @@ DEFUN(cfg_ms_tch_voice_alsa_out_dev, cfg_ms_tch_voice_alsa_out_dev_cmd,
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	OSMO_STRLCPY_ARRAY(set->audio.alsa_output_dev, argv[0]);
+	OSMO_STRLCPY_ARRAY(set->tch_voice.alsa_output_dev, argv[0]);
 
 	return CMD_SUCCESS;
 }
@@ -2587,7 +2587,7 @@ DEFUN(cfg_ms_tch_voice_alsa_in_dev, cfg_ms_tch_voice_alsa_in_dev_cmd,
 	struct osmocom_ms *ms = vty->index;
 	struct gsm_settings *set = &ms->settings;
 
-	OSMO_STRLCPY_ARRAY(set->audio.alsa_input_dev, argv[0]);
+	OSMO_STRLCPY_ARRAY(set->tch_voice.alsa_input_dev, argv[0]);
 
 	return CMD_SUCCESS;
 }

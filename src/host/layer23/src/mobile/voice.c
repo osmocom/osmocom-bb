@@ -76,15 +76,15 @@ exit_free:
 /* Receive a Downlink voice frame from the lower layers */
 static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
-	switch (ms->settings.audio.io_handler) {
-	case AUDIO_IOH_LOOPBACK:
+	switch (ms->settings.tch_voice.io_handler) {
+	case TCH_VOICE_IOH_LOOPBACK:
 		/* Remove the DL info header */
 		msgb_pull_to_l2(msg);
 		/* Send voice frame back */
 		return gsm_send_voice_msg(ms, msg);
-	case AUDIO_IOH_MNCC_SOCK:
+	case TCH_VOICE_IOH_MNCC_SOCK:
 		return gsm_forward_mncc(ms, msg);
-	case AUDIO_IOH_GAPK:
+	case TCH_VOICE_IOH_GAPK:
 #ifdef WITH_GAPK_IO
 		/* Enqueue a frame to the DL TCH buffer */
 		if (ms->gapk_io != NULL)
@@ -93,8 +93,8 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 			msgb_free(msg);
 		break;
 #endif
-	case AUDIO_IOH_L1PHY:
-	case AUDIO_IOH_NONE:
+	case TCH_VOICE_IOH_L1PHY:
+	case TCH_VOICE_IOH_NONE:
 		/* Drop voice frame */
 		msgb_free(msg);
 	}
