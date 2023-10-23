@@ -191,6 +191,7 @@ struct gsm_settings {
 
 	/* ASCI settings */
 	bool			uplink_release_local;
+	bool			asci_allow_any;
 };
 
 struct gsm_settings_abbrev {

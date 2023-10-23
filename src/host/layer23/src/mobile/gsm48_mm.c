@@ -61,7 +61,9 @@ static void new_mm_state(struct gsm48_mmlayer *mm, int state, int substate);
 static int gsm48_mm_loc_upd_normal(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_mm_loc_upd_periodic(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_mm_loc_upd(struct osmocom_ms *ms, struct msgb *msg);
+static int gsm48_mm_group_reject(struct osmocom_ms *ms, struct msgb *msg);
 static int gsm48_mm_group_rel_req(struct osmocom_ms *ms, struct msgb *msg);
+static int gsm48_mm_uplink_reject(struct osmocom_ms *ms, struct msgb *msg);
 
 /*
  * notes
@@ -3805,8 +3807,12 @@ static int gsm48_mm_uplink_free(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_mm_group_req(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm_settings *set = &ms->settings;
 	struct gsm48_mmxx_hdr *mmh = (struct gsm48_mmxx_hdr *)msg->data;
 	struct msgb *nmsg;
+
+	if (mm->substate == GSM48_MM_SST_NO_IMSI && !set->asci_allow_any)
+		return gsm48_mm_group_reject(ms, msg);
 
 	LOGP(DMM, LOGL_INFO, "Request for joining a group call, trying to establish group receive mode.\n");
 
@@ -3881,6 +3887,7 @@ static int gsm48_mm_group_cnf(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_mm_group_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm_subscriber *subscr = &ms->subscr;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
 	uint16_t msg_type;
 	struct msgb *nmsg;
@@ -3892,8 +3899,10 @@ static int gsm48_mm_group_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
 	mm->vgcs.enabled = false;
 
 	/* Change mode back to normal or limited service. */
-	if (mm->substate == GSM48_MM_SST_RX_VGCS_LIMITED)
-		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
+	if (mm->substate == GSM48_MM_SST_RX_VGCS_LIMITED) {
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, (subscr->sim_valid) ? GSM48_MM_SST_LIMITED_SERVICE
+									  : GSM48_MM_SST_NO_IMSI);
+	}
 	if (mm->substate == GSM48_MM_SST_RX_VGCS_NORMAL)
 		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_NORMAL_SERVICE);
 
@@ -3932,6 +3941,7 @@ static int gsm48_mm_group_rel_ind(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_mm_group_rel_req(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm_subscriber *subscr = &ms->subscr;
 	struct msgb *nmsg;
 
 	LOGP(DMM, LOGL_INFO, "Request to release group call in receive or transmit mode.\n");
@@ -3940,8 +3950,10 @@ static int gsm48_mm_group_rel_req(struct osmocom_ms *ms, struct msgb *msg)
 	mm->vgcs.enabled = false;
 
 	/* Change mode back to normal or limited service. */
-	if (mm->substate == GSM48_MM_SST_RX_VGCS_LIMITED)
-		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_LIMITED_SERVICE);
+	if (mm->substate == GSM48_MM_SST_RX_VGCS_LIMITED) {
+		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, (subscr->sim_valid) ? GSM48_MM_SST_LIMITED_SERVICE
+									  : GSM48_MM_SST_NO_IMSI);
+	}
 	if (mm->substate == GSM48_MM_SST_RX_VGCS_NORMAL)
 		new_mm_state(mm, GSM48_MM_ST_MM_IDLE, GSM48_MM_SST_NORMAL_SERVICE);
 
@@ -3960,7 +3972,11 @@ static int gsm48_mm_group_rel_req(struct osmocom_ms *ms, struct msgb *msg)
 static int gsm48_mm_uplink_req(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
+	struct gsm_settings *set = &ms->settings;
 	struct msgb *nmsg;
+
+	if (mm->substate != GSM48_MM_SST_RX_VGCS_NORMAL && !set->asci_allow_any)
+		return gsm48_mm_uplink_reject(ms, msg);
 
 	LOGP(DMM, LOGL_INFO, "Request for uplink, trying to establish group transmit mode.\n");
 
@@ -4201,6 +4217,12 @@ static struct downstate {
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NO_IMSI),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
 
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NO_IMSI),
+	 GSM48_MMBCC_GROUP_REQ, gsm48_mm_group_req},
+
+	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_NO_IMSI),
+	 GSM48_MMGCC_GROUP_REQ, gsm48_mm_group_req},
+
 	/* 4.2.2.5 PLMN search, normal service */
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_PLMN_SEARCH_NORMAL),
 	 GSM48_MMCC_EST_REQ, gsm48_mm_init_mm_no_rr},
@@ -4254,10 +4276,10 @@ static struct downstate {
 	 GSM48_MMBCC_REL_REQ, gsm48_mm_group_rel_req},
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_LIMITED),
-	 GSM48_MMGCC_UPLINK_REQ, gsm48_mm_uplink_reject},
+	 GSM48_MMGCC_UPLINK_REQ, gsm48_mm_uplink_req},
 
 	{SBIT(GSM48_MM_ST_MM_IDLE), SBIT(GSM48_MM_SST_RX_VGCS_LIMITED),
-	 GSM48_MMBCC_UPLINK_REQ, gsm48_mm_uplink_reject},
+	 GSM48_MMBCC_UPLINK_REQ, gsm48_mm_uplink_req},
 
 	/* 4.5.1.1 MM Connection (EST) */
 	{SBIT(GSM48_MM_ST_RR_CONN_RELEASE_NA), ALL_STATES,

@@ -1327,6 +1327,9 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	if (!l23_vty_hide_default || !set->uplink_release_local)
 		vty_out(vty, " %suplink-release-local%s",
 			(set->uplink_release_local) ? "no " : "", VTY_NEWLINE);
+	if (!l23_vty_hide_default || set->asci_allow_any)
+		vty_out(vty, " %sasci-allow-any%s",
+			(set->asci_allow_any) ? "" : "no ", VTY_NEWLINE);
 
 	vty_out(vty, " audio%s", VTY_NEWLINE);
 	vty_out(vty, "  io-handler %s%s",
@@ -1997,6 +2000,28 @@ DEFUN(cfg_ms_uplink_release_local, cfg_ms_uplink_release_local_cmd, "uplink-rele
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_asci_allow_any, cfg_ms_asci_allow_any_cmd, "asci-allow-any",
+	"Allow any ASCI related call feature, even if service is limited or SIM invalid.")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->asci_allow_any = true;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_asci_allow_any, cfg_ms_no_asci_allow_any_cmd, "no asci-allow-any",
+	NO_STR "Do not allow any ASCI related call feature, if service is not normal.")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->asci_allow_any = false;
+
+	return CMD_SUCCESS;
+}
+
 static int config_write_dummy(struct vty *vty)
 {
 	return CMD_SUCCESS;
@@ -2586,6 +2611,8 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_sms_store_cmd);
 	install_element(MS_NODE, &cfg_ms_uplink_release_local_cmd);
 	install_element(MS_NODE, &cfg_ms_no_uplink_release_local_cmd);
+	install_element(MS_NODE, &cfg_ms_asci_allow_any_cmd);
+	install_element(MS_NODE, &cfg_ms_no_asci_allow_any_cmd);
 	install_element(MS_NODE, &cfg_ms_support_cmd);
 	install_node(&support_node, config_write_dummy);
 	install_element(SUPPORT_NODE, &cfg_ms_set_en_cc_dtmf_cmd);
