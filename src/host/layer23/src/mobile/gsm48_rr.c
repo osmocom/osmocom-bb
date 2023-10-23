@@ -7117,7 +7117,7 @@ static void start_rr_t3124(struct gsm48_rrlayer *rr, int sec, int micro)
 
 #endif
 
-int gsm48_rr_tx_voice(struct osmocom_ms *ms, struct msgb *msg)
+int gsm48_rr_tx_traffic(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;

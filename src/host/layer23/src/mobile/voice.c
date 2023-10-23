@@ -106,7 +106,7 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 int gsm_send_voice_msg(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* Forward to RR */
-	return gsm48_rr_tx_voice(ms, msg);
+	return gsm48_rr_tx_traffic(ms, msg);
 }
 
 /* gsm_send_voice_msg() wrapper accepting an MNCC structure */
