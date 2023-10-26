@@ -50,6 +50,7 @@ int gsm_settings_init(struct osmocom_ms *ms)
 
 	/* TCH voice: drop frames by default */
 	set->tch_voice.io_handler = TCH_VOICE_IOH_NONE;
+	set->tch_voice.io_format = TCH_VOICE_IOF_RTP;
 	OSMO_STRLCPY_ARRAY(set->tch_voice.alsa_output_dev, alsa_dev_default);
 	OSMO_STRLCPY_ARRAY(set->tch_voice.alsa_input_dev, alsa_dev_default);
 
