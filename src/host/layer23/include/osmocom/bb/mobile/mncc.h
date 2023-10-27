@@ -21,26 +21,7 @@
 
 #pragma once
 
-#include <osmocom/core/linuxlist.h>
-#include <osmocom/core/timer.h>
 #include <osmocom/gsm/mncc.h>
-
-struct gsm_call {
-	struct llist_head	entry;
-
-	struct osmocom_ms	*ms;
-
-	uint32_t		callref;
-
-	bool			init; /* call initiated, no response yet */
-	bool			hold; /* call on hold */
-	bool			ring; /* call ringing/knocking */
-
-	struct osmo_timer_list	dtmf_timer;
-	uint8_t			dtmf_state;
-	uint8_t			dtmf_index;
-	char			dtmf[32]; /* dtmf sequence */
-};
 
 #define DTMF_ST_IDLE		0	/* no DTMF active */
 #define DTMF_ST_START		1	/* DTMF started, waiting for resp. */
@@ -126,6 +107,8 @@ struct gsm_call {
 #define MNCC_F_CCCAP		0x0800
 #define MNCC_F_KEYPAD		0x1000
 #define MNCC_F_SIGNAL		0x2000
+
+struct osmocom_ms;
 
 struct gsm_mncc {
 	/* context based information */
