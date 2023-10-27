@@ -19,8 +19,7 @@
  *
  */
 
-#ifndef _MNCC_H
-#define _MNCC_H
+#pragma once
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/timer.h>
@@ -174,6 +173,3 @@ struct gsm_data_frame {
 const char *get_mncc_name(int value);
 int mncc_recv(struct osmocom_ms *ms, int msg_type, void *arg);
 void mncc_set_cause(struct gsm_mncc *data, int loc, int val);
-
-#endif
-
