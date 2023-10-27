@@ -1855,6 +1855,8 @@ int gcc_leave(struct osmocom_ms *ms)
 	    trans->gcc.fi->state == VGCS_GCC_ST_U2sl_GROUP_CALL_ACTIVE ||
 	    trans->gcc.fi->state == VGCS_GCC_ST_U5_TERMINATION_REQUESTED) {
 		LOG_GCC(trans, LOGL_NOTICE, "Cannot leave (abort), in this state.\n");
+		if (trans->gcc.fi->state == VGCS_GCC_ST_U2sl_GROUP_CALL_ACTIVE)
+			vgcs_vty_notify(trans, "Cannot leave while talking\n");
 		return -EINVAL;
 	}
 
