@@ -37,16 +37,21 @@
 
 int tch_voice_state_init(struct gsm_trans *trans,
 			 struct tch_voice_state *state);
+int tch_data_state_init(struct gsm_trans *trans,
+			struct tch_data_state *state);
+
 void tch_voice_state_free(struct tch_voice_state *state);
+void tch_data_state_free(struct tch_data_state *state);
 
 int tch_voice_recv(struct osmocom_ms *ms, struct msgb *msg);
+int tch_data_recv(struct osmocom_ms *ms, struct msgb *msg);
 int tch_voice_serve_ms(struct osmocom_ms *ms);
 
 /* Receive a Downlink traffic (voice/data) frame from the lower layers */
 static int tch_recv_cb(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct tch_state *state = ms->tch_state;
-	int rc = 0;
+	int rc;
 
 	if (state == NULL) {
 		msgb_free(msg);
@@ -55,9 +60,8 @@ static int tch_recv_cb(struct osmocom_ms *ms, struct msgb *msg)
 
 	if (state->is_voice)
 		rc = tch_voice_recv(ms, msg);
-	else /* TODO: tch_recv_data() */
-		msgb_free(msg);
-
+	else
+		rc = tch_data_recv(ms, msg);
 	return rc;
 }
 
@@ -126,6 +130,7 @@ static void tch_trans_cstate_active_cb(struct gsm_trans *trans)
 
 	state = talloc_zero(ms, struct tch_state);
 	OSMO_ASSERT(state != NULL);
+	ms->tch_state = state;
 
 	ch_mode = ms->rrlayer.cd_now.mode;
 	switch (ch_mode) {
@@ -141,24 +146,20 @@ static void tch_trans_cstate_active_cb(struct gsm_trans *trans)
 	case GSM48_CMODE_DATA_12k0:
 	case GSM48_CMODE_DATA_6k0:
 	case GSM48_CMODE_DATA_3k6:
-#if 0
 		state->is_voice = false;
 		state->data.handler = ms->settings.tch_data.io_handler;
-		/* TODO: tch_data_state_init() */
 		if (tch_data_state_init(trans, &state->data) != 0)
 			goto exit_free;
 		break;
-#endif
 	case GSM48_CMODE_SIGN:
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unhandled channel mode %s\n",
 		     get_value_string(gsm48_chan_mode_names, ch_mode));
 exit_free:
 		talloc_free(state);
+		ms->tch_state = NULL;
 		return;
 	}
-
-	ms->tch_state = state;
 }
 
 static void tch_trans_free_cb(struct gsm_trans *trans)
@@ -170,10 +171,8 @@ static void tch_trans_free_cb(struct gsm_trans *trans)
 		return;
 	if (state->is_voice)
 		tch_voice_state_free(&state->voice);
-#if 0
-	else /* TODO: tch_state_free_data() */
-		tch_state_free_data(&state->data);
-#endif
+	else
+		tch_data_state_free(&state->data);
 
 	talloc_free(state);
 	ms->tch_state = NULL;

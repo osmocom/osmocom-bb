@@ -13,6 +13,10 @@ struct tch_state {
 		} voice;
 		struct tch_data_state {
 			enum tch_data_io_handler handler;
+			struct osmo_v110_ta *v110_ta;
+			struct osmo_soft_uart *suart;
+			unsigned int num_tx;
+			uint8_t e1e2e3[3];
 		} data;
 	};
 };

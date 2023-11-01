@@ -8,6 +8,7 @@ AM_CFLAGS = \
 	$(LIBOSMOCORE_CFLAGS) \
 	$(LIBOSMOVTY_CFLAGS) \
 	$(LIBOSMOGSM_CFLAGS) \
+	$(LIBOSMOISDN_CFLAGS) \
 	$(LIBOSMOGPRSRLCMAC_CFLAGS) \
 	$(LIBOSMOGPRSLLC_CFLAGS) \
 	$(LIBOSMOGPRSSNDCP_CFLAGS) \
@@ -31,6 +32,7 @@ libmobile_a_SOURCES = \
 	mncc_sock.c \
 	primitives.c \
 	tch.c \
+	tch_data.c \
 	tch_voice.c \
 	transaction.c \
 	vty_interface.c \
@@ -45,6 +47,7 @@ mobile_LDADD = \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
+	$(LIBOSMOISDN_LIBS) \
 	$(LIBOSMOGPRSRLCMAC_LIBS) \
 	$(LIBOSMOGPRSLLC_LIBS) \
 	$(LIBOSMOGPRSSNDCP_LIBS) \
