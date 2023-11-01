@@ -1,7 +1,7 @@
 /*
  * (C) 2010 by Andreas Eversberg <jolly@eversberg.eu>
  * (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
- * (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
+ * (C) 2022-2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * All Rights Reserved
  *
@@ -32,6 +32,30 @@
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/mncc_sock.h>
 #include <osmocom/bb/mobile/tch.h>
+
+/* Receive a Downlink data frame from the lower layers */
+static int tch_recv_data(struct osmocom_ms *ms, struct msgb *msg)
+{
+	const struct gsm_settings *set = &ms->settings;
+
+	switch (set->tch_data.io_handler) {
+	case TCH_DATA_IOH_LOOPBACK:
+		/* Remove the DL info header */
+		msgb_pull_to_l2(msg);
+		/* Send data frame back */
+		return tch_send_voice_msg(ms, msg);
+	case TCH_DATA_IOH_UNIX_SOCK:
+		tch_soft_uart_rx_from_l1(ms, msg);
+		tch_soft_uart_tx_to_l1(ms);
+		msgb_free(msg);
+		break;
+	case TCH_DATA_IOH_NONE:
+		/* Drop voice frame */
+		msgb_free(msg);
+	}
+
+	return 0;
+}
 
 /* Forward a Downlink voice frame to the external MNCC handler */
 static int tch_forward_mncc(struct osmocom_ms *ms, struct msgb *msg)
@@ -145,7 +169,10 @@ int tch_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *fra
 /* Initialize the TCH router */
 int tch_init(struct osmocom_ms *ms)
 {
-	ms->l1_entity.l1_traffic_ind = tch_recv_voice;
+	/* FIXME: distinguish between voice and data somehow */
+	ms->l1_entity.l1_traffic_ind = &tch_recv_data;
+
+	tch_soft_uart_alloc(ms);
 
 	return 0;
 }
