@@ -55,6 +55,12 @@ struct cmd_node tch_voice_node = {
 	1
 };
 
+struct cmd_node tch_data_node = {
+	TCH_DATA_NODE,
+	"%s(tch-data)# ",
+	1
+};
+
 struct cmd_node vgcs_node = {
 	VGCS_NODE,
 	"%s(group-call)# ",
@@ -1487,6 +1493,16 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 			&set->tch_voice.alsa_input_dev[0], VTY_NEWLINE);
 	}
 
+	vty_out(vty, " tch-data%s", VTY_NEWLINE);
+	vty_out(vty, "  io-handler %s%s",
+		tch_data_io_handler_name(set->tch_data.io_handler), VTY_NEWLINE);
+	vty_out(vty, "  io-tch-format %s%s",
+		tch_data_io_format_name(set->tch_data.io_format), VTY_NEWLINE);
+	if (set->tch_data.io_handler == TCH_DATA_IOH_UNIX_SOCK) {
+		vty_out(vty, "  unix-socket %s%s",
+			set->tch_data.unix_socket_path, VTY_NEWLINE);
+	}
+
 	if (ms->lua_script)
 		vty_out(vty, " lua-script %s%s", ms->lua_script, VTY_NEWLINE);
 
@@ -2592,6 +2608,81 @@ DEFUN(cfg_ms_tch_voice_alsa_in_dev, cfg_ms_tch_voice_alsa_in_dev_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_tch_data,
+      cfg_ms_tch_data_cmd,
+      "tch-data", "Configure TCH (Traffic CHannel) params for data calls\n")
+{
+	vty->node = TCH_DATA_NODE;
+	return CMD_SUCCESS;
+}
+
+static int set_tch_data_io_handler(struct vty *vty, enum tch_data_io_handler val)
+{
+	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	/* Don't restart on unchanged value */
+	if (val == set->tch_data.io_handler)
+		return CMD_SUCCESS;
+	set->tch_data.io_handler = val;
+
+	/* Restart required */
+	vty_restart_if_started(vty, ms);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_tch_data_io_handler,
+      cfg_ms_tch_data_io_handler_cmd,
+      "io-handler (none|unix-sock|loopback)",
+      "Set TCH frame I/O handler for data calls\n"
+      "No handler, drop TCH frames (default)\n"
+      "UNIX socket (path set by 'data-unix-socket')\n"
+      "Return TCH frame payload back to sender\n")
+{
+	int val = get_string_value(tch_data_io_handler_names, argv[0]);
+
+	return set_tch_data_io_handler(vty, val);
+}
+
+DEFUN(cfg_ms_tch_data_no_io_handler,
+      cfg_ms_tch_data_no_io_handler_cmd,
+      "no io-handler", NO_STR "Disable TCH frame handling for data calls\n")
+{
+	return set_tch_data_io_handler(vty, TCH_DATA_IOH_NONE);
+}
+
+DEFUN(cfg_ms_tch_data_io_tch_format,
+      cfg_ms_tch_data_io_tch_format_cmd,
+      "io-tch-format (osmo|ti)",
+      "Set TCH I/O frame format used by the L1 PHY\n"
+      "Osmocom format used by both trxcon and viryphy (default)\n"
+      "Texas Instruments format, used by Calypso based phones (e.g. Motorola C1xx)\n")
+{
+	int val = get_string_value(tch_data_io_format_names, argv[0]);
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	OSMO_ASSERT(val >= 0);
+	set->tch_data.io_format = val;
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_tch_data_unix_sock,
+      cfg_ms_tch_data_unix_sock_cmd,
+      "unix-socket PATH",
+      "Define UNIX socket path (for 'io-handler unix-sock')\n"
+      "UNIX socket path (default '/tmp/ms_data_' + MS_NAME)\n")
+{
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	OSMO_STRLCPY_ARRAY(set->tch_data.unix_socket_path, argv[0]);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_ms_script_load_run, cfg_ms_script_load_run_cmd, "lua-script FILENAME",
 	"Load and execute a LUA script\nFilename for lua script")
 {
@@ -2765,6 +2856,7 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_no_abbrev_cmd);
 	install_element(MS_NODE, &cfg_ms_tch_voice_cmd);
 	install_element(MS_NODE, &cfg_ms_audio_cmd);
+	install_element(MS_NODE, &cfg_ms_tch_data_cmd);
 	install_element(MS_NODE, &cfg_ms_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_no_neighbour_cmd);
 	install_element(MS_NODE, &cfg_ms_any_timeout_cmd);
@@ -2855,6 +2947,12 @@ int ms_vty_init(void)
 	install_element(TCH_VOICE_NODE, &cfg_ms_tch_voice_io_tch_format_cmd);
 	install_element(TCH_VOICE_NODE, &cfg_ms_tch_voice_alsa_out_dev_cmd);
 	install_element(TCH_VOICE_NODE, &cfg_ms_tch_voice_alsa_in_dev_cmd);
+
+	install_node(&tch_data_node, config_write_dummy);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_io_handler_cmd);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_no_io_handler_cmd);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_io_tch_format_cmd);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_unix_sock_cmd);
 
 	return 0;
 }

@@ -11,6 +11,7 @@
 enum ms_vty_node {
 	SUPPORT_NODE = _LAST_L23VTY_NODE + 1,
 	TCH_VOICE_NODE,
+	TCH_DATA_NODE,
 	VGCS_NODE,
 	VBS_NODE,
 };

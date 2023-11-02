@@ -44,6 +44,20 @@ extern const struct value_string tch_voice_io_handler_names[];
 static inline const char *tch_voice_io_handler_name(enum tch_voice_io_handler val)
 { return get_value_string(tch_voice_io_handler_names, val); }
 
+/* TCH I/O handler for data calls */
+enum tch_data_io_handler {
+	/* No handler, drop frames */
+	TCH_DATA_IOH_NONE = 0,
+	/* UNIX socket */
+	TCH_DATA_IOH_UNIX_SOCK,
+	/* Return to sender */
+	TCH_DATA_IOH_LOOPBACK,
+};
+
+extern const struct value_string tch_data_io_handler_names[];
+static inline const char *tch_data_io_handler_name(enum tch_data_io_handler val)
+{ return get_value_string(tch_data_io_handler_names, val); }
+
 /* TCH I/O format for voice calls */
 enum tch_voice_io_format {
 	/* RFC3551 for FR/EFR, RFC5993 for HR, RFC4867 for AMR */
@@ -56,11 +70,29 @@ extern const struct value_string tch_voice_io_format_names[];
 static inline const char *tch_voice_io_format_name(enum tch_voice_io_format val)
 { return get_value_string(tch_voice_io_format_names, val); }
 
+/* TCH I/O format for data calls */
+enum tch_data_io_format {
+	/* Osmocom format, used by trxcon and virtphy */
+	TCH_DATA_IOF_OSMO,
+	/* Texas Instruments format, used by Calypso based phones (e.g. Motorola C1xx) */
+	TCH_DATA_IOF_TI,
+};
+
+extern const struct value_string tch_data_io_format_names[];
+static inline const char *tch_data_io_format_name(enum tch_data_io_format val)
+{ return get_value_string(tch_data_io_format_names, val); }
+
 struct tch_voice_settings {
 	enum tch_voice_io_handler io_handler;
 	enum tch_voice_io_format io_format;
 	char alsa_output_dev[128];
 	char alsa_input_dev[128];
+};
+
+struct tch_data_settings {
+	enum tch_data_io_handler io_handler;
+	enum tch_data_io_format io_format;
+	char unix_socket_path[128];
 };
 
 struct test_sim_settings {
@@ -123,6 +155,7 @@ struct gsm_settings {
 
 	/* TCH settings */
 	struct tch_voice_settings tch_voice;
+	struct tch_data_settings tch_data;
 
 	/* IMEI */
 	char			imei[GSM23003_IMEI_NUM_DIGITS + 1];

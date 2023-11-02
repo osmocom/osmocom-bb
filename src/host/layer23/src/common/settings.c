@@ -34,6 +34,7 @@ char *layer2_socket_path = L2_DEFAULT_SOCKET_PATH;
 
 static char *sap_socket_path = "/tmp/osmocom_sap";
 static char *mncc_socket_path = "/tmp/ms_mncc";
+static char *data_socket_path = "/tmp/ms_data";
 static char *alsa_dev_default = "default";
 
 int gsm_settings_init(struct osmocom_ms *ms)
@@ -53,6 +54,13 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	set->tch_voice.io_format = TCH_VOICE_IOF_RTP;
 	OSMO_STRLCPY_ARRAY(set->tch_voice.alsa_output_dev, alsa_dev_default);
 	OSMO_STRLCPY_ARRAY(set->tch_voice.alsa_input_dev, alsa_dev_default);
+
+	/* TCH data: drop frames by default */
+	set->tch_data.io_handler = TCH_DATA_IOH_NONE;
+	set->tch_data.io_format = TCH_DATA_IOF_OSMO;
+	snprintf(set->tch_data.unix_socket_path,
+		 sizeof(set->tch_data.unix_socket_path) - 1,
+		 "%s_%s", data_socket_path, ms->name);
 
 	/* Built-in MNCC handler */
 	set->mncc_handler = MNCC_HANDLER_INTERNAL;
@@ -236,12 +244,24 @@ const struct value_string tch_voice_io_handler_names[] = {
 	{ 0, NULL }
 };
 
+const struct value_string tch_data_io_handler_names[] = {
+	{ TCH_DATA_IOH_NONE,		"none" },
+	{ TCH_DATA_IOH_UNIX_SOCK,	"unix-sock" },
+	{ TCH_DATA_IOH_LOOPBACK,	"loopback" },
+	{ 0, NULL }
+};
+
 const struct value_string tch_voice_io_format_names[] = {
 	{ TCH_VOICE_IOF_RTP,		"rtp" },
 	{ TCH_VOICE_IOF_TI,		"ti" },
 	{ 0, NULL }
 };
 
+const struct value_string tch_data_io_format_names[] = {
+	{ TCH_DATA_IOF_OSMO,		"osmo" },
+	{ TCH_DATA_IOF_TI,		"ti" },
+	{ 0, NULL }
+};
 
 int gprs_settings_init(struct osmocom_ms *ms)
 {
