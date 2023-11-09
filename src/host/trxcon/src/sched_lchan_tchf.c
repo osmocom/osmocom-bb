@@ -335,7 +335,11 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			gsm0503_tch_fr144_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm data sending (pass ownership of the msgb/prim) */
 			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
-		} /* else: all bits of this frame are set to zero */
+		} else {
+			ubit_t idle[290];
+			memset(&idle[0], 0x01, sizeof(idle));
+			gsm0503_tch_fr144_encode(BUFPOS(bursts_p, 0), &idle[0]);
+		}
 		if ((msg = msg_facch) != NULL) {
 			gsm0503_tch_fr_facch_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm FACCH sending (pass ownership of the msgb/prim) */
@@ -349,7 +353,11 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			gsm0503_tch_fr96_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm data sending (pass ownership of the msgb/prim) */
 			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
-		} /* else: all bits of this frame are set to zero */
+		} else {
+			ubit_t idle[4 * 60];
+			memset(&idle[0], 0x01, sizeof(idle));
+			gsm0503_tch_fr96_encode(BUFPOS(bursts_p, 0), &idle[0]);
+		}
 		if ((msg = msg_facch) != NULL) {
 			gsm0503_tch_fr_facch_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm FACCH sending (pass ownership of the msgb/prim) */
@@ -363,7 +371,11 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			gsm0503_tch_fr48_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm data sending (pass ownership of the msgb/prim) */
 			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
-		} /* else: all bits of this frame are set to zero */
+		} else {
+			ubit_t idle[2 * 60];
+			memset(&idle[0], 0x01, sizeof(idle));
+			gsm0503_tch_fr48_encode(BUFPOS(bursts_p, 0), &idle[0]);
+		}
 		if ((msg = msg_facch) != NULL) {
 			gsm0503_tch_fr_facch_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm FACCH sending (pass ownership of the msgb/prim) */
@@ -372,14 +384,17 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 		goto send_burst;
 	/* CSD (TCH/F2.4): 3.6 kbit/s radio interface rate */
 	case GSM48_CMODE_DATA_3k6:
-		if (msg == NULL)
-			goto send_burst;
-		if (msg == msg_facch) {
+		if ((msg = msg_facch) != NULL) {
 			/* FACCH/F does steal a TCH/F2.4 frame completely */
 			rc = gsm0503_tch_fr_facch_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
-		} else {
+		} else if ((msg = msg_tch) != NULL) {
 			OSMO_ASSERT(msgb_l2len(msg) == 2 * 36);
 			rc = gsm0503_tch_fr24_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
+		} else {
+			ubit_t idle[2 * 36];
+			memset(&idle[0], 0x01, sizeof(idle));
+			gsm0503_tch_fr24_encode(BUFPOS(bursts_p, 0), &idle[0]);
+			goto send_burst;
 		}
 		break;
 	default:

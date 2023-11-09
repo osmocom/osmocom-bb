@@ -542,7 +542,11 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 			gsm0503_tch_hr48_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm data sending (pass ownership of the msgb/prim) */
 			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
-		} /* else: all bits of this frame are set to zero */
+		} else {
+			ubit_t idle[4 * 60];
+			memset(&idle[0], 0x01, sizeof(idle));
+			gsm0503_tch_hr48_encode(BUFPOS(bursts_p, 0), &idle[0]);
+		}
 		if ((msg = msg_facch) != NULL) {
 			gsm0503_tch_hr_facch_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm FACCH sending (pass ownership of the msgb/prim) */
@@ -556,7 +560,11 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 			gsm0503_tch_hr24_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm data sending (pass ownership of the msgb/prim) */
 			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
-		} /* else: all bits of this frame are set to zero */
+		} else {
+			ubit_t idle[4 * 36];
+			memset(&idle[0], 0x01, sizeof(idle));
+			gsm0503_tch_hr24_encode(BUFPOS(bursts_p, 0), &idle[0]);
+		}
 		if ((msg = msg_facch) != NULL) {
 			gsm0503_tch_hr_facch_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
 			/* Confirm FACCH sending (pass ownership of the msgb/prim) */
