@@ -249,6 +249,7 @@ static int mobile_init(struct osmocom_ms *ms)
 	lapdm_channel_init3(&ms->lapdm_channel, LAPDM_MODE_MS,
 			    t200_ms_dcch, t200_ms_acch,
 			    GSM_LCHAN_SDCCH, NULL);
+	lapdm_channel_set_flags(&ms->lapdm_channel, LAPDM_ENT_F_DROP_2ND_REJ);
 	lapdm_channel_set_l1(&ms->lapdm_channel, l1ctl_ph_prim_cb, ms);
 
 	gsm_sim_init(ms);
