@@ -179,8 +179,9 @@ static inline void l1s_tch_meas_avg(struct l1ctl_info_dl *dl,
 {
 	uint32_t avg_snr = 0;
 	int32_t avg_dbm8 = 0;
+	unsigned int i;
 
-	for (unsigned int i = 0; i < meas_num; i++) {
+	for (i = 0; i < meas_num; i++) {
 		int j = (rx_tch.meas_id + FACCH_MEAS_HIST - i) % FACCH_MEAS_HIST;
 		avg_snr += rx_tch.meas[j].snr;
 		avg_dbm8 += rx_tch.meas[j].pm_dbm8;
