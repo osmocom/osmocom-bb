@@ -68,23 +68,25 @@ const struct csd_v110_lchan_desc csd_v110_lchan_desc[256] = {
 	},
 };
 
+/* FIXME: store this in struct osmocom_ms */
+static struct tch_csd_sock_state *g_sock_state;
 static struct osmo_soft_uart *g_suart;
 
 static void tch_soft_uart_rx_cb(void *priv, struct msgb *msg, unsigned int flags)
 {
-	LOGP(DL1C, LOGL_FATAL, "%s(): [flags=0x%08x] %s\n",
+	LOGP(DL1C, LOGL_DEBUG, "%s(): [flags=0x%08x] %s\n",
 	     __func__, flags, msgb_hexdump(msg));
-	msgb_free(msg);
+	if (g_sock_state != NULL && msgb_length(msg) > 0)
+		tch_csd_sock_send(g_sock_state, msg);
+	else
+		msgb_free(msg);
 }
 
 static void tch_soft_uart_tx_cb(void *priv, struct msgb *msg)
 {
-	const char *data = "TEST\r\n";
-	size_t n_bytes;
-
-	n_bytes = OSMO_MIN(msg->data_len, strlen(data));
-	if (n_bytes > 0)
-		memcpy(msgb_put(msg, n_bytes), (void *)data, n_bytes);
+	int n_bytes = tch_csd_sock_recv(g_sock_state, msg);
+	LOGP(DL1C, LOGL_DEBUG, "%s(): [n_bytes=%u/%u] %s\n",
+	     __func__, n_bytes, msg->data_len, msgb_hexdump(msg));
 }
 
 int tch_soft_uart_alloc(struct osmocom_ms *ms)
@@ -108,6 +110,10 @@ int tch_soft_uart_alloc(struct osmocom_ms *ms)
 	/* FIXME: enable when a data call gets connected */
 	osmo_soft_uart_set_rx(g_suart, true);
 	osmo_soft_uart_set_tx(g_suart, true);
+
+	/* FIXME: this should not be here */
+	g_sock_state = tch_csd_sock_init(ms, ms->settings.tch_data.unix_socket_path);
+	OSMO_ASSERT(g_sock_state != NULL);
 
 	return 0;
 }
@@ -167,6 +173,8 @@ int tch_soft_uart_rx_from_l1(struct osmocom_ms *ms, struct msgb *msg)
 
 		/* XXX: what do we do with S-/X-/E-bits? */
 	}
+
+	osmo_soft_uart_flush_rx(g_suart);
 
 	return 0;
 }

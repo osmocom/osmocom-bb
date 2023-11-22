@@ -11,3 +11,10 @@ int tch_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *fra
 int tch_soft_uart_alloc(struct osmocom_ms *ms);
 int tch_soft_uart_rx_from_l1(struct osmocom_ms *ms, struct msgb *msg);
 int tch_soft_uart_tx_to_l1(struct osmocom_ms *ms);
+
+struct tch_csd_sock_state;
+
+struct tch_csd_sock_state *tch_csd_sock_init(void *ctx, const char *sock_path);
+void tch_csd_sock_exit(struct tch_csd_sock_state *state);
+int tch_csd_sock_send(struct tch_csd_sock_state *state, struct msgb *msg);
+int tch_csd_sock_recv(struct tch_csd_sock_state *state, struct msgb *msg);
