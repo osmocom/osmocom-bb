@@ -72,21 +72,32 @@ const struct csd_v110_lchan_desc csd_v110_lchan_desc[256] = {
 	},
 };
 
+struct tch_csd_sock_state *tch_csd_sock_init(struct osmocom_ms *ms);
+void tch_csd_sock_recv(struct tch_csd_sock_state *state, struct msgb *msg);
+void tch_csd_sock_send(struct tch_csd_sock_state *state, struct msgb *msg);
+void tch_csd_sock_exit(struct tch_csd_sock_state *state);
+
 static void tch_soft_uart_rx_cb(void *priv, struct msgb *msg, unsigned int flags)
 {
-	LOGP(DL1C, LOGL_FATAL, "%s(): [flags=0x%08x] %s\n",
+	struct tch_data_state *state = (struct tch_data_state *)priv;
+
+	LOGP(DL1C, LOGL_DEBUG, "%s(): [flags=0x%08x] %s\n",
 	     __func__, flags, msgb_hexdump(msg));
-	msgb_free(msg);
+
+	if (state->sock != NULL && msgb_length(msg) > 0)
+		tch_csd_sock_send(state->sock, msg);
+	else
+		msgb_free(msg);
 }
 
 static void tch_soft_uart_tx_cb(void *priv, struct msgb *msg)
 {
-	const char *data = "TEST\r\n";
-	size_t n_bytes;
+	struct tch_data_state *state = (struct tch_data_state *)priv;
 
-	n_bytes = OSMO_MIN(msg->data_len, strlen(data));
-	if (n_bytes > 0)
-		memcpy(msgb_put(msg, n_bytes), (void *)data, n_bytes);
+	tch_csd_sock_recv(state->sock, msg);
+
+	LOGP(DL1C, LOGL_DEBUG, "%s(): [n_bytes=%u/%u] %s\n",
+	     __func__, msg->len, msg->data_len, msgb_hexdump(msg));
 }
 
 struct osmo_soft_uart *tch_soft_uart_alloc(struct osmocom_ms *ms,
@@ -138,12 +149,28 @@ struct osmo_soft_uart *tch_soft_uart_alloc(struct osmocom_ms *ms,
 
 static void tch_v110_ta_rx_cb(void *priv, const ubit_t *buf, size_t buf_size)
 {
-	/* TODO: send to the configured I/O handler */
+	const struct tch_data_state *state = (struct tch_data_state *)priv;
+
+	if (state->sock != NULL && buf_size > 0) {
+		struct msgb *msg = msgb_alloc(buf_size, __func__);
+		tch_csd_sock_send(state->sock, msg);
+	}
 }
 
 static void tch_v110_ta_tx_cb(void *priv, ubit_t *buf, size_t buf_size)
 {
-	/* TODO: send to the configured I/O handler */
+	const struct tch_data_state *state = (struct tch_data_state *)priv;
+
+	if (state->sock != NULL && buf_size > 0) {
+		struct msgb *msg = msgb_alloc(buf_size, __func__);
+
+		tch_csd_sock_recv(state->sock, msg);
+		if (msgb_length(msg) < buf_size) {
+			LOGP(DL1C, LOGL_NOTICE,
+			     "%s(): not enough bytes for sync Tx (%u < %zu)\n",
+			     __func__, msgb_length(msg), buf_size);
+		}
+	}
 }
 
 static void tch_v110_ta_async_rx_cb(void *priv, const ubit_t *buf, size_t buf_size)
@@ -431,7 +458,9 @@ int tch_data_state_init(struct gsm_trans *trans,
 
 	switch (state->handler) {
 	case TCH_DATA_IOH_UNIX_SOCK:
-		/* TODO: open listening socket */
+		state->sock = tch_csd_sock_init(ms);
+		if (state->sock == NULL)
+			return -ENOMEM;
 		break;
 	case TCH_DATA_IOH_LOOPBACK:
 	case TCH_DATA_IOH_NONE:
@@ -454,6 +483,8 @@ int tch_data_state_init(struct gsm_trans *trans,
 	return 0;
 
 exit_free:
+	if (state->sock != NULL)
+		tch_csd_sock_exit(state->sock);
 	if (state->suart != NULL)
 		osmo_soft_uart_free(state->suart);
 	if (state->v110_ta != NULL)
@@ -465,7 +496,8 @@ void tch_data_state_free(struct tch_data_state *state)
 {
 	switch (state->handler) {
 	case TCH_DATA_IOH_UNIX_SOCK:
-		/* TODO: close listening socket */
+		if (state->sock != NULL)
+			tch_csd_sock_exit(state->sock);
 		break;
 	default:
 		break;
@@ -475,4 +507,25 @@ void tch_data_state_free(struct tch_data_state *state)
 		osmo_soft_uart_free(state->suart);
 	if (state->v110_ta != NULL)
 		osmo_v110_ta_free(state->v110_ta);
+}
+
+void tch_csd_sock_state_cb(struct osmocom_ms *ms, bool connected)
+{
+	struct tch_data_state *state = NULL;
+
+	if (ms->tch_state == NULL || ms->tch_state->is_voice) {
+		LOGP(DCC, LOGL_INFO, "No data call is ongoing, "
+		     "ignoring [dis]connection event for CSD socket\n");
+		return;
+	}
+
+	state = &ms->tch_state->data;
+	osmo_v110_ta_set_circuit(state->v110_ta, OSMO_V110_TA_C_108, connected);
+
+	/* GSM/CSD employs the modified 60-bit V.110 frame format, which is basically
+	 * a stripped down version of the nurmal 80-bit V.110 frame without E1/E2/E3
+	 * bits and without the sync pattern.  These 60-bit V.110 frames are perfectly
+	 * aligned with the radio interface block boundaries, so we're always in sync. */
+	if (connected)
+		osmo_v110_ta_sync_ind(state->v110_ta);
 }

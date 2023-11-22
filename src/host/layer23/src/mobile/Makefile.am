@@ -33,6 +33,7 @@ libmobile_a_SOURCES = \
 	primitives.c \
 	tch.c \
 	tch_data.c \
+	tch_data_sock.c \
 	tch_voice.c \
 	transaction.c \
 	vty_interface.c \
