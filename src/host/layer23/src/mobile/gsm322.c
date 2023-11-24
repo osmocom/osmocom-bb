@@ -2419,7 +2419,8 @@ struct gsm322_ba_list *gsm322_cs_sysinfo_sacch(struct osmocom_ms *ms)
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s;
 	struct gsm322_ba_list *ba = NULL;
-	int i, refer_pcs;
+	int i;
+	bool refer_pcs;
 	uint8_t freq[128+38];
 
 	if (!cs) {
@@ -2472,7 +2473,8 @@ static int gsm322_store_ba_list(struct gsm322_cellsel *cs,
 	struct gsm48_sysinfo *s)
 {
 	struct gsm322_ba_list *ba;
-	int i, refer_pcs;
+	int i;
+	bool refer_pcs;
 	uint8_t freq[128+38];
 
 	/* find or create ba list */
@@ -3408,8 +3410,7 @@ static int gsm322_c_camp_any_cell(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* create temporary ba range with given frequency ranges */
-struct gsm322_ba_list *gsm322_cs_ba_range(struct osmocom_ms *ms,
-	uint32_t *range, uint8_t ranges, uint8_t refer_pcs)
+static struct gsm322_ba_list *gsm322_cs_ba_range(struct osmocom_ms *ms, uint32_t *range, uint8_t ranges, bool refer_pcs)
 {
 	static struct gsm322_ba_list ba;
 	int lower, higher;
@@ -4403,7 +4404,8 @@ static int gsm322_nb_start(struct osmocom_ms *ms, int synced)
 	uint8_t map[128];
 	uint16_t nc[32];
 	uint8_t changed = 0;
-	int refer_pcs, index;
+	bool refer_pcs;
+	int index;
 	uint16_t arfcn;
 
 	if (cs->ms->settings.no_neighbour)

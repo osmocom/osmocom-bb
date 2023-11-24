@@ -2600,7 +2600,8 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 	 && s->si5
 	 && (!s->nb_ext_ind_si5 || s->si5bis)) {
 		struct gsm48_rr_meas *rrmeas = &ms->rrlayer.meas;
-		int i, refer_pcs;
+		int i;
+		bool refer_pcs;
 		int16_t arfcn;
 
 		LOGP(DRR, LOGL_NOTICE, "Complete set of SI5* for BA(%d)\n",
@@ -3385,8 +3386,7 @@ static int gsm48_rr_rx_imm_ass(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc, &cd.tsc, &cd.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
-			cd.arfcn |= ARFCN_PCS;
+		cd.arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cd.arfcn);
 		LOGP(DRR, LOGL_INFO, " (ta %d/%dm ra 0x%02x chan_nr 0x%02x "
 			"ARFCN %s TS %u SS %u TSC %u)\n",
 			ia->timing_advance,
@@ -3504,8 +3504,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd1.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc1, &cd1.tsc, &cd1.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
-			cd1.arfcn |= ARFCN_PCS;
+		cd1.arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cd1.arfcn);
 		LOGP(DRR, LOGL_INFO, " assignment 1 (ta %d/%dm ra 0x%02x "
 			"chan_nr 0x%02x ARFCN %s TS %u SS %u TSC %u)\n",
 			ia->timing_advance1,
@@ -3533,8 +3532,7 @@ static int gsm48_rr_rx_imm_ass_ext(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd2.h = 0;
 		gsm48_decode_chan_h0(&ia->chan_desc2, &cd2.tsc, &cd2.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
-			cd2.arfcn |= ARFCN_PCS;
+		cd2.arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cd2.arfcn);
 		LOGP(DRR, LOGL_INFO, " assignment 2 (ta %d/%dm ra 0x%02x "
 			"chan_nr 0x%02x ARFCN %s TS %u SS %u TSC %u)\n",
 			ia->timing_advance2,
@@ -3998,8 +3996,8 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 	struct gsm322_cellsel *cs = &ms->cellsel;
 	struct gsm48_sysinfo *s = cs->si;
 	struct gsm_settings *set = &ms->settings;
-	int i, pcs, index;
-	uint16_t arfcn;
+	int i, index;
+	uint16_t arfcn, pcs;
 
 	pcs = gsm_refer_pcs(cs->arfcn, s) ? ARFCN_PCS : 0;
 
@@ -4102,7 +4100,9 @@ static int gsm48_rr_render_ma(struct osmocom_ms *ms, struct gsm48_rr_cd *cd,
 
 	/* convert to band_arfcn and check for unsported frequency */
 	for (i = 0; i < *ma_len; i++) {
-		arfcn = ma[i] | pcs;
+		arfcn = ma[i];
+		if (arfcn >= 512 && arfcn <= 810)
+			arfcn |= pcs;
 		ma[i] = arfcn;
 		index = arfcn2index(arfcn);
 		if (!(set->freq_map[index >> 3] & (1 << (index & 7)))) {
@@ -4490,8 +4490,7 @@ static int gsm48_rr_rx_frq_redef(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd.h = 0;
 		gsm48_decode_chan_h0(&fr->chan_desc, &cd.tsc, &cd.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
-			cd.arfcn |= ARFCN_PCS;
+		cd.arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cd.arfcn);
 		LOGP(DRR, LOGL_INFO, " (ARFCN %s TS %u SS %u TSC %u)\n",
 			gsm_print_arfcn(cd.arfcn), ch_ts, ch_subch, cd.tsc);
 	}
@@ -4600,8 +4599,7 @@ static int gsm48_rr_rx_chan_modify(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cd->h = 0;
 		gsm48_decode_chan_h0(&cm->chan_desc, &cd->tsc, &cd->arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
-			cd->arfcn |= ARFCN_PCS;
+		cd->arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cd->arfcn);
 		LOGP(DRR, LOGL_INFO, " (chan_nr 0x%02x ARFCN %s TS %u SS %u "
 			"TSC %u mode %u)\n", cm->chan_desc.chan_nr,
 			gsm_print_arfcn(cd->arfcn), ch_ts, ch_subch, cd->tsc,
@@ -4744,8 +4742,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		} else {
 			cdb->h = 0;
 			gsm48_decode_chan_h0(ccd, &cdb->tsc, &cdb->arfcn);
-			if (gsm_refer_pcs(cs->arfcn, s))
-				cdb->arfcn |= ARFCN_PCS;
+			cdb->arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cdb->arfcn);
 			LOGP(DRR, LOGL_INFO, " before: (chan_nr 0x%02x "
 				"ARFCN %s TS %u SS %u TSC %u)\n", ccd->chan_nr,
 				gsm_print_arfcn(cdb->arfcn),
@@ -4772,8 +4769,7 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cda->h = 0;
 		gsm48_decode_chan_h0(&ac->chan_desc, &cda->tsc, &cda->arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
-			cda->arfcn |= ARFCN_PCS;
+		cda->arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cda->arfcn);
 		LOGP(DRR, LOGL_INFO, " after: (chan_nr 0x%02x ARFCN %s TS %u "
 			"SS %u TSC %u)\n", ac->chan_desc.chan_nr,
 			gsm_print_arfcn(cda->arfcn), ch_ts, ch_subch, cda->tsc);
@@ -5149,8 +5145,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 		} else {
 			cdb->h = 0;
 			gsm48_decode_chan_h0(ccd, &cdb->tsc, &cdb->arfcn);
-			if (gsm_refer_pcs(cs->arfcn, s))
-				cdb->arfcn |= ARFCN_PCS;
+			cdb->arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cdb->arfcn);
 			LOGP(DRR, LOGL_INFO, " before: (chan_nr 0x%02x "
 				"ARFCN %s TS %u SS %u TSC %u)\n", ccd->chan_nr,
 				gsm_print_arfcn(cdb->arfcn),
@@ -5177,8 +5172,7 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	} else {
 		cda->h = 0;
 		gsm48_decode_chan_h0(&ho->chan_desc, &cda->tsc, &cda->arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
-			cda->arfcn |= ARFCN_PCS;
+		cda->arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cda->arfcn);
 		LOGP(DRR, LOGL_INFO, " after: (chan_nr 0x%02x ARFCN %s TS %u "
 			"SS %u TSC %u)\n", ho->chan_desc.chan_nr,
 			gsm_print_arfcn(cda->arfcn), ch_ts, ch_subch, cda->tsc);
@@ -5737,8 +5731,7 @@ reject:
 	} else {
 		cd.h = 0;
 		gsm48_decode_chan_h0(ch_desc, &cd.tsc, &cd.arfcn);
-		if (gsm_refer_pcs(cs->arfcn, s))
-			cd.arfcn |= ARFCN_PCS;
+		cd.arfcn = gsm_arfcn_refer_pcs(cs->arfcn, s, cd.arfcn);
 		LOGP(DRR, LOGL_INFO, " (chan_nr 0x%02x ARFCN %s TS %u SS %u TSC %u)\n",
 		     ch_desc->chan_nr, gsm_print_arfcn(cd.arfcn), ch_ts, ch_subch, cd.tsc);
 	}

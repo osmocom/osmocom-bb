@@ -50,20 +50,35 @@ char *gsm_print_arfcn(uint16_t arfcn)
 	return text;
 }
 
-/* check if the cell 'talks' about DCS (0) or PCS (1) */
-uint8_t gsm_refer_pcs(uint16_t arfcn, const struct gsm48_sysinfo *s)
+/* Check if the cell 'talks' about DCS (false) or PCS (true) */
+bool gsm_refer_pcs(uint16_t cell_arfcn, const struct gsm48_sysinfo *cell_s)
 {
 	/* If ARFCN is PCS band, the cell refers to PCS */
-	if ((arfcn & ARFCN_PCS))
-		return 1;
+	if ((cell_arfcn & ARFCN_PCS))
+		return true;
 
 	/* If no SI1 is available, we assume DCS. Be sure to call this
 	 * function only if SI 1 is available. */
-	if (!s->si1)
+	if (!cell_s->si1)
 		return 0;
 
 	/* If band indicator indicates PCS band, the cell refers to PCSThe  */
-	return s->band_ind;
+	return cell_s->band_ind;
+}
+
+/* Change the given ARFCN to PCS ARFCN, if it is in the PCS channel range and the cell refers to PCS band. */
+uint16_t gsm_arfcn_refer_pcs(uint16_t cell_arfcn, const struct gsm48_sysinfo *cell_s, uint16_t arfcn)
+{
+	/* If ARFCN is not one of the overlapping channel of PCS and DCS. */
+	if (arfcn < 512 && arfcn > 810)
+		return arfcn;
+
+	/* If the 'cell' does not refer to PCS. */
+	if (!gsm_refer_pcs(cell_arfcn, cell_s))
+		return arfcn;
+
+	/* The ARFCN is PCS, because the ARFCN is in the PCS range and the cell refers to it. */
+	return arfcn | ARFCN_PCS;
 }
 
 int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
@@ -541,10 +556,7 @@ static int gsm48_decode_si1_rest(struct gsm48_sysinfo *s,
 		s->nch_position = bitvec_get_uint(&bv, 5);
 	} else
 		s->nch = 0;
-	if (bitvec_get_bit_high(&bv) == H)
-		s->band_ind = 1;
-	else
-		s->band_ind = 0;
+	s->band_ind = (bitvec_get_bit_high(&bv) == H);
 
 	return 0;
 }

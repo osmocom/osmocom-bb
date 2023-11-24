@@ -71,7 +71,7 @@ struct gsm48_sysinfo {
 	/* si1 rest */
 	uint8_t				nch;
 	uint8_t				nch_position;
-	uint8_t				band_ind; /* set for DCS */
+	bool				band_ind; /* set for DCS */
 
 	/* si3 rest */
 	uint8_t				sp;
@@ -181,7 +181,8 @@ struct gsm48_sysinfo {
 };
 
 char *gsm_print_arfcn(uint16_t arfcn);
-uint8_t gsm_refer_pcs(uint16_t arfcn, const struct gsm48_sysinfo *s);
+bool gsm_refer_pcs(uint16_t cell_arfcn, const struct gsm48_sysinfo *cell_s);
+uint16_t gsm_arfcn_refer_pcs(uint16_t cell_arfcn, const struct gsm48_sysinfo *cell_s, uint16_t arfcn);
 int gsm48_sysinfo_dump(const struct gsm48_sysinfo *s, uint16_t arfcn,
 		       void (*print)(void *, const char *, ...),
 		       void *priv, uint8_t *freq_map);
