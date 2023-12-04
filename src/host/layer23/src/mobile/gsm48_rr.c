@@ -2610,7 +2610,7 @@ static int gsm48_new_sysinfo(struct osmocom_ms *ms, uint8_t type)
 		refer_pcs = gsm_refer_pcs(cs->arfcn, s);
 
 		/* Collect channels from freq list in correct order. */
-		for (i = 1; i < 32; i++) {
+		for (i = 0; i < 32; i++) {
 			arfcn = arfcn_from_freq_index(s, i);
 			if (arfcn < 0)
 				break;
