@@ -3707,7 +3707,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 	if (rep_valid) {
 		int8_t strongest, current;
 		uint8_t ncc;
-		int i, index;
+		int i, index, strongest_i;
 
 #if 0
 		/* FIXME: multi-band reporting, if not: 0 = normal reporting */
@@ -3721,13 +3721,20 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 			current = -128; /* -infinite */
 			index = 0;
 			for (i = 0; i < rrmeas->nc_num; i++) {
+				/* Skip stronger cells that have been added to measurement report so far. */
+				if (rrmeas->nc_rxlev_dbm[i] > strongest)
+					continue;
+				/* Skip cells with equal strength that have been added so far. */
+				if (rrmeas->nc_rxlev_dbm[i] == strongest && i <= strongest_i)
+					continue;
 				/* only check if NCC is permitted */
 				ncc = rrmeas->nc_bsic[i] >> 3;
 				if ((s->nb_ncc_permitted_si6 & (1 << ncc))
-				 && rrmeas->nc_rxlev_dbm[i] > current
-				 && rrmeas->nc_rxlev_dbm[i] < strongest) {
+				 && rrmeas->nc_rxlev_dbm[i] > current) {
 					current = rrmeas->nc_rxlev_dbm[i];
+					strongest = current;
 					index = i;
+					strongest_i = i;
 				}
 			}
 			if (current == -128) /* no more found */
