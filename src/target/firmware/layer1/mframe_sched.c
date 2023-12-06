@@ -301,9 +301,9 @@ static const struct mframe_sched_item mf_neigh_pm26_odd[] = {
 
 /* See 3GPP TS 45.002, table 6 */
 static const struct mframe_sched_item mf_gprs_pdtch[] = {
-	{ .sched_set = NB_QUAD_DL, .modulo = 13, .frame_nr = 0 },
-	{ .sched_set = NB_QUAD_DL, .modulo = 13, .frame_nr = 4 },
-	{ .sched_set = NB_QUAD_DL, .modulo = 13, .frame_nr = 8 },
+	{ .sched_set = SNIFF_QUAD_DL, .modulo = 13, .frame_nr = 0 },
+	{ .sched_set = SNIFF_QUAD_DL, .modulo = 13, .frame_nr = 4 },
+	{ .sched_set = SNIFF_QUAD_DL, .modulo = 13, .frame_nr = 8 },
 	/* NOTE: receive only task */
 	{ .sched_set = NULL }
 };
