@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <arpa/inet.h>
 
+#include <osmocom/core/utils.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/application.h>
@@ -49,23 +50,23 @@ static struct {
 
 static void burst_handle(struct l1ctl_burst_ind *bi)
 {
-	uint8_t type, subch, ts;
+	struct gsm_time rx_time;
 	uint32_t fn;
 
 	fn = ntohl(bi->frame_nr);
-	rsl_dec_chan_nr(bi->chan_nr, &type, &subch, &ts);
+	gsm_fn2gsmtime(&rx_time, fn);
 
-	switch (type) {
-	case RSL_CHAN_Bm_ACCHs:
-		/* FIXME: what is (fn % 13) != 12? */
-		/* TODO: use the multiframe layout here */
-		if ((ts > 0) && ((fn % 13) != 12))
-			process_pdch(bi, app_data.verbose);
-		break;
-	default:
-		/* We are only interested in GPRS messages */
-		break;
-	}
+	printf("BURST.ind @(%6d = %.4u/%.2u/%.2u): %4d dBm, SNR %3d, %s\n",
+	       rx_time.fn, rx_time.t1, rx_time.t2, rx_time.t3,
+	       rxlev2dbm(bi->rx_level), bi->snr,
+	       rsl_chan_nr_str(bi->chan_nr));
+
+	if ((bi->chan_nr & RSL_CHAN_NR_MASK) != RSL_CHAN_OSMO_PDCH)
+		return; /* ignore anything else than PDCH */
+	if ((fn % 13) == 12)
+		return; /* skip IDLE and PTCCH slots */
+
+	process_pdch(bi, app_data.verbose);
 }
 
 static void print_help(const char *app)
