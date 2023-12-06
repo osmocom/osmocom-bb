@@ -735,7 +735,7 @@ void layer3_rx_burst(struct osmocom_ms *ms, struct msgb *msg)
 				app_state.dch_badcnt = 0;
 
 			/* Release condition */
-			do_rel = app_state.dch_badcnt >= 6;
+			do_rel = app_state.dch_badcnt >= 600; /* XXX */
 		}
 	}
 
