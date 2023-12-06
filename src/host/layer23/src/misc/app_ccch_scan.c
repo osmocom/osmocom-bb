@@ -36,6 +36,9 @@
 #include <osmocom/core/bits.h>
 #include <osmocom/gsm/a5.h>
 
+#include <osmocom/gsm/protocol/gsm_08_58.h>
+#include <osmocom/coding/gsm0503_coding.h>
+
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/misc/rslms.h>
 #include <osmocom/bb/misc/layer3.h>
@@ -516,9 +519,11 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 	case GSM48_MT_RR_PAG_REQ_3:
 		gsm48_rx_paging_p3(msg, ms);
 		break;
+#if 0
 	case GSM48_MT_RR_IMM_ASS:
 		gsm48_rx_imm_ass(msg, ms);
 		break;
+#endif
 	case GSM48_MT_RR_NOTIF_NCH:
 		/* notification for voice call groups and such */
 		break;
@@ -531,6 +536,17 @@ int gsm48_rx_ccch(struct msgb *msg, struct osmocom_ms *ms)
 			msgb_hexdump_l3(msg));
 		rc = -EINVAL;
 	}
+
+	/* XXX: tune to a PDCH with hard-coded timeslot number */
+	const uint8_t chan_nr = RSL_CHAN_OSMO_PDCH | 7; /* FIXME: timeslot number */
+	const uint8_t tsc = 3; /* FIXME: check 'base_station_id_code' in osmo-bsc.cfg */
+
+	l1ctl_tx_dm_est_req_h0(ms,
+			       ms->test_arfcn, /* argv: -a ARFCN */
+			       chan_nr, tsc, GSM48_CMODE_SIGN, 0);
+	app_state.dch_state = DCH_WAIT_EST;
+	app_state.dch_nr = chan_nr;
+	app_state.dch_badcnt = 0;
 
 	return rc;
 }
@@ -593,6 +609,9 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 	} else if ((cbits & 0x18) == 0x08) {	/* SDCCH/8 */
 		lch_idx = cbits & 7;
 		bid = bi->flags & 3;
+	} else if (cbits == ABIS_RSL_CHAN_NR_CBITS_OSMO_PDCH) {	/* PDCH */
+		lch_idx = 0;
+		bid = bi->flags & 3;
 	}
 
 	if (bid == -1)
@@ -622,11 +641,15 @@ local_burst_decode(struct l1ctl_burst_ind *bi)
 	/* If last, decode */
 	if (bid == 3)
 	{
-		uint8_t l2[23];
+		int n_errors = 0, n_bits_total = 0;
+		uint8_t l2[64];
 		int rv;
-		rv = xcch_decode(l2, bursts);
 
-		if (rv == 0)
+		rv = gsm0503_pdtch_decode(l2, bursts, NULL, &n_errors, &n_bits_total);
+		fprintf(stderr, "%s(): gsm0503_pdtch_decode(): len=%d, BER=%d/%d\n",
+			__func__, rv, n_errors, n_bits_total);
+
+		if (rv > 0)
 		{
 			uint8_t chan_type, chan_ts, chan_ss;
 			uint8_t gsmtap_chan_type;
