@@ -70,7 +70,7 @@ bool gsm_refer_pcs(uint16_t cell_arfcn, const struct gsm48_sysinfo *cell_s)
 uint16_t gsm_arfcn_refer_pcs(uint16_t cell_arfcn, const struct gsm48_sysinfo *cell_s, uint16_t arfcn)
 {
 	/* If ARFCN is not one of the overlapping channel of PCS and DCS. */
-	if (arfcn < 512 && arfcn > 810)
+	if (arfcn < 512 || arfcn > 810)
 		return arfcn;
 
 	/* If the 'cell' does not refer to PCS. */
