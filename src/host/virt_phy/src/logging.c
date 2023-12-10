@@ -113,8 +113,7 @@ int ms_log_init(char *cat_mask)
 
 	log_init(&ms_log_info, NULL);
 	stderr_target = log_target_create_stderr();
-	if (!stderr)
-		return -1;
+	OSMO_ASSERT(stderr_target != NULL);
 
 	log_add_target(stderr_target);
 	log_set_all_filter(stderr_target, 1);
