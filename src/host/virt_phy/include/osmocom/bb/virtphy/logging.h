@@ -16,5 +16,5 @@ enum virtphy_log_cat {
 
 extern const struct log_info ms_log_info;
 
-int ms_log_init(char *cat_mask);
+int ms_log_init(void *ctx, const char *cat_mask);
 const char *getL1ctlPrimName(uint8_t type);

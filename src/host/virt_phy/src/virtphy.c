@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
 	/* init loginfo */
 	handle_options(argc, argv);
 
-	ms_log_init(log_mask);
+	ms_log_init(tall_vphy_ctx, log_mask);
 	l1gprs_logging_init(DGPRS);
 
 	LOGP(DVIRPHY, LOGL_INFO, "Virtual physical layer starting up...\n");

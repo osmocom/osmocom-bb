@@ -107,24 +107,21 @@ const struct log_info ms_log_info = {
 /**
  * Initialize the logging system for the virtual physical layer.
  */
-int ms_log_init(char *cat_mask)
+int ms_log_init(void *ctx, const char *cat_mask)
 {
-	struct log_target *stderr_target;
+	int rc;
 
-	log_init(&ms_log_info, NULL);
-	stderr_target = log_target_create_stderr();
-	OSMO_ASSERT(stderr_target != NULL);
+	rc = osmo_init_logging2(ctx, &ms_log_info);
+	OSMO_ASSERT(rc == 0);
 
-	log_add_target(stderr_target);
-	log_set_all_filter(stderr_target, 1);
-	//log_set_log_level(stderr_target, 1);
-	log_set_print_filename2(stderr_target, LOG_FILENAME_PATH);
-	log_set_use_color(stderr_target, 0);
-	log_set_print_timestamp(stderr_target, 1);
-	log_set_print_category_hex(stderr_target, 0);
-	log_set_print_category(stderr_target, 1);
+	//log_set_log_level(osmo_stderr_target, 1);
+	log_set_print_filename2(osmo_stderr_target, LOG_FILENAME_PATH);
+	log_set_use_color(osmo_stderr_target, 0);
+	log_set_print_timestamp(osmo_stderr_target, 1);
+	log_set_print_category_hex(osmo_stderr_target, 0);
+	log_set_print_category(osmo_stderr_target, 1);
 	if (cat_mask)
-		log_parse_category_mask(stderr_target, cat_mask);
+		log_parse_category_mask(osmo_stderr_target, cat_mask);
 
 	return 0;
 }
