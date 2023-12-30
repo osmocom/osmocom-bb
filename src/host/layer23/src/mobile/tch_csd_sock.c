@@ -90,6 +90,7 @@ static int tch_csd_sock_read(struct osmo_fd *bfd)
 close:
 	msgb_free(msg);
 	tch_csd_sock_close(state);
+	tch_csd_sock_conn_cb(state, false);
 	return -1;
 }
 
@@ -174,6 +175,8 @@ static int tch_csd_sock_accept(struct osmo_fd *bfd, unsigned int flags)
 	}
 
 	LOGP(DMOB, LOGL_NOTICE, "TCH CSD sock got a connection\n");
+
+	tch_csd_sock_conn_cb(state, true);
 
 	return 0;
 }

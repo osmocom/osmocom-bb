@@ -45,8 +45,8 @@ static int tch_recv_data(struct osmocom_ms *ms, struct msgb *msg)
 		/* Send data frame back */
 		return tch_send_voice_msg(ms, msg);
 	case TCH_DATA_IOH_UNIX_SOCK:
-		tch_soft_uart_rx_from_l1(ms, msg);
-		tch_soft_uart_tx_to_l1(ms);
+		tch_csd_rx_from_l1(ms, msg);
+		tch_csd_tx_to_l1(ms);
 		msgb_free(msg);
 		break;
 	case TCH_DATA_IOH_NONE:
@@ -173,6 +173,7 @@ int tch_init(struct osmocom_ms *ms)
 	ms->l1_entity.l1_traffic_ind = &tch_recv_data;
 
 	tch_soft_uart_alloc(ms);
+	tch_v110_ta_alloc(ms);
 
 	return 0;
 }

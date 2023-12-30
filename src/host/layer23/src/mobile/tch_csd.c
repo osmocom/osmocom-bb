@@ -25,7 +25,9 @@
 
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 #include <osmocom/gsm/gsm44021.h>
+
 #include <osmocom/isdn/v110.h>
+#include <osmocom/isdn/v110_ta.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
@@ -71,6 +73,7 @@ const struct csd_v110_lchan_desc csd_v110_lchan_desc[256] = {
 /* FIXME: store this in struct osmocom_ms */
 static struct tch_csd_sock_state *g_sock_state;
 static struct osmo_soft_uart *g_suart;
+static struct osmo_v110_ta *g_ta;
 
 static void tch_soft_uart_rx_cb(void *priv, struct msgb *msg, unsigned int flags)
 {
@@ -118,6 +121,46 @@ int tch_soft_uart_alloc(struct osmocom_ms *ms)
 	return 0;
 }
 
+/*************************************************************************************/
+
+static void tch_v110_ta_rx_cb(void *priv, const ubit_t *buf, size_t buf_size)
+{
+	/* XXX: we're assuming async call here */
+	osmo_soft_uart_rx_ubits(g_suart, buf, buf_size);
+}
+
+static void tch_v110_ta_tx_cb(void *priv, ubit_t *buf, size_t buf_size)
+{
+	/* XXX: we're assuming async call here */
+	osmo_soft_uart_tx_ubits(g_suart, buf, buf_size);
+}
+
+static void tch_v110_ta_status_update_cb(void *priv, unsigned int status)
+{
+	LOGP(DL1C, LOGL_DEBUG, "%s(): [status=0x%08x]\n", __func__, status);
+	/* TODO: update status lines of the soft-UART */
+}
+
+int tch_v110_ta_alloc(struct osmocom_ms *ms)
+{
+	const struct osmo_v110_ta_cfg cfg = {
+		/* FIXME: take the exact rate from BCap */
+		.rate = OSMO_V110_SYNC_RA1_9600,
+		.priv = ms,
+		.rx_cb = &tch_v110_ta_rx_cb,
+		.tx_cb = &tch_v110_ta_tx_cb,
+		.status_update_cb = &tch_v110_ta_status_update_cb,
+	};
+
+	g_ta = osmo_v110_ta_alloc(ms, "csd_v110_ta", &cfg);
+	if (g_ta == NULL)
+		return -ENOMEM;
+
+	return 0;
+}
+
+/*************************************************************************************/
+
 static void swap_words(uint8_t *data, size_t data_len)
 {
 	/* swap bytes in words */
@@ -130,7 +173,7 @@ static void swap_words(uint8_t *data, size_t data_len)
 	}
 }
 
-int tch_soft_uart_rx_from_l1(struct osmocom_ms *ms, struct msgb *msg)
+int tch_csd_rx_from_l1(struct osmocom_ms *ms, struct msgb *msg)
 {
 	const struct gsm48_rr_cd *cd = &ms->rrlayer.cd_now;
 	const struct csd_v110_frame_desc *desc;
@@ -161,17 +204,17 @@ int tch_soft_uart_rx_from_l1(struct osmocom_ms *ms, struct msgb *msg)
 	for (unsigned int i = 0; i < desc->num_blocks; i++) {
 		struct osmo_v110_decoded_frame df;
 
-		if (desc->num_bits == 60) {
+		if (desc->num_bits == 60)
 			osmo_csd_12k_6k_decode_frame(&df, &data[i * 60], 60);
-			/* feed D-bits (D1..D48) into the soft-UART */
-			osmo_soft_uart_rx_ubits(g_suart, &df.d_bits[0], 48);
-		} else { /* desc->num_bits == 36 */
+		else /* desc->num_bits == 36 */
 			osmo_csd_3k6_decode_frame(&df, &data[i * 36], 36);
-			/* feed D-bits (D1..D24) into the soft-UART */
-			osmo_soft_uart_rx_ubits(g_suart, &df.d_bits[0], 24);
-		}
 
-		/* XXX: what do we do with S-/X-/E-bits? */
+		/* FIXME: properly set E1/E2/E3 depending on data rate */
+		df.e_bits[0] = 0;
+		df.e_bits[1] = 1;
+		df.e_bits[2] = 1;
+
+		osmo_v110_ta_frame_in(g_ta, &df);
 	}
 
 	osmo_soft_uart_flush_rx(g_suart);
@@ -179,7 +222,7 @@ int tch_soft_uart_rx_from_l1(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
-int tch_soft_uart_tx_to_l1(struct osmocom_ms *ms)
+int tch_csd_tx_to_l1(struct osmocom_ms *ms)
 {
 	const struct gsm48_rr_cd *cd = &ms->rrlayer.cd_now;
 	const struct csd_v110_frame_desc *desc;
@@ -196,18 +239,18 @@ int tch_soft_uart_tx_to_l1(struct osmocom_ms *ms)
 	for (unsigned int i = 0; i < desc->num_blocks; i++) {
 		struct osmo_v110_decoded_frame df;
 
-		/* init all bits to 1 */
-		memset(&df, 0x01, sizeof(df));
+		if (osmo_v110_ta_frame_out(g_ta, &df) != 0)
+			memset(&df, 0x01, sizeof(df));
 
-		if (desc->num_bits == 60) {
-			/* pull D-bits (D1..D48) out of the soft-UART */
-			osmo_soft_uart_tx_ubits(g_suart, &df.d_bits[0], 48);
+		/* set E7 to binary 0 in every 4-th frame
+		 * (as per 3GPP TS 44.021, subclause 10.2.1)
+		 * FIXME: properly handle desc->num_blocks == 2 */
+		df.e_bits[6] = (i > 0);
+
+		if (desc->num_bits == 60)
 			osmo_csd_12k_6k_encode_frame(&data[i * 60], 60, &df);
-		} else { /* desc->num_bits == 36 */
-			/* pull D-bits (D1..D24) out of the soft-UART */
-			osmo_soft_uart_tx_ubits(g_suart, &df.d_bits[0], 24);
+		else /* desc->num_bits == 36 */
 			osmo_csd_3k6_encode_frame(&data[i * 36], 36, &df);
-		}
 	}
 
 	nmsg = msgb_alloc_headroom(33 + 64, 64, __func__);
@@ -229,3 +272,10 @@ int tch_soft_uart_tx_to_l1(struct osmocom_ms *ms)
 
 	return gsm48_rr_tx_traffic(ms, nmsg);
 }
+
+void tch_csd_sock_conn_cb(struct tch_csd_sock_state *state, bool connected)
+{
+	osmo_v110_ta_set_circuit(g_ta, OSMO_V110_TA_C_108, connected);
+}
+
+/* TODO: call osmo_v110_ta_sync_ind() */
