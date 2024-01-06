@@ -22,6 +22,12 @@
 #include <stdlib.h>
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/signal.h>
+#include <osmocom/core/talloc.h>
+
+#include <osmocom/gsm/protocol/gsm_04_80.h>
+#include <osmocom/gsm/gsm48.h>
+
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
@@ -29,10 +35,7 @@
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
 #include <osmocom/bb/mobile/gsm44068_gcc_bcc.h>
-#include <osmocom/core/talloc.h>
 #include <osmocom/bb/mobile/vty.h>
-#include <osmocom/gsm/protocol/gsm_04_80.h>
-#include <osmocom/gsm/gsm48.h>
 
 static uint32_t new_callref = 0x80000001;
 
@@ -213,7 +216,7 @@ static int gsm480_ss_result(struct osmocom_ms *ms, const char *response,
 	return 0;
 }
 
-enum {
+enum gsm480_ss_state {
 	GSM480_SS_ST_IDLE = 0,
 	GSM480_SS_ST_REGISTER,
 	GSM480_SS_ST_ACTIVE,
@@ -282,6 +285,13 @@ static int gsm480_trans_free(struct gsm_trans *trans)
 	trans_free(trans);
 
 	return 0;
+}
+
+static void gsm480_trans_state_chg(struct gsm_trans *trans,
+				   enum gsm480_ss_state state)
+{
+	trans->ss.state = state;
+	osmo_signal_dispatch(SS_L23_TRANS, S_L23_CC_TRANS_STATE_CHG, trans);
 }
 
 /*
@@ -624,8 +634,7 @@ int ss_send(struct osmocom_ms *ms, const char *code, int new_trans)
 		return -ENOMEM;
 	}
 
-	/* go register sent state */
-	trans->ss.state = GSM480_SS_ST_REGISTER;
+	gsm480_trans_state_chg(trans, GSM480_SS_ST_REGISTER);
 
 	/* FIXME: generate invoke ID */
 	trans->ss.invoke_id = 5;
@@ -1107,8 +1116,7 @@ static int gsm480_rx_facility(struct gsm_trans *trans, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	/* go register state */
-	trans->ss.state = GSM480_SS_ST_ACTIVE;
+	gsm480_trans_state_chg(trans, GSM480_SS_ST_ACTIVE);
 
 	if (TLVP_PRESENT(&tp, GSM48_IE_FACILITY)) {
 		rc = gsm480_rx_fac_ie(trans, TLVP_VAL(&tp, GSM48_IE_FACILITY),
@@ -1143,8 +1151,7 @@ static int gsm480_rx_register(struct gsm_trans *trans, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	/* go register state */
-	trans->ss.state = GSM480_SS_ST_ACTIVE;
+	gsm480_trans_state_chg(trans, GSM480_SS_ST_ACTIVE);
 
 	if (TLVP_PRESENT(&tp, GSM48_IE_FACILITY)) {
 		rc = gsm480_rx_fac_ie(trans, TLVP_VAL(&tp, GSM48_IE_FACILITY),

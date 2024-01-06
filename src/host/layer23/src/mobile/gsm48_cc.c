@@ -25,6 +25,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/signal.h>
 
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
@@ -239,6 +240,8 @@ static void new_cc_state(struct gsm_trans *trans, int state)
 		gsm48_cc_state_name(state));
 
 	trans->cc.state = state;
+
+	osmo_signal_dispatch(SS_L23_TRANS, S_L23_CC_TRANS_STATE_CHG, trans);
 }
 
 /*

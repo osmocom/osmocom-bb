@@ -11,6 +11,7 @@ enum osmobb_sig_subsys {
 	SS_GLOBAL,
 	SS_L23_VTY,
 	SS_L23_SUBSCR,
+	SS_L23_TRANS,
 };
 
 enum osmobb_l1ctl_sig {
@@ -38,6 +39,12 @@ enum osmobb_l23_subscriber {
 	S_L23_SUBSCR_SIM_ATTACHED,
 	S_L23_SUBSCR_SIM_DETACHED,
 	S_L23_SUBSCR_SIM_AUTH_RESP,
+};
+
+enum osmobb_l23_trans_sig {
+	S_L23_CC_TRANS_ALLOC,		/* new transaction has been allocated */
+	S_L23_CC_TRANS_FREE,		/* transaction is about to be free()d */
+	S_L23_CC_TRANS_STATE_CHG,	/* transaction state has been changed */
 };
 
 struct osmobb_l23_vty_sig_data {

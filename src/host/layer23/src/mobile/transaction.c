@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include <osmocom/core/signal.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/msgb.h>
@@ -79,11 +80,15 @@ struct gsm_trans *trans_alloc(struct osmocom_ms *ms,
 
 	llist_add_tail(&trans->entry, &ms->trans_list);
 
+	osmo_signal_dispatch(SS_L23_TRANS, S_L23_CC_TRANS_ALLOC, trans);
+
 	return trans;
 }
 
 void trans_free(struct gsm_trans *trans)
 {
+	osmo_signal_dispatch(SS_L23_TRANS, S_L23_CC_TRANS_FREE, trans);
+
 	switch (trans->protocol) {
 	case GSM48_PDISC_CC:
 		_gsm48_cc_trans_free(trans);
