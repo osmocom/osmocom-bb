@@ -2259,11 +2259,13 @@ static int gsm48_mm_rx_info(struct osmocom_ms *ms, struct msgb *msg)
 	struct tlv_parsed tp;
 
 	if (payload_len < 0) {
-		LOGP(DMM, LOGL_NOTICE, "Short read of MM INFORMATION message "
-			"error.\n");
+		LOGP(DMM, LOGL_ERROR, "Short read of MM INFORMATION message\n");
 		return -EINVAL;
 	}
-	tlv_parse(&tp, &gsm48_mm_att_tlvdef, gh->data, payload_len, 0, 0);
+	if (tlv_parse(&tp, &gsm48_mm_att_tlvdef, gh->data, payload_len, 0, 0) < 0) {
+		LOGP(DMM, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		return -EINVAL;
+	}
 
 	/* long name */
 	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_LONG)) {
@@ -2611,15 +2613,17 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	struct tlv_parsed tp;
 	struct msgb *nmsg;
 
-	if (payload_len < sizeof(struct gsm48_loc_area_id)) {
-		short_read:
-		LOGP(DMM, LOGL_NOTICE, "Short read of LOCATION UPDATING ACCEPT "
-			"message error.\n");
+	if (payload_len < 0) {
+short_read:
+		LOGP(DMM, LOGL_ERROR, "Short read of LOCATION UPDATING ACCEPT message\n");
 		return -EINVAL;
 	}
-	tlv_parse(&tp, &gsm48_mm_att_tlvdef,
-		gh->data + sizeof(struct gsm48_loc_area_id),
-		payload_len - sizeof(struct gsm48_loc_area_id), 0, 0);
+	if (tlv_parse(&tp, &gsm48_mm_att_tlvdef,
+		      gh->data + sizeof(*lai),
+		      payload_len - sizeof(*lai), 0, 0) < 0) {
+		LOGP(DMM, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		return -EINVAL;
+	}
 
 	/* update has finished */
 	mm->lupd_pending = 0;

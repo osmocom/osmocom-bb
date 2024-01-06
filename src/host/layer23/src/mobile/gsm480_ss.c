@@ -1062,7 +1062,12 @@ static int gsm480_rx_release_comp(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	int rc = 0;
 
-	tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len, 0, 0);
+	if (tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len, 0, 0) < 0) {
+		LOGP(DSS, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		gsm480_trans_free(trans);
+		return -EINVAL;
+	}
+
 	if (TLVP_PRESENT(&tp, GSM48_IE_FACILITY)) {
 		rc = gsm480_rx_fac_ie(trans, TLVP_VAL(&tp, GSM48_IE_FACILITY),
 			*(TLVP_VAL(&tp, GSM48_IE_FACILITY)-1));
@@ -1095,11 +1100,16 @@ static int gsm480_rx_facility(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	int rc = 0;
 
+	if (tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len,
+		      GSM48_IE_FACILITY, 0) < 0) {
+		LOGP(DSS, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		/* XXX: indicate an error somehow */
+		return -EINVAL;
+	}
+
 	/* go register state */
 	trans->ss.state = GSM480_SS_ST_ACTIVE;
 
-	tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len,
-		GSM48_IE_FACILITY, 0);
 	if (TLVP_PRESENT(&tp, GSM48_IE_FACILITY)) {
 		rc = gsm480_rx_fac_ie(trans, TLVP_VAL(&tp, GSM48_IE_FACILITY),
 			*(TLVP_VAL(&tp, GSM48_IE_FACILITY)-1));
@@ -1127,10 +1137,15 @@ static int gsm480_rx_register(struct gsm_trans *trans, struct msgb *msg)
 	struct tlv_parsed tp;
 	int rc = 0;
 
+	if (tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len, 0, 0) < 0) {
+		LOGP(DSS, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		/* XXX: indicate an error somehow */
+		return -EINVAL;
+	}
+
 	/* go register state */
 	trans->ss.state = GSM480_SS_ST_ACTIVE;
 
-	tlv_parse(&tp, &gsm48_att_tlvdef, gh->data, payload_len, 0, 0);
 	if (TLVP_PRESENT(&tp, GSM48_IE_FACILITY)) {
 		rc = gsm480_rx_fac_ie(trans, TLVP_VAL(&tp, GSM48_IE_FACILITY),
 			*(TLVP_VAL(&tp, GSM48_IE_FACILITY)-1));

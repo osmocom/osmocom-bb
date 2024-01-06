@@ -3642,12 +3642,13 @@ static int gsm48_rr_rx_add_ass(struct osmocom_ms *ms, struct msgb *msg)
 	struct tlv_parsed tp;
 
 	if (payload_len < 0) {
-		LOGP(DRR, LOGL_NOTICE, "Short read of ADDITIONAL ASSIGNMENT "
-			"message.\n");
-		return gsm48_rr_tx_rr_status(ms,
-			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+		LOGP(DRR, LOGL_NOTICE, "Short read of ADDITIONAL ASSIGNMENT message\n");
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 	}
-	tlv_parse(&tp, &gsm48_rr_att_tlvdef, aa->data, payload_len, 0, 0);
+	if (tlv_parse(&tp, &gsm48_rr_att_tlvdef, aa->data, payload_len, 0, 0) < 0) {
+		LOGP(DRR, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
 
 	return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 }
@@ -4338,12 +4339,13 @@ static int gsm48_rr_rx_chan_rel(struct osmocom_ms *ms, struct msgb *msg)
 	uint8_t *mode;
 
 	if (payload_len < 0) {
-		LOGP(DRR, LOGL_NOTICE, "Short read of CHANNEL RELEASE "
-			"message.\n");
-		return gsm48_rr_tx_rr_status(ms,
-			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+		LOGP(DRR, LOGL_NOTICE, "Short read of CHANNEL RELEASE message\n");
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 	}
-	tlv_parse(&tp, &gsm48_rr_att_tlvdef, cr->data, payload_len, 0, 0);
+	if (tlv_parse(&tp, &gsm48_rr_att_tlvdef, cr->data, payload_len, 0, 0) < 0) {
+		LOGP(DRR, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
 
 	LOGP(DRR, LOGL_INFO, "channel release request with cause 0x%02x\n",
 		cr->rr_cause);
@@ -4391,10 +4393,13 @@ static int gsm48_rr_rx_chan_rel_ui(struct osmocom_ms *ms, struct msgb *msg)
 	struct tlv_parsed tp;
 
 	if (payload_len < 0) {
-		LOGP(DRR, LOGL_NOTICE, "Short read of CHANNEL RELEASE message.\n");
+		LOGP(DRR, LOGL_NOTICE, "Short read of CHANNEL RELEASE message\n");
 		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 	}
-	tlv_parse(&tp, &gsm48_rr_att_tlvdef, cr->data, payload_len, 0, 0);
+	if (tlv_parse(&tp, &gsm48_rr_att_tlvdef, cr->data, payload_len, 0, 0) < 0) {
+		LOGP(DRR, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
 
 	LOGP(DRR, LOGL_INFO, "CHANNEL RELESE via UI frame with cause 0x%02x\n", cr->rr_cause);
 
@@ -4715,12 +4720,13 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	cdb->ind_tx_power = rr->cd_now.ind_tx_power;
 
 	if (payload_len < 0) {
-		LOGP(DRR, LOGL_NOTICE, "Short read of ASSIGNMENT COMMAND "
-			"message.\n");
-		return gsm48_rr_tx_rr_status(ms,
-			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+		LOGP(DRR, LOGL_NOTICE, "Short read of ASSIGNMENT COMMAND message\n");
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 	}
-	tlv_parse(&tp, &gsm48_rr_att_tlvdef, ac->data, payload_len, 0, 0);
+	if (tlv_parse(&tp, &gsm48_rr_att_tlvdef, ac->data, payload_len, 0, 0) < 0) {
+		LOGP(DRR, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
 
 	/* decode channel description (before time) */
 	if (TLVP_PRESENT(&tp, GSM48_IE_CH_DESC_1_BEFORE)) {
@@ -5102,10 +5108,12 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	cdb->ind_tx_power = rr->cd_now.ind_tx_power;
 
 	if (payload_len < 0) {
-		LOGP(DRR, LOGL_NOTICE, "Short read of HANDOVER COMMAND "
-			"message.\n");
-		return gsm48_rr_tx_rr_status(ms,
-			GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+		LOGP(DRR, LOGL_NOTICE, "Short read of HANDOVER COMMAND message\n");
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
+	}
+	if (tlv_parse(&tp, &gsm48_rr_att_tlvdef, ho->data, payload_len, 0, 0) < 0) {
+		LOGP(DRR, LOGL_ERROR, "%s(): tlv_parse() failed\n", __func__);
+		return gsm48_rr_tx_rr_status(ms, GSM48_RR_CAUSE_PROT_ERROR_UNSPC);
 	}
 
 	/* cell description */
@@ -5114,8 +5122,6 @@ static int gsm48_rr_rx_hando_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	/* handover reference */
 	rr->chan_req_val = ho->ho_ref;
 	rr->chan_req_mask = 0x00;
-
-	tlv_parse(&tp, &gsm48_rr_att_tlvdef, ho->data, payload_len, 0, 0);
 
 	/* sync ind */
 	if (TLVP_PRESENT(&tp, GSM48_IE_SYNC_IND)) {
