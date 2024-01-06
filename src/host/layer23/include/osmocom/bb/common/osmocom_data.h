@@ -4,7 +4,6 @@
 #include <stdbool.h>
 
 struct osmocom_ms;
-struct gapk_io_state;
 struct vty;
 
 enum osmobb_sig_subsys {
