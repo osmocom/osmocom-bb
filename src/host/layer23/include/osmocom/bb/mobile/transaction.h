@@ -38,6 +38,7 @@ struct gsm_trans {
 			int T308_second;	/* used to send release again */
 			struct osmo_timer_list timer;
 			struct gsm_mncc msg;	/* stores setup/disconnect/release message */
+			struct gsm_mncc_bearer_cap *bcap;
 		} cc;
 		struct {
 			/* current supp.serv. state */

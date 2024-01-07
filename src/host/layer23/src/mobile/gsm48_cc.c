@@ -43,6 +43,8 @@ int mncc_release_ind(struct osmocom_ms *ms, struct gsm_trans *trans,
 		     uint32_t callref, int location, int value);
 static int gsm48_cc_tx_disconnect(struct gsm_trans *trans, void *arg);
 static int gsm48_cc_tx_connect_ack(struct gsm_trans *trans, void *arg);
+static void gsm48_cc_trans_bcap_update(struct gsm_trans *trans,
+				       const struct gsm_mncc *mncc);
 
 /*
  * init
@@ -186,6 +188,8 @@ static int mncc_recvmsg(struct osmocom_ms *ms, struct gsm_trans *trans,
 {
 	struct gsm48_cclayer *cc = &ms->cclayer;
 	struct msgb *msg;
+
+	gsm48_cc_trans_bcap_update(trans, mncc);
 
 	if (trans)
 		LOGP(DCC, LOGL_INFO, "(ms %s ti %x) Sending '%s' to MNCC.\n",
@@ -370,6 +374,9 @@ void _gsm48_cc_trans_free(struct gsm_trans *trans)
 {
 	gsm48_stop_cc_timer(trans);
 
+	talloc_free(trans->cc.bcap);
+	trans->cc.bcap = NULL;
+
 	/* disable audio distribution */
 	if (trans->ms->mncc_entity.ref == trans->callref)
 		trans->ms->mncc_entity.ref = 0;
@@ -383,6 +390,16 @@ void _gsm48_cc_trans_free(struct gsm_trans *trans)
 	}
 	if (trans->cc.state != GSM_CSTATE_NULL)
 		new_cc_state(trans, GSM_CSTATE_NULL);
+}
+
+static void gsm48_cc_trans_bcap_update(struct gsm_trans *trans,
+				       const struct gsm_mncc *mncc)
+{
+	if (~mncc->fields & MNCC_F_BEARER_CAP)
+		return;
+	if (trans->cc.bcap == NULL)
+		trans->cc.bcap = talloc(trans, struct gsm_mncc_bearer_cap);
+	memcpy(trans->cc.bcap, &mncc->bearer_cap, sizeof(mncc->bearer_cap));
 }
 
 /* release MM connection, go NULL state, free transaction */
@@ -2019,6 +2036,8 @@ int mncc_tx_to_cc(void *inst, int msg_type, void *arg)
 				GSM48_CC_CAUSE_RESOURCE_UNAVAIL);
 		}
 	}
+
+	gsm48_cc_trans_bcap_update(trans, data);
 
 	switch (msg_type) {
 	case GSM_TCHF_FRAME:
