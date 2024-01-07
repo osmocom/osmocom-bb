@@ -1,7 +1,7 @@
 /*
  * (C) 2010 by Andreas Eversberg <jolly@eversberg.eu>
  * (C) 2017-2018 by Vadim Yanitskiy <axilirator@gmail.com>
- * (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
+ * (C) 2022-2024 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * All Rights Reserved
  *
@@ -21,8 +21,10 @@
 #include <errno.h>
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/signal.h>
 #include <osmocom/codec/codec.h>
 
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_08_58.h>
 
 #include <osmocom/bb/common/logging.h>
@@ -31,6 +33,7 @@
 #include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/mncc_sock.h>
+#include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/tch.h>
 
 /* Forward a Downlink voice frame to the external MNCC handler */
@@ -76,7 +79,9 @@ exit_free:
 /* Receive a Downlink voice frame from the lower layers */
 static int tch_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
-	switch (ms->settings.tch_voice.io_handler) {
+	struct tch_state *state = ms->tch_state;
+
+	switch (state->voice.handler) {
 	case TCH_VOICE_IOH_LOOPBACK:
 		/* Remove the DL info header */
 		msgb_pull_to_l2(msg);
@@ -87,8 +92,8 @@ static int tch_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 	case TCH_VOICE_IOH_GAPK:
 #ifdef WITH_GAPK_IO
 		/* Enqueue a frame to the DL TCH buffer */
-		if (ms->gapk_io != NULL)
-			gapk_io_enqueue_dl(ms->gapk_io, msg);
+		if (state->voice.gapk_io != NULL)
+			gapk_io_enqueue_dl(state->voice.gapk_io, msg);
 		else
 			msgb_free(msg);
 		break;
@@ -100,6 +105,25 @@ static int tch_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	return 0;
+}
+
+/* Receive a Downlink traffic (voice/data) frame from the lower layers */
+static int tch_recv_cb(struct osmocom_ms *ms, struct msgb *msg)
+{
+	struct tch_state *state = ms->tch_state;
+	int rc = 0;
+
+	if (state == NULL) {
+		msgb_free(msg);
+		return 0;
+	}
+
+	if (state->is_voice)
+		rc = tch_recv_voice(ms, msg);
+	else /* TODO: tch_recv_data() */
+		msgb_free(msg);
+
+	return rc;
 }
 
 /* Send an Uplink voice frame to the lower layers */
@@ -142,10 +166,167 @@ int tch_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *fra
 	return tch_send_voice_msg(ms, nmsg);
 }
 
+int tch_serve_ms(struct osmocom_ms *ms)
+{
+	struct tch_state *state = ms->tch_state;
+
+	if (state == NULL)
+		return 0;
+	if (state->is_voice) {
+#ifdef WITH_GAPK_IO
+		if (state->voice.handler == TCH_VOICE_IOH_GAPK)
+			return gapk_io_serve_ms(ms, state->voice.gapk_io);
+#endif
+	}
+
+	return 0;
+}
+
+static int tch_state_init_voice(struct osmocom_ms *ms,
+				struct tch_voice_state *state)
+{
+	const struct gsm48_rr_cd *cd = &ms->rrlayer.cd_now;
+
+	switch (state->handler) {
+#ifdef WITH_GAPK_IO
+	case TCH_VOICE_IOH_GAPK:
+		if ((cd->chan_nr & RSL_CHAN_NR_MASK) == RSL_CHAN_Bm_ACCHs)
+			state->gapk_io = gapk_io_state_alloc_mode_rate(ms, cd->mode, true);
+		else /* RSL_CHAN_Lm_ACCHs */
+			state->gapk_io = gapk_io_state_alloc_mode_rate(ms, cd->mode, false);
+		if (state->gapk_io == NULL)
+			return -1;
+		break;
+#endif
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+static void tch_state_free_voice(struct tch_voice_state *state)
+{
+	switch (state->handler) {
+#ifdef WITH_GAPK_IO
+	case TCH_VOICE_IOH_GAPK:
+		gapk_io_state_free(state->gapk_io);
+		break;
+#endif
+	default:
+		break;
+	}
+}
+
+static void tch_trans_cstate_active_cb(struct gsm_trans *trans)
+{
+	struct osmocom_ms *ms = trans->ms;
+	struct tch_state *state;
+	enum gsm48_chan_mode ch_mode;
+
+	if (ms->tch_state != NULL)
+		return; /* TODO: handle modify? */
+
+	state = talloc_zero(ms, struct tch_state);
+	OSMO_ASSERT(state != NULL);
+
+	ch_mode = ms->rrlayer.cd_now.mode;
+	switch (ch_mode) {
+	case GSM48_CMODE_SPEECH_V1:
+	case GSM48_CMODE_SPEECH_EFR:
+	case GSM48_CMODE_SPEECH_AMR:
+		state->is_voice = true;
+		state->voice.handler = ms->settings.tch_voice.io_handler;
+		if (tch_state_init_voice(ms, &state->voice) != 0)
+			goto exit_free;
+		break;
+	case GSM48_CMODE_DATA_14k5:
+	case GSM48_CMODE_DATA_12k0:
+	case GSM48_CMODE_DATA_6k0:
+	case GSM48_CMODE_DATA_3k6:
+#if 0
+		state->is_voice = false;
+		state->data.handler = ms->settings.tch_data.io_handler;
+		/* TODO: tch_state_init_data() */
+		if (tch_state_init_data(ms, &state->data) != 0)
+			goto exit_free;
+		break;
+#endif
+	case GSM48_CMODE_SIGN:
+	default:
+		LOGP(DL1C, LOGL_ERROR, "Unhandled channel mode %s\n",
+		     get_value_string(gsm48_chan_mode_names, ch_mode));
+exit_free:
+		talloc_free(state);
+		return;
+	}
+
+	ms->tch_state = state;
+}
+
+static void tch_trans_free_cb(struct gsm_trans *trans)
+{
+	struct osmocom_ms *ms = trans->ms;
+	struct tch_state *state = ms->tch_state;
+
+	if (state == NULL)
+		return;
+	if (state->is_voice)
+		tch_state_free_voice(&state->voice);
+#if 0
+	else /* TODO: tch_state_free_data() */
+		tch_state_free_data(&state->data);
+#endif
+
+	talloc_free(state);
+	ms->tch_state = NULL;
+}
+
+static void tch_trans_state_chg_cb(struct gsm_trans *trans)
+{
+	switch (trans->cc.state) {
+	case GSM_CSTATE_ACTIVE:
+		tch_trans_cstate_active_cb(trans);
+		break;
+	case GSM_CSTATE_NULL:
+		tch_trans_free_cb(trans);
+		break;
+	}
+}
+
+/* a call-back for CC (Call Control) transaction related events */
+static int tch_trans_signal_cb(unsigned int subsys, unsigned int signal,
+			       void *handler_data, void *signal_data)
+{
+	struct gsm_trans *trans = signal_data;
+
+	OSMO_ASSERT(subsys == SS_L23_TRANS);
+	OSMO_ASSERT(trans != NULL);
+
+	/* we only care about CC transactions here */
+	if (trans->protocol != GSM48_PDISC_CC)
+		return 0;
+
+	switch ((enum osmobb_l23_trans_sig)signal) {
+	case S_L23_CC_TRANS_ALLOC:
+		break;
+	case S_L23_CC_TRANS_FREE:
+		tch_trans_free_cb(trans);
+		break;
+	case S_L23_CC_TRANS_STATE_CHG:
+		tch_trans_state_chg_cb(trans);
+		break;
+	}
+
+	return 0;
+}
+
 /* Initialize the TCH router */
 int tch_init(struct osmocom_ms *ms)
 {
-	ms->l1_entity.l1_traffic_ind = tch_recv_voice;
+	ms->l1_entity.l1_traffic_ind = &tch_recv_cb;
+
+	osmo_signal_register_handler(SS_L23_TRANS, &tch_trans_signal_cb, ms);
 
 	return 0;
 }

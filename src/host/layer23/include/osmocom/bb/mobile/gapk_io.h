@@ -3,6 +3,7 @@
 #ifdef WITH_GAPK_IO
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <osmocom/gapk/procqueue.h>
 #include <osmocom/gapk/codecs.h>
@@ -31,13 +32,16 @@ struct gapk_io_state {
 	unsigned int tch_ul_fb_len;
 };
 
-void gapk_io_init(void);
-
-int gapk_io_init_ms(struct osmocom_ms *ms, enum osmo_gapk_codec_type codec);
-int gapk_io_init_ms_chan(struct osmocom_ms *ms, uint8_t ch_type, uint8_t ch_mode);
-int gapk_io_clean_up_ms(struct osmocom_ms *ms);
+struct gapk_io_state *
+gapk_io_state_alloc(struct osmocom_ms *ms,
+		    enum osmo_gapk_codec_type codec);
+struct gapk_io_state *
+gapk_io_state_alloc_mode_rate(struct osmocom_ms *ms,
+			      enum gsm48_chan_mode ch_mode,
+			      bool full_rate);
+void gapk_io_state_free(struct gapk_io_state *state);
 
 void gapk_io_enqueue_dl(struct gapk_io_state *state, struct msgb *msg);
-int gapk_io_serve_ms(struct osmocom_ms *ms);
+int gapk_io_serve_ms(struct osmocom_ms *ms, struct gapk_io_state *state);
 
 #endif /* WITH_GAPK_IO */

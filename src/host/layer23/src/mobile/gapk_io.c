@@ -316,29 +316,26 @@ error:
  * processing queues (chains), and deallocates the memory.
  * Should be called when a voice call is finished...
  */
-int gapk_io_clean_up_ms(struct osmocom_ms *ms)
+void gapk_io_state_free(struct gapk_io_state *state)
 {
 	struct msgb *msg;
 
-	if (ms->gapk_io == NULL)
-		return 0;
+	if (state == NULL)
+		return;
 
 	/* Flush TCH frame I/O buffers */
-	while ((msg = msgb_dequeue(&ms->gapk_io->tch_dl_fb)))
+	while ((msg = msgb_dequeue(&state->tch_dl_fb)))
 		msgb_free(msg);
-	while ((msg = msgb_dequeue(&ms->gapk_io->tch_ul_fb)))
+	while ((msg = msgb_dequeue(&state->tch_ul_fb)))
 		msgb_free(msg);
 
 	/* Destroy both audio I/O chains */
-	if (ms->gapk_io->pq_source)
-		osmo_gapk_pq_destroy(ms->gapk_io->pq_source);
-	if (ms->gapk_io->pq_sink)
-		osmo_gapk_pq_destroy(ms->gapk_io->pq_sink);
+	if (state->pq_source != NULL)
+		osmo_gapk_pq_destroy(state->pq_source);
+	if (state->pq_sink != NULL)
+		osmo_gapk_pq_destroy(state->pq_sink);
 
-	talloc_free(ms->gapk_io);
-	ms->gapk_io = NULL;
-
-	return 0;
+	talloc_free(state);
 }
 
 /**
@@ -386,31 +383,31 @@ static enum osmo_gapk_format_type phy_fmt_pick_ti(enum osmo_gapk_codec_type code
  * and prepares both processing queues (chains).
  * Should be called when a voice call is initiated...
  */
-int gapk_io_init_ms(struct osmocom_ms *ms, enum osmo_gapk_codec_type codec)
+struct gapk_io_state *
+gapk_io_state_alloc(struct osmocom_ms *ms,
+		    enum osmo_gapk_codec_type codec)
 {
 	const struct osmo_gapk_format_desc *phy_fmt_desc;
 	const struct osmo_gapk_codec_desc *codec_desc;
-	struct gsm_settings *set = &ms->settings;
+	const struct gsm_settings *set = &ms->settings;
 	enum osmo_gapk_format_type phy_fmt;
 	struct gapk_io_state *state;
 	int rc = 0;
 
 	LOGP(DGAPK, LOGL_NOTICE, "Initialize GAPK I/O\n");
 
-	OSMO_ASSERT(ms->gapk_io == NULL);
-
 	/* Make sure that the chosen codec has description */
 	codec_desc = osmo_gapk_codec_get_from_type(codec);
 	if (codec_desc == NULL) {
 		LOGP(DGAPK, LOGL_ERROR, "Invalid codec type 0x%02x\n", codec);
-		return -EINVAL;
+		return NULL;
 	}
 
 	/* Make sure that the chosen codec is supported */
 	if (codec_desc->codec_encode == NULL || codec_desc->codec_decode == NULL) {
 		LOGP(DGAPK, LOGL_ERROR,
 		     "Codec '%s' is not supported by GAPK\n", codec_desc->name);
-		return -ENOTSUP;
+		return NULL;
 	}
 
 	switch (set->tch_voice.io_format) {
@@ -423,20 +420,20 @@ int gapk_io_init_ms(struct osmocom_ms *ms, enum osmo_gapk_codec_type codec)
 	default:
 		LOGP(DGAPK, LOGL_ERROR, "Unhandled I/O format %s\n",
 		     tch_voice_io_format_name(set->tch_voice.io_format));
-		return -ENOTSUP;
+		return NULL;
 	}
 
 	phy_fmt_desc = osmo_gapk_fmt_get_from_type(phy_fmt);
 	if (phy_fmt_desc == NULL) {
 		LOGP(DGAPK, LOGL_ERROR, "Failed to pick the PHY specific "
 		     "frame format for codec '%s'\n", codec_desc->name);
-		return -EINVAL;
+		return NULL;
 	}
 
 	state = talloc_zero(ms, struct gapk_io_state);
 	if (state == NULL) {
 		LOGP(DGAPK, LOGL_ERROR, "Failed to allocate memory\n");
-		return -ENOMEM;
+		return NULL;
 	}
 
 	/* Init TCH frame I/O buffers */
@@ -469,76 +466,41 @@ int gapk_io_init_ms(struct osmocom_ms *ms, enum osmo_gapk_codec_type codec)
 		talloc_free(state);
 
 		LOGP(DGAPK, LOGL_ERROR, "Failed to initialize GAPK I/O\n");
-		return rc;
+		return NULL;
 	}
-
-	/* Init pointers */
-	ms->gapk_io = state;
 
 	LOGP(DGAPK, LOGL_NOTICE,
 	     "GAPK I/O initialized for MS '%s', codec '%s'\n",
 	     ms->name, codec_desc->name);
 
-	return 0;
+	return state;
 }
 
-/**
- * Wrapper around gapk_io_init_ms(), that maps both
- * given GSM 04.08 channel type (HR/FR) and channel
- * mode to a codec from 'osmo_gapk_codec_type' enum,
- * checks if a mapped codec is supported by GAPK,
- * and finally calls the wrapped function.
- */
-int gapk_io_init_ms_chan(struct osmocom_ms *ms,
-			 uint8_t ch_type, uint8_t ch_mode)
+/* gapk_io_init_ms() wrapper, selecting a codec based on channel mode and rate */
+struct gapk_io_state *
+gapk_io_state_alloc_mode_rate(struct osmocom_ms *ms,
+			      enum gsm48_chan_mode ch_mode,
+			      bool full_rate)
 {
 	enum osmo_gapk_codec_type codec;
 
-	/* Map GSM 04.08 channel mode to GAPK codec type */
 	switch (ch_mode) {
 	case GSM48_CMODE_SPEECH_V1: /* FR or HR */
-		if (ch_type == RSL_CHAN_Bm_ACCHs)
-			codec = CODEC_FR;
-		else
-			codec = CODEC_HR;
+		codec = full_rate ? CODEC_FR : CODEC_HR;
 		break;
-
 	case GSM48_CMODE_SPEECH_EFR:
 		codec = CODEC_EFR;
 		break;
-
 	case GSM48_CMODE_SPEECH_AMR:
 		codec = CODEC_AMR;
 		break;
-
-	/* Signalling or CSD, do nothing */
-	case GSM48_CMODE_DATA_14k5:
-	case GSM48_CMODE_DATA_12k0:
-	case GSM48_CMODE_DATA_6k0:
-	case GSM48_CMODE_DATA_3k6:
-	case GSM48_CMODE_SIGN:
-		return 0;
 	default:
 		LOGP(DGAPK, LOGL_ERROR, "Unhandled channel mode 0x%02x (%s)\n",
 		     ch_mode, get_value_string(gsm48_chan_mode_names, ch_mode));
-		return -EINVAL;
+		return NULL;
 	}
 
-	return gapk_io_init_ms(ms, codec);
-}
-
-/**
- * Performs basic initialization of GAPK library,
- * setting the talloc root context and a logging category.
- * Should be called during the application initialization...
- */
-void gapk_io_init(void)
-{
-	/* Init logging subsystem */
-	osmo_gapk_log_init(DGAPK);
-
-	/* Make RAWPCM format info easy to access */
-	rawpcm_fmt = osmo_gapk_fmt_get_from_type(FMT_RAWPCM_S16LE);
+	return gapk_io_state_alloc(ms, codec);
 }
 
 void gapk_io_enqueue_dl(struct gapk_io_state *state, struct msgb *msg)
@@ -554,9 +516,8 @@ void gapk_io_enqueue_dl(struct gapk_io_state *state, struct msgb *msg)
 }
 
 /* Serves both UL/DL TCH frame I/O buffers */
-int gapk_io_serve_ms(struct osmocom_ms *ms)
+int gapk_io_serve_ms(struct osmocom_ms *ms, struct gapk_io_state *state)
 {
-	struct gapk_io_state *state = ms->gapk_io;
 	int work = 0;
 
 	/**
@@ -595,4 +556,17 @@ int gapk_io_serve_ms(struct osmocom_ms *ms)
 	}
 
 	return work;
+}
+
+/**
+ * Performs basic initialization of GAPK library,
+ * setting the talloc root context and a logging category.
+ */
+static __attribute__((constructor)) void gapk_io_init(void)
+{
+	/* Init logging subsystem */
+	osmo_gapk_log_init(DGAPK);
+
+	/* Make RAWPCM format info easy to access */
+	rawpcm_fmt = osmo_gapk_fmt_get_from_type(FMT_RAWPCM_S16LE);
 }

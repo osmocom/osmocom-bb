@@ -42,7 +42,6 @@
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/tch.h>
-#include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/primitives.h>
 
 #include <osmocom/vty/vty.h>
@@ -82,10 +81,7 @@ int mobile_work(struct osmocom_ms *ms)
 		w |= gsm322_cs_dequeue(ms);
 		w |= gsm_sim_job_dequeue(ms);
 		w |= mncc_dequeue(ms);
-#ifdef WITH_GAPK_IO
-		if (ms->gapk_io != NULL)
-			w |= gapk_io_serve_ms(ms);
-#endif
+		w |= tch_serve_ms(ms);
 		if (w)
 			work = 1;
 	} while (w);
@@ -199,12 +195,6 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 
 		return -EBUSY;
 	}
-
-#ifdef WITH_GAPK_IO
-	/* Clean up GAPK state, if preset */
-	if (ms->gapk_io != NULL)
-		gapk_io_clean_up_ms(ms);
-#endif
 
 	gsm322_exit(ms);
 	gsm48_mm_exit(ms);
@@ -493,11 +483,6 @@ int l23_app_init(void)
 	l23_app_work = _mobile_app_work;
 	l23_app_exit = _mobile_app_exit;
 	osmo_gps_init();
-
-#ifdef WITH_GAPK_IO
-	/* Init GAPK audio I/O */
-	gapk_io_init();
-#endif
 
 	osmo_signal_register_handler(SS_GLOBAL, &global_signal_cb, NULL);
 	osmo_signal_register_handler(SS_L1CTL, &mobile_signal_cb, NULL);

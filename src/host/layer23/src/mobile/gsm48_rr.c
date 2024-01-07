@@ -125,7 +125,6 @@
 #include <osmocom/bb/common/utils.h>
 #include <osmocom/bb/common/settings.h>
 
-#include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/gsm48_rr.h>
 
@@ -515,10 +514,6 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		memset(&rr->cd_now, 0, sizeof(rr->cd_now));
 		/* reset ciphering */
 		rr->cipher_on = 0;
-#ifdef WITH_GAPK_IO
-		/* clean-up GAPK state */
-		gapk_io_clean_up_ms(rr->ms);
-#endif
 		/* reset audio mode */
 		/* tell cell selection process to return to idle mode
 		 * NOTE: this must be sent unbuffered, because it will
@@ -573,10 +568,6 @@ static void new_rr_state(struct gsm48_rrlayer *rr, int state)
 		gsm48_rr_render_ma(ms, &rr->cd_now, ma, &ma_len);
 		/* activate channel */
 		gsm48_rr_activate_channel(ms, &rr->cd_now, ma, ma_len);
-#ifdef WITH_GAPK_IO
-		/* clean-up GAPK state */
-		gapk_io_clean_up_ms(rr->ms);
-#endif
 		return;
 	}
 }
@@ -4432,15 +4423,6 @@ static int gsm48_rr_set_mode(struct osmocom_ms *ms, uint8_t chan_nr, uint8_t mod
 	 && ch_type != RSL_CHAN_Lm_ACCHs)
 		return -ENOTSUP;
 
-#ifdef WITH_GAPK_IO
-	/* Poke GAPK audio back-end, if it is chosen */
-	if (ms->settings.tch_voice.io_handler == TCH_VOICE_IOH_GAPK) {
-		int rc = gapk_io_init_ms_chan(ms, ch_type, mode);
-		if (rc)
-			return rc;
-	}
-#endif
-
 	/* Apply indicated channel mode */
 	LOGP(DRR, LOGL_INFO, "setting TCH mode to %s, audio mode to %d, tch flags to %d\n",
 	     get_value_string(gsm48_chan_mode_names, mode), rr->audio_mode, tch_flags);
@@ -4983,12 +4965,6 @@ static int gsm48_rr_rx_ass_cmd(struct osmocom_ms *ms, struct msgb *msg)
 	cause = gsm48_rr_render_ma(ms, cda, ma, &ma_len);
 	if (cause)
 		return gsm48_rr_tx_ass_fail(ms, cause, RSL_MT_DATA_REQ);
-
-#ifdef WITH_GAPK_IO
-	/* Poke GAPK audio back-end, if it is chosen */
-	if (ms->settings.tch_voice.io_handler == TCH_VOICE_IOH_GAPK)
-		gapk_io_init_ms_chan(ms, ch_type, cda->mode);
-#endif
 
 #ifdef TEST_FREQUENCY_MOD
 	LOGP(DRR, LOGL_INFO, " TESTING: frequency modify ASS.CMD\n");

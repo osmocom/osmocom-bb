@@ -103,8 +103,7 @@ struct osmocom_ms {
 	struct osmobb_ms_gmm_layer gmmlayer;
 	struct osmo_fsm_inst *grr_fi;
 
-	/* Audio I/O */
-	struct gapk_io_state *gapk_io;
+	struct tch_state *tch_state;
 
 	void *lua_state;
 	int lua_cb_ref;
