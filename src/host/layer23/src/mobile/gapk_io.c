@@ -57,6 +57,10 @@ static int pq_queue_tch_fb_recv(void *_state, uint8_t *out,
 
 	/* Calculate received frame length */
 	frame_len = msgb_l3len(tch_msg);
+	if (frame_len == 0) {
+		msgb_free(tch_msg);
+		return -EIO;
+	}
 
 	/* Copy the frame bytes from message */
 	memcpy(out, tch_msg->l3h, frame_len);
