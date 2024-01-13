@@ -550,7 +550,7 @@ int gapk_io_serve_ms(struct osmocom_ms *ms, struct gapk_io_state *state)
 					     &state->tch_ul_fb_len);
 
 		/* Push a voice frame to the lower layers */
-		tch_send_voice_msg(ms, tch_msg);
+		tch_send_msg(ms, tch_msg);
 
 		work |= 1;
 	}

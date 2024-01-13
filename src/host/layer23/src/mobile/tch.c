@@ -86,7 +86,7 @@ static int tch_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 		/* Remove the DL info header */
 		msgb_pull_to_l2(msg);
 		/* Send voice frame back */
-		return tch_send_voice_msg(ms, msg);
+		return tch_send_msg(ms, msg);
 	case TCH_VOICE_IOH_MNCC_SOCK:
 		return tch_forward_mncc(ms, msg);
 	case TCH_VOICE_IOH_GAPK:
@@ -127,14 +127,14 @@ static int tch_recv_cb(struct osmocom_ms *ms, struct msgb *msg)
 }
 
 /* Send an Uplink voice frame to the lower layers */
-int tch_send_voice_msg(struct osmocom_ms *ms, struct msgb *msg)
+int tch_send_msg(struct osmocom_ms *ms, struct msgb *msg)
 {
 	/* Forward to RR */
 	return gsm48_rr_tx_traffic(ms, msg);
 }
 
-/* tch_send_voice_msg() wrapper accepting an MNCC structure */
-int tch_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *frame)
+/* tch_send_msg() wrapper accepting an MNCC structure */
+int tch_send_mncc_frame(struct osmocom_ms *ms, const struct gsm_data_frame *frame)
 {
 	struct msgb *nmsg;
 	int len;
@@ -163,7 +163,7 @@ int tch_send_voice_frame(struct osmocom_ms *ms, const struct gsm_data_frame *fra
 	nmsg->l2h = msgb_put(nmsg, len);
 	memcpy(nmsg->l2h, frame->data, len);
 
-	return tch_send_voice_msg(ms, nmsg);
+	return tch_send_msg(ms, nmsg);
 }
 
 int tch_serve_ms(struct osmocom_ms *ms)
