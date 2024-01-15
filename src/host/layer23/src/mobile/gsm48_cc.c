@@ -2148,15 +2148,21 @@ static struct datastate {
 static int gsm48_cc_data_ind(struct gsm_trans *trans, struct msgb *msg)
 {
 	struct osmocom_ms *ms = trans->ms;
-	struct gsm48_hdr *gh = msgb_l3(msg);
-	int msg_type = gh->msg_type & 0xbf;
-	uint8_t transaction_id = ((gh->proto_discr & 0xf0) ^ 0x80) >> 4;
-		/* flip */
+	const struct gsm48_hdr *gh = msgb_l3(msg);
 	int msg_supported = 0; /* determine, if message is supported at all */
+	uint8_t msg_type;
 	int i, rc;
 
-	/* set transaction ID, if not already */
-	trans->transaction_id = transaction_id;
+	if (msgb_l3len(msg) < sizeof(*gh)) {
+		LOGP(DCC, LOGL_INFO, "%s(): short read of msgb: %s\n",
+		     __func__, msgb_hexdump(msg));
+		return -EINVAL;
+	}
+
+	msg_type = gh->msg_type & 0xbf;
+
+	/* set transaction ID (flip), if not already */
+	trans->transaction_id = ((gh->proto_discr & 0xf0) ^ 0x80) >> 4;
 
 	/* pull the MMCC header */
 	msgb_pull(msg, sizeof(struct gsm48_mmxx_hdr));
