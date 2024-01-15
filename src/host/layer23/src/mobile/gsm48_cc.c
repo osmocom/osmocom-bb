@@ -181,7 +181,7 @@ static int gsm48_cc_to_mm(struct msgb *msg, struct gsm_trans *trans,
 
 /* enqueue message to application (MNCC-SAP) */
 static int mncc_recvmsg(struct osmocom_ms *ms, struct gsm_trans *trans,
-       	int msg_type, struct gsm_mncc *mncc)
+			uint32_t msg_type, struct gsm_mncc *mncc)
 {
 	struct gsm48_cclayer *cc = &ms->cclayer;
 	struct msgb *msg;
