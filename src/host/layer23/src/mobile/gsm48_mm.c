@@ -2613,7 +2613,7 @@ static int gsm48_mm_rx_loc_upd_acc(struct osmocom_ms *ms, struct msgb *msg)
 	struct tlv_parsed tp;
 	struct msgb *nmsg;
 
-	if (payload_len < 0) {
+	if (payload_len < sizeof(*lai)) {
 short_read:
 		LOGP(DMM, LOGL_ERROR, "Short read of LOCATION UPDATING ACCEPT message\n");
 		return -EINVAL;
