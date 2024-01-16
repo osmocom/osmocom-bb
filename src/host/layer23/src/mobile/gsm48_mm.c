@@ -4731,12 +4731,20 @@ static int gsm48_mm_data_ind(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm48_mmlayer *mm = &ms->mmlayer;
 	struct gsm48_rr_hdr *rrh = (struct gsm48_rr_hdr *)msg->data;
 	uint8_t sapi = rrh->sapi;
-	struct gsm48_hdr *gh = msgb_l3(msg);
-	uint8_t pdisc = gh->proto_discr & 0x0f;
-	uint8_t msg_type = gh->msg_type & 0xbf;
+	const struct gsm48_hdr *gh = msgb_l3(msg);
+	uint8_t pdisc, msg_type;
 	int msg_supported = 0; /* determine, if message is supported at all */
 	uint8_t skip_ind;
 	int i, rc;
+
+	if (msgb_l3len(msg) < sizeof(*gh)) {
+		LOGP(DMM, LOGL_INFO, "%s(): short read of msgb: %s\n",
+		     __func__, msgb_hexdump(msg));
+		return -EINVAL;
+	}
+
+	pdisc = gh->proto_discr & 0x0f;
+	msg_type = gh->msg_type & 0xbf;
 
 	/* 9.2.19 */
 	if (msg_type == GSM48_MT_MM_NULL) {
