@@ -30,82 +30,17 @@
 #include <osmocom/bb/common/logging.h>
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/ms.h>
-#include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/mncc_sock.h>
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/tch.h>
 
-/* Forward a Downlink voice frame to the external MNCC handler */
-static int tch_forward_mncc(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct gsm_data_frame *mncc;
+int tch_voice_state_init(struct gsm_trans *trans,
+			 struct tch_voice_state *state);
+void tch_voice_state_free(struct tch_voice_state *state);
 
-	/* Drop the l1ctl_info_dl header */
-	msgb_pull_to_l2(msg);
-	/* push mncc header in front of data */
-	mncc = (struct gsm_data_frame *)
-		msgb_push(msg, sizeof(struct gsm_data_frame));
-	mncc->callref = ms->mncc_entity.ref;
-
-	switch (ms->rrlayer.cd_now.mode) {
-	case GSM48_CMODE_SPEECH_V1:
-	{
-		const uint8_t cbits = ms->rrlayer.cd_now.chan_nr >> 3;
-		if (cbits == ABIS_RSL_CHAN_NR_CBITS_Bm_ACCHs)
-			mncc->msg_type = GSM_TCHF_FRAME;
-		else
-			mncc->msg_type = GSM_TCHH_FRAME;
-		break;
-	}
-	case GSM48_CMODE_SPEECH_EFR:
-		mncc->msg_type = GSM_TCHF_FRAME_EFR;
-		break;
-	case GSM48_CMODE_SPEECH_AMR: /* TODO: no AMR support yet */
-	default:
-		/* TODO: print error message here */
-		goto exit_free;
-	}
-
-	/* distribute and then free */
-	if (ms->mncc_entity.sock_state && ms->mncc_entity.ref)
-		return mncc_sock_from_cc(ms->mncc_entity.sock_state, msg);
-
-exit_free:
-	msgb_free(msg);
-	return 0;
-}
-
-/* Receive a Downlink voice frame from the lower layers */
-static int tch_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
-{
-	struct tch_state *state = ms->tch_state;
-
-	switch (state->voice.handler) {
-	case TCH_VOICE_IOH_LOOPBACK:
-		/* Remove the DL info header */
-		msgb_pull_to_l2(msg);
-		/* Send voice frame back */
-		return tch_send_msg(ms, msg);
-	case TCH_VOICE_IOH_MNCC_SOCK:
-		return tch_forward_mncc(ms, msg);
-	case TCH_VOICE_IOH_GAPK:
-#ifdef WITH_GAPK_IO
-		/* Enqueue a frame to the DL TCH buffer */
-		if (state->voice.gapk_io != NULL)
-			gapk_io_enqueue_dl(state->voice.gapk_io, msg);
-		else
-			msgb_free(msg);
-		break;
-#endif
-	case TCH_VOICE_IOH_L1PHY:
-	case TCH_VOICE_IOH_NONE:
-		/* Drop voice frame */
-		msgb_free(msg);
-	}
-
-	return 0;
-}
+int tch_voice_recv(struct osmocom_ms *ms, struct msgb *msg);
+int tch_voice_serve_ms(struct osmocom_ms *ms);
 
 /* Receive a Downlink traffic (voice/data) frame from the lower layers */
 static int tch_recv_cb(struct osmocom_ms *ms, struct msgb *msg)
@@ -119,7 +54,7 @@ static int tch_recv_cb(struct osmocom_ms *ms, struct msgb *msg)
 	}
 
 	if (state->is_voice)
-		rc = tch_recv_voice(ms, msg);
+		rc = tch_voice_recv(ms, msg);
 	else /* TODO: tch_recv_data() */
 		msgb_free(msg);
 
@@ -169,53 +104,15 @@ int tch_send_mncc_frame(struct osmocom_ms *ms, const struct gsm_data_frame *fram
 int tch_serve_ms(struct osmocom_ms *ms)
 {
 	struct tch_state *state = ms->tch_state;
+	int rc = 0;
 
 	if (state == NULL)
 		return 0;
-	if (state->is_voice) {
-#ifdef WITH_GAPK_IO
-		if (state->voice.handler == TCH_VOICE_IOH_GAPK)
-			return gapk_io_serve_ms(ms, state->voice.gapk_io);
-#endif
-	}
+	if (state->is_voice)
+		rc = tch_voice_serve_ms(ms);
+	/* TODO: else tch_data_serve_ms() */
 
-	return 0;
-}
-
-static int tch_state_init_voice(struct osmocom_ms *ms,
-				struct tch_voice_state *state)
-{
-	const struct gsm48_rr_cd *cd = &ms->rrlayer.cd_now;
-
-	switch (state->handler) {
-#ifdef WITH_GAPK_IO
-	case TCH_VOICE_IOH_GAPK:
-		if ((cd->chan_nr & RSL_CHAN_NR_MASK) == RSL_CHAN_Bm_ACCHs)
-			state->gapk_io = gapk_io_state_alloc_mode_rate(ms, cd->mode, true);
-		else /* RSL_CHAN_Lm_ACCHs */
-			state->gapk_io = gapk_io_state_alloc_mode_rate(ms, cd->mode, false);
-		if (state->gapk_io == NULL)
-			return -1;
-		break;
-#endif
-	default:
-		break;
-	}
-
-	return 0;
-}
-
-static void tch_state_free_voice(struct tch_voice_state *state)
-{
-	switch (state->handler) {
-#ifdef WITH_GAPK_IO
-	case TCH_VOICE_IOH_GAPK:
-		gapk_io_state_free(state->gapk_io);
-		break;
-#endif
-	default:
-		break;
-	}
+	return rc;
 }
 
 static void tch_trans_cstate_active_cb(struct gsm_trans *trans)
@@ -237,7 +134,7 @@ static void tch_trans_cstate_active_cb(struct gsm_trans *trans)
 	case GSM48_CMODE_SPEECH_AMR:
 		state->is_voice = true;
 		state->voice.handler = ms->settings.tch_voice.io_handler;
-		if (tch_state_init_voice(ms, &state->voice) != 0)
+		if (tch_voice_state_init(trans, &state->voice) != 0)
 			goto exit_free;
 		break;
 	case GSM48_CMODE_DATA_14k5:
@@ -247,8 +144,8 @@ static void tch_trans_cstate_active_cb(struct gsm_trans *trans)
 #if 0
 		state->is_voice = false;
 		state->data.handler = ms->settings.tch_data.io_handler;
-		/* TODO: tch_state_init_data() */
-		if (tch_state_init_data(ms, &state->data) != 0)
+		/* TODO: tch_data_state_init() */
+		if (tch_data_state_init(trans, &state->data) != 0)
 			goto exit_free;
 		break;
 #endif
@@ -272,7 +169,7 @@ static void tch_trans_free_cb(struct gsm_trans *trans)
 	if (state == NULL)
 		return;
 	if (state->is_voice)
-		tch_state_free_voice(&state->voice);
+		tch_voice_state_free(&state->voice);
 #if 0
 	else /* TODO: tch_state_free_data() */
 		tch_state_free_data(&state->data);

@@ -31,6 +31,7 @@ libmobile_a_SOURCES = \
 	mncc_sock.c \
 	primitives.c \
 	tch.c \
+	tch_voice.c \
 	transaction.c \
 	vty_interface.c \
 	$(NULL)
