@@ -234,8 +234,8 @@ struct osmo_v110_ta *tch_v110_ta_alloc(struct osmocom_ms *ms,
 	case BCAP_RATE(GSM48_BCAP_IR_8k, GSM48_BCAP_UR_300):
 	default:
 		LOGP(DCC, LOGL_ERROR,
-		     "%s(): User rate 0x%02x (octets 6a) is not supported (IR=0x%02x)\n",
-		     __func__, bcap->data.user_rate, bcap->data.interm_rate);
+		     "%s(): IR 0x%02x / UR 0x%02x combination is not supported\n",
+		     __func__, bcap->data.interm_rate, bcap->data.user_rate);
 		return NULL;
 	}
 

@@ -409,8 +409,8 @@ static int mncc_handle_bcap_data(const struct gsm_mncc_bearer_cap *bcap,
 		break;
 	default:
 		LOGP(DMNCC, LOGL_ERROR,
-		     "%s(): User rate 0x%02x (octets 6a) is not supported (IR=0x%02x)\n",
-		     __func__, bcap->data.user_rate, bcap->data.interm_rate);
+		     "%s(): IR 0x%02x / UR 0x%02x combination is not supported\n",
+		     __func__, bcap->data.interm_rate, bcap->data.user_rate);
 		return -ENOTSUP;
 	}
 
