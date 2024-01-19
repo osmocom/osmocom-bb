@@ -345,7 +345,7 @@ enum gsm48_chan_mode {
 	GSM48_CMODE_DATA_14k5	= 0x0f,
 	GSM48_CMODE_DATA_12k0	= 0x03,
 	GSM48_CMODE_DATA_6k0	= 0x0b,
-	GSM48_CMODE_DATA_3k6	= 0x23,
+	GSM48_CMODE_DATA_3k6	= 0x13,
 };
 
 /* Chapter 9.1.2 */
