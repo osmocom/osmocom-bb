@@ -187,11 +187,35 @@ static void tch_v110_ta_async_tx_cb(void *priv, ubit_t *buf, size_t buf_size)
 	osmo_soft_uart_tx_ubits(state->suart, buf, buf_size);
 }
 
+static const struct {
+	enum osmo_v110_ta_circuit c;
+	enum osmo_soft_uart_status s;
+} tch_v110_circuit_map[] = {
+	{ OSMO_V110_TA_C_106, OSMO_SUART_STATUS_F_CTS },
+	{ OSMO_V110_TA_C_107, OSMO_SUART_STATUS_F_DSR },
+	{ OSMO_V110_TA_C_109, OSMO_SUART_STATUS_F_DCD },
+};
+
 static void tch_v110_ta_status_update_cb(void *priv, unsigned int status)
 {
-	LOGP(DCSD, LOGL_DEBUG, "%s(): [status=0x%08x]\n", __func__, status);
+	const struct tch_data_state *state = (struct tch_data_state *)priv;
 
-	/* TODO: update status lines of the soft-UART (if state.suart != NULL) */
+	LOGP(DCSD, LOGL_DEBUG, "V.110 TA status mask=0x%08x\n", status);
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(tch_v110_circuit_map); i++) {
+		enum osmo_v110_ta_circuit c = tch_v110_circuit_map[i].c;
+		enum osmo_soft_uart_status s = tch_v110_circuit_map[i].s;
+		bool is_on = (status & (1 << c)) != 0;
+
+		LOGP(DCSD, LOGL_DEBUG, "V.110 TA circuit %s (%s) is %s\n",
+		     osmo_v110_ta_circuit_name(c),
+		     osmo_v110_ta_circuit_desc(c),
+		     is_on ? "ON" : "OFF");
+
+		/* update status lines of the soft-UART */
+		if (state->suart != NULL)
+			osmo_soft_uart_set_status_line(state->suart, s, is_on);
+	}
 }
 
 struct osmo_v110_ta *tch_v110_ta_alloc(struct osmocom_ms *ms,
