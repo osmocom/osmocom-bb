@@ -28,6 +28,7 @@ enum {
 	DPRIM,
 	DLUA,
 	DGAPK,
+	DCSD,
 	DTUN,
 	DRLCMAC,
 	DLLC,

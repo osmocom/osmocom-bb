@@ -159,6 +159,12 @@ static const struct log_info_cat default_categories[] = {
 		.color = "\033[0;36m",
 		.enabled = 1, .loglevel = LOGL_DEBUG,
 	},
+	[DCSD] = {
+		.name = "DCSD",
+		.description = "Circuit Switched Data",
+		.color = "\033[0;36m",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
 	[DTUN] = {
 		.name = "DTUN",
 		.description = "Tunnel interface",

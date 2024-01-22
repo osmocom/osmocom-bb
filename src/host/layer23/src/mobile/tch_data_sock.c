@@ -51,7 +51,7 @@ static void tch_csd_sock_close(struct tch_csd_sock_state *state)
 {
 	struct osmo_fd *bfd = &state->conn_bfd;
 
-	LOGP(DMOB, LOGL_NOTICE, "TCH CSD sock has closed connection\n");
+	LOGP(DCSD, LOGL_NOTICE, "TCH CSD sock has closed connection\n");
 
 	tch_csd_sock_state_cb(state->ms, false);
 
@@ -155,25 +155,25 @@ static int tch_csd_sock_accept(struct osmo_fd *bfd, unsigned int flags)
 	len = sizeof(un_addr);
 	rc = accept(bfd->fd, (struct sockaddr *)&un_addr, &len);
 	if (rc < 0) {
-		LOGP(DMOB, LOGL_ERROR, "Failed to accept() a new connection\n");
+		LOGP(DCSD, LOGL_ERROR, "Failed to accept() a new connection\n");
 		return -1;
 	}
 
 	if (conn_bfd->fd >= 0) {
-		LOGP(DMOB, LOGL_NOTICE, "TCH CSD sock already has an active connection\n");
+		LOGP(DCSD, LOGL_NOTICE, "TCH CSD sock already has an active connection\n");
 		close(rc); /* reject this connection request */
 		return 0;
 	}
 
 	osmo_fd_setup(conn_bfd, rc, OSMO_FD_READ, &tch_csd_sock_cb, state, 0);
 	if (osmo_fd_register(conn_bfd) != 0) {
-		LOGP(DMOB, LOGL_ERROR, "osmo_fd_register() failed\n");
+		LOGP(DCSD, LOGL_ERROR, "osmo_fd_register() failed\n");
 		close(conn_bfd->fd);
 		conn_bfd->fd = -1;
 		return -1;
 	}
 
-	LOGP(DMOB, LOGL_NOTICE, "TCH CSD sock got a connection\n");
+	LOGP(DCSD, LOGL_NOTICE, "TCH CSD sock got a connection\n");
 
 	tch_csd_sock_state_cb(state->ms, true);
 
@@ -200,7 +200,7 @@ struct tch_csd_sock_state *tch_csd_sock_init(struct osmocom_ms *ms)
 
 	rc = osmo_sock_unix_init_ofd(bfd, SOCK_STREAM, 0, sock_path, OSMO_SOCK_F_BIND);
 	if (rc < 0) {
-		LOGP(DMOB, LOGL_ERROR, "Could not create unix socket: %s\n", strerror(errno));
+		LOGP(DCSD, LOGL_ERROR, "Could not create unix socket: %s\n", strerror(errno));
 		talloc_free(state);
 		return NULL;
 	}

@@ -81,7 +81,7 @@ static void tch_soft_uart_rx_cb(void *priv, struct msgb *msg, unsigned int flags
 {
 	struct tch_data_state *state = (struct tch_data_state *)priv;
 
-	LOGP(DL1C, LOGL_DEBUG, "%s(): [flags=0x%08x] %s\n",
+	LOGP(DCSD, LOGL_DEBUG, "%s(): [flags=0x%08x] %s\n",
 	     __func__, flags, msgb_hexdump(msg));
 
 	if (state->sock != NULL && msgb_length(msg) > 0)
@@ -96,7 +96,7 @@ static void tch_soft_uart_tx_cb(void *priv, struct msgb *msg)
 
 	tch_csd_sock_recv(state->sock, msg);
 
-	LOGP(DL1C, LOGL_DEBUG, "%s(): [n_bytes=%u/%u] %s\n",
+	LOGP(DCSD, LOGL_DEBUG, "%s(): [n_bytes=%u/%u] %s\n",
 	     __func__, msg->len, msg->data_len, msgb_hexdump(msg));
 }
 
@@ -166,7 +166,7 @@ static void tch_v110_ta_tx_cb(void *priv, ubit_t *buf, size_t buf_size)
 
 		tch_csd_sock_recv(state->sock, msg);
 		if (msgb_length(msg) < buf_size) {
-			LOGP(DL1C, LOGL_NOTICE,
+			LOGP(DCSD, LOGL_NOTICE,
 			     "%s(): not enough bytes for sync Tx (%u < %zu)\n",
 			     __func__, msgb_length(msg), buf_size);
 		}
@@ -189,7 +189,7 @@ static void tch_v110_ta_async_tx_cb(void *priv, ubit_t *buf, size_t buf_size)
 
 static void tch_v110_ta_status_update_cb(void *priv, unsigned int status)
 {
-	LOGP(DL1C, LOGL_DEBUG, "%s(): [status=0x%08x]\n", __func__, status);
+	LOGP(DCSD, LOGL_DEBUG, "%s(): [status=0x%08x]\n", __func__, status);
 
 	/* TODO: update status lines of the soft-UART (if state.suart != NULL) */
 }
@@ -233,7 +233,7 @@ struct osmo_v110_ta *tch_v110_ta_alloc(struct osmocom_ms *ms,
 	 * signalling rate shall be adapted to a synchronous 600 bit/s stream. */
 	case BCAP_RATE(GSM48_BCAP_IR_8k, GSM48_BCAP_UR_300):
 	default:
-		LOGP(DCC, LOGL_ERROR,
+		LOGP(DCSD, LOGL_ERROR,
 		     "%s(): IR 0x%02x / UR 0x%02x combination is not supported\n",
 		     __func__, bcap->data.interm_rate, bcap->data.user_rate);
 		return NULL;
@@ -367,20 +367,20 @@ static int tch_csd_tx_to_l1(struct osmocom_ms *ms)
 static int tch_data_check_bcap(const struct gsm_mncc_bearer_cap *bcap)
 {
 	if (bcap == NULL) {
-		LOGP(DL1C, LOGL_ERROR,
+		LOGP(DCSD, LOGL_ERROR,
 		     "%s(): CC transaction without BCap\n",
 		     __func__);
 		return -ENODEV;
 	}
 
 	if (bcap->mode != GSM48_BCAP_TMOD_CIRCUIT) {
-		LOGP(DCC, LOGL_ERROR,
+		LOGP(DCSD, LOGL_ERROR,
 		     "%s(): Transfer mode 0x%02x is not supported\n",
 		     __func__, bcap->mode);
 		return -ENOTSUP;
 	}
 	if (bcap->coding != GSM48_BCAP_CODING_GSM_STD) {
-		LOGP(DCC, LOGL_ERROR,
+		LOGP(DCSD, LOGL_ERROR,
 		     "%s(): Coding standard 0x%02x is not supported\n",
 		     __func__, bcap->coding);
 		return -ENOTSUP;
@@ -392,26 +392,26 @@ static int tch_data_check_bcap(const struct gsm_mncc_bearer_cap *bcap)
 	case GSM48_BCAP_ITCAP_FAX_G3:
 		break;
 	default:
-		LOGP(DCC, LOGL_ERROR,
+		LOGP(DCSD, LOGL_ERROR,
 		     "%s(): Information transfer capability 0x%02x is not supported\n",
 		     __func__, bcap->transfer);
 		return -ENOTSUP;
 	}
 
 	if (bcap->data.rate_adaption != GSM48_BCAP_RA_V110_X30) {
-		LOGP(DCC, LOGL_ERROR,
+		LOGP(DCSD, LOGL_ERROR,
 		     "%s(): Rate adaption (octet 5) 0x%02x is not supported\n",
 		     __func__, bcap->data.rate_adaption);
 		return -ENOTSUP;
 	}
 	if (bcap->data.sig_access != GSM48_BCAP_SA_I440_I450) {
-		LOGP(DCC, LOGL_ERROR,
+		LOGP(DCSD, LOGL_ERROR,
 		     "%s(): Signalling access protocol (octet 5) 0x%02x is not supported\n",
 		     __func__, bcap->data.sig_access);
 		return -ENOTSUP;
 	}
 	if (bcap->data.transp != GSM48_BCAP_TR_TRANSP) {
-		LOGP(DCC, LOGL_ERROR,
+		LOGP(DCSD, LOGL_ERROR,
 		     "%s(): only transparent calls are supported so far\n",
 		     __func__);
 		return -ENOTSUP;
@@ -514,7 +514,7 @@ void tch_csd_sock_state_cb(struct osmocom_ms *ms, bool connected)
 	struct tch_data_state *state = NULL;
 
 	if (ms->tch_state == NULL || ms->tch_state->is_voice) {
-		LOGP(DCC, LOGL_INFO, "No data call is ongoing, "
+		LOGP(DCSD, LOGL_INFO, "No data call is ongoing, "
 		     "ignoring [dis]connection event for CSD socket\n");
 		return;
 	}
