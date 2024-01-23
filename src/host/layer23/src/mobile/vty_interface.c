@@ -644,49 +644,57 @@ DEFUN(call_dtmf, call_dtmf_cmd,
 	CALL_PARAMS_CMD_DESC \
 	"Parameters for data calls\n"
 
-DEFUN(call_params_data_type,
-      call_params_data_type_cmd,
-      CALL_PARAMS_DATA_CMD " type (isdn|analog-modem)",
-      CALL_PARAMS_DATA_CMD_DESC
-      "Data call type (does not apply to FAX calls)\n"
-      "ISDN (Unrestricted Digital Information)\n"
-      "Analog modem (3.1 kHz audio, ex PLMN)\n")
+/* only supported rate/type ('<speed>' in AT+CBST) values are listed here */
+static const struct value_string data_type_rate_descs[] = {
+#if 0
+	/* TODO: rates below 2400 bps are not supported */
+	{ DATA_CALL_TR_V21_300,		"300 bps (V.21)" },
+	{ DATA_CALL_TR_V22_1200,	"1200 bps (V.22)" },
+	{ DATA_CALL_TR_V23_1200_75,	"1200/75 bps (V.23)" },
+#endif
+	{ DATA_CALL_TR_V22bis_2400,	"2400 bps (V.22bis)" },
+	{ DATA_CALL_TR_V26ter_2400,	"2400 bps (V.26ter)" },
+	{ DATA_CALL_TR_V32_4800,	"4800 bps (V.32)" },
+	{ DATA_CALL_TR_V32_9600,	"9600 bps (V.32)" },
+	{ DATA_CALL_TR_V34_9600,	"9600 bps (V.34)" },
+#if 0
+	/* TODO: rates below 2400 bps are not supported */
+	{ DATA_CALL_TR_V110_300,	"300 bps (V.110)" },
+	{ DATA_CALL_TR_V110_1200,	"1200 bps (V.110)" },
+#endif
+	{ DATA_CALL_TR_V110_2400,	"2400 bps (V.110 or X.31 flag stuffing)" },
+	{ DATA_CALL_TR_V110_4800,	"4800 bps (V.110 or X.31 flag stuffing)" },
+	{ DATA_CALL_TR_V110_9600,	"9600 bps (V.110 or X.31 flag stuffing)" },
+#if 0
+	/* TODO: 14400 bps is not supported */
+	{ DATA_CALL_TR_V110_14400,	"14400 bps (V.110 or X.31 flag stuffing)" },
+#endif
+	{ 0, NULL }
+};
+
+static char *call_params_data_type_rate_cmd_string(void *ctx)
 {
-	struct osmocom_ms *ms;
-	struct gsm_settings *set;
-	struct data_call_params *cp;
 
-	ms = l23_vty_get_ms(argv[0], vty);
-	if (!ms)
-		return CMD_WARNING;
-	set = &ms->settings;
-	cp = &set->call_params.data;
+	const struct value_string *vs;
+	char *string;
 
-	if (!strcmp(argv[1], "isdn"))
-		cp->type = DATA_CALL_TYPE_ISDN;
-	else if (!strcmp(argv[1], "analog-modem"))
-		cp->type = DATA_CALL_TYPE_ANALOG;
-	else /* should not happen */
-		return CMD_WARNING;
+	string = talloc_asprintf(ctx, CALL_PARAMS_DATA_CMD " type-rate (");
+	for (vs = &data_type_rate_descs[0]; vs->value || vs->str; vs++)
+		string = talloc_asprintf_append(string, "%u|", vs->value);
+	string[strlen(string) - 1] = ')';
 
-	return CMD_SUCCESS;
+	return string;
 }
 
-DEFUN(call_params_data_rate,
-      call_params_data_rate_cmd,
-      CALL_PARAMS_DATA_CMD " rate (65|66|68|70|71|75)",
-      CALL_PARAMS_DATA_CMD_DESC
-      "Data rate (values like in AT+CBST)\n"
-      "300 bps (V.110)\n"
-      "1200 bps (V.110)\n"
-      "2400 bps (V.110 or X.31 flag stuffing)\n"
-      "4800 bps (V.110 or X.31 flag stuffing)\n"
-      "9600 bps (V.110 or X.31 flag stuffing)\n"
-      "14400 bps (V.110 or X.31 flag stuffing)\n")
+DEFUN(call_params_data_type_rate,
+      call_params_data_type_rate_cmd,
+      CALL_PARAMS_DATA_CMD /* generated */,
+      CALL_PARAMS_DATA_CMD_DESC /* generated */)
 {
 	struct osmocom_ms *ms;
 	struct gsm_settings *set;
 	struct data_call_params *cp;
+	int val;
 
 	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
@@ -694,28 +702,9 @@ DEFUN(call_params_data_rate,
 	set = &ms->settings;
 	cp = &set->call_params.data;
 
-	switch (atoi(argv[1])) {
-	case 65:
-		cp->rate = DATA_CALL_RATE_V110_300;
-		break;
-	case 66:
-		cp->rate = DATA_CALL_RATE_V110_1200;
-		break;
-	case 68:
-		cp->rate = DATA_CALL_RATE_V110_2400;
-		break;
-	case 70:
-		cp->rate = DATA_CALL_RATE_V110_4800;
-		break;
-	case 71:
-		cp->rate = DATA_CALL_RATE_V110_9600;
-		break;
-	case 75:
-		cp->rate = DATA_CALL_RATE_V110_14400;
-		break;
-	default: /* should not happen */
-		return CMD_WARNING;
-	}
+	val = atoi(argv[1]);
+	OSMO_ASSERT(get_value_string_or_null(data_type_rate_descs, val) != NULL);
+	cp->type_rate = (enum data_call_type_rate)val;
 
 	return CMD_SUCCESS;
 }
@@ -2879,6 +2868,17 @@ int ms_vty_init(void)
 {
 	int rc;
 
+	call_params_data_type_rate_cmd.string =
+		call_params_data_type_rate_cmd_string(NULL);
+
+	call_params_data_type_rate_cmd.doc =
+		vty_cmd_string_from_valstr(NULL,
+					   data_type_rate_descs,
+					   CALL_PARAMS_DATA_CMD_DESC
+					   "Type and rate (values like in AT+CBST; "
+					   "see 3GPP TS 27.007, section 6.7)\n",
+					   "\n", "", 0);
+
 	call_params_data_async_parity_cmd.string =
 		vty_cmd_string_from_valstr(NULL,
 					   async_parity_names,
@@ -2915,8 +2915,7 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_cmd);
 	install_element(ENABLE_NODE, &call_retr_cmd);
 	install_element(ENABLE_NODE, &call_dtmf_cmd);
-	install_element(ENABLE_NODE, &call_params_data_type_cmd);
-	install_element(ENABLE_NODE, &call_params_data_rate_cmd);
+	install_element(ENABLE_NODE, &call_params_data_type_rate_cmd);
 	install_element(ENABLE_NODE, &call_params_data_ce_cmd);
 	install_element(ENABLE_NODE, &call_params_data_sync_async_cmd);
 	install_element(ENABLE_NODE, &call_params_data_async_nr_stop_bits_cmd);

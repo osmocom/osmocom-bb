@@ -199,12 +199,95 @@ static void mncc_set_bcap_speech(struct gsm_mncc *mncc,
 	mncc->bearer_cap.mode = GSM48_BCAP_TMOD_CIRCUIT;
 }
 
+static const struct bcap_data_set {
+	enum gsm48_bcap_ra		ra;
+	enum gsm48_bcap_interm_rate	ir;
+	enum gsm48_bcap_user_rate	ur;
+	enum gsm48_bcap_modem_type	mt;
+} bcap_data_set_map[] = {
+	[DATA_CALL_TR_V21_300] = {
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_300,
+		.mt = GSM48_BCAP_MT_V21,
+	},
+	[DATA_CALL_TR_V22_1200] = {
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_1200,
+		.mt = GSM48_BCAP_MT_V22,
+	},
+	[DATA_CALL_TR_V23_1200_75] = {
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_1200_75,
+		.mt = GSM48_BCAP_MT_V23,
+	},
+	[DATA_CALL_TR_V22bis_2400] = {
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_2400,
+		.mt = GSM48_BCAP_MT_V22bis,
+	},
+	[DATA_CALL_TR_V26ter_2400] = {
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_2400,
+		.mt = GSM48_BCAP_MT_V26ter,
+	},
+	[DATA_CALL_TR_V32_4800] = {
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_4800,
+		.mt = GSM48_BCAP_MT_V32,
+	},
+	[DATA_CALL_TR_V32_9600] = {
+		.ir = GSM48_BCAP_IR_16k,
+		.ur = GSM48_BCAP_UR_9600,
+		.mt = GSM48_BCAP_MT_V32,
+	},
+#if 0
+	[DATA_CALL_TR_V34_9600] = {
+		.ir = GSM48_BCAP_IR_16k,
+		.ur = GSM48_BCAP_UR_9600,
+		.mt = GSM48_BCAP_MT_V34, /* XXX */
+	},
+#endif
+	[DATA_CALL_TR_V110_300] = {
+		.ra = GSM48_BCAP_RA_V110_X30,
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_300,
+	},
+	[DATA_CALL_TR_V110_1200] = {
+		.ra = GSM48_BCAP_RA_V110_X30,
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_1200,
+	},
+	[DATA_CALL_TR_V110_2400] = {
+		.ra = GSM48_BCAP_RA_V110_X30,
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_2400,
+	},
+	[DATA_CALL_TR_V110_4800] = {
+		.ra = GSM48_BCAP_RA_V110_X30,
+		.ir = GSM48_BCAP_IR_8k,
+		.ur = GSM48_BCAP_UR_4800,
+	},
+	[DATA_CALL_TR_V110_9600] = {
+		.ra = GSM48_BCAP_RA_V110_X30,
+		.ir = GSM48_BCAP_IR_16k,
+		.ur = GSM48_BCAP_UR_9600,
+	},
+};
+
 static void mncc_set_bcap_data(struct gsm_mncc *mncc,
 			       const struct gsm_settings *set,
 			       enum gsm_call_type call_type)
 {
 	const struct data_call_params *cp = &set->call_params.data;
 	struct gsm_mncc_bearer_cap *bcap = &mncc->bearer_cap;
+	const struct bcap_data_set *ds;
+
+	OSMO_ASSERT(cp->type_rate < ARRAY_SIZE(bcap_data_set_map));
+	ds = &bcap_data_set_map[cp->type_rate];
+	if (ds->ir == 0 && ds->ur == 0) {
+		LOGP(DMNCC, LOGL_ERROR, "AT+CBST=%d is not supported\n", cp->type_rate);
+		return;
+	}
 
 	mncc->fields |= MNCC_F_BEARER_CAP;
 
@@ -214,16 +297,18 @@ static void mncc_set_bcap_data(struct gsm_mncc *mncc,
 		.coding = GSM48_BCAP_CODING_GSM_STD,
 		/* .radio is set below */
 		.data = {
-			/* TODO: make these fields configurable via *set */
-			.rate_adaption = GSM48_BCAP_RA_V110_X30,
 			.sig_access = GSM48_BCAP_SA_I440_I450,
-			.async = cp->is_async,
+			.rate_adaption = ds->ra,
+			.interm_rate = ds->ir,
+			.user_rate = ds->ur,
+			.modem_type = ds->mt,
 			.transp = cp->transp,
+
+			/* async call params */
+			.async = cp->is_async,
 			.nr_data_bits = cp->nr_data_bits,
 			.nr_stop_bits = cp->nr_stop_bits,
 			.parity = cp->parity,
-			/* .user_rate is set below */
-			/* .interm_rate is set below */
 		},
 	};
 
@@ -242,9 +327,9 @@ static void mncc_set_bcap_data(struct gsm_mncc *mncc,
 	/* Information transfer capability (octet 3) */
 	switch (call_type) {
 	case GSM_CALL_T_DATA:
-		if (cp->type == DATA_CALL_TYPE_ISDN)
+		if (ds->mt == GSM48_BCAP_MT_NONE)
 			bcap->transfer = GSM_MNCC_BCAP_UNR_DIG;
-		else /* == DATA_CALL_TYPE_ANALOG */
+		else /* analog modem */
 			bcap->transfer = GSM_MNCC_BCAP_AUDIO;
 		break;
 	case GSM_CALL_T_DATA_FAX:
@@ -253,35 +338,6 @@ static void mncc_set_bcap_data(struct gsm_mncc *mncc,
 	case GSM_CALL_T_VOICE:
 	default: /* shall not happen */
 		OSMO_ASSERT(0);
-	}
-
-	/* User rate (octet 6a) */
-	switch (cp->rate) {
-	case DATA_CALL_RATE_V110_300:
-		bcap->data.user_rate = GSM48_BCAP_UR_300;
-		bcap->data.interm_rate = GSM48_BCAP_IR_8k;
-		break;
-	case DATA_CALL_RATE_V110_1200:
-		bcap->data.user_rate = GSM48_BCAP_UR_1200;
-		bcap->data.interm_rate = GSM48_BCAP_IR_8k;
-		break;
-	case DATA_CALL_RATE_V110_2400:
-		bcap->data.user_rate = GSM48_BCAP_UR_2400;
-		bcap->data.interm_rate = GSM48_BCAP_IR_8k;
-		break;
-	case DATA_CALL_RATE_V110_4800:
-		bcap->data.user_rate = GSM48_BCAP_UR_4800;
-		bcap->data.interm_rate = GSM48_BCAP_IR_8k;
-		break;
-	case DATA_CALL_RATE_V110_9600:
-		bcap->data.user_rate = GSM48_BCAP_UR_9600;
-		bcap->data.interm_rate = GSM48_BCAP_IR_16k;
-		break;
-	case DATA_CALL_RATE_V110_14400: /* TODO: the bcap encoder does not support 14400 bps */
-		LOGP(DMNCC, LOGL_INFO, " support for 14400 bps is incomplete\n");
-		bcap->data.user_rate = GSM48_BCAP_UR_9600;
-		bcap->data.interm_rate = GSM48_BCAP_IR_16k;
-		break;
 	}
 
 	/* FAX calls are special (see 3GPP TS 24.008, Annex D.3) */
