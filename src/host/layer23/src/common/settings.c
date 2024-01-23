@@ -138,7 +138,7 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	set->call_params.data = (struct data_call_params) {
 		.type = DATA_CALL_TYPE_ISDN,
 		.rate = DATA_CALL_RATE_V110_9600,
-		.ce = DATA_CALL_CE_TRANSP,
+		.transp = GSM48_BCAP_TR_TRANSP,
 	};
 
 	return 0;

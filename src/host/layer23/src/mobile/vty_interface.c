@@ -741,14 +741,14 @@ DEFUN(call_params_data_ce,
 
 	if (!strcmp(argv[1], "transparent")) {
 		if (argc > 2)
-			cp->ce = DATA_CALL_CE_TRANSP_PREF;
+			cp->transp = GSM48_BCAP_TR_TR_PREF;
 		else
-			cp->ce = DATA_CALL_CE_TRANSP;
+			cp->transp = GSM48_BCAP_TR_TRANSP;
 	} else if (!strcmp(argv[1], "non-transparent")) {
 		if (argc > 2)
-			cp->ce = DATA_CALL_CE_NON_TRANSP_PREF;
+			cp->transp = GSM48_BCAP_TR_RLP_PREF;
 		else
-			cp->ce = DATA_CALL_CE_NON_TRANSP;
+			cp->transp = GSM48_BCAP_TR_RLP;
 	} else { /* should not happen */
 		return CMD_WARNING;
 	}

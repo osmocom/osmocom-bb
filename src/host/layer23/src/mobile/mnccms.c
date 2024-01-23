@@ -218,7 +218,7 @@ static void mncc_set_bcap_data(struct gsm_mncc *mncc,
 			.rate_adaption = GSM48_BCAP_RA_V110_X30,
 			.sig_access = GSM48_BCAP_SA_I440_I450,
 			.async = 1,
-			/* .transp is set below */
+			.transp = cp->transp,
 			.nr_data_bits = 8,
 			.parity = GSM48_BCAP_PAR_NONE,
 			.nr_stop_bits = 1,
@@ -281,22 +281,6 @@ static void mncc_set_bcap_data(struct gsm_mncc *mncc,
 		LOGP(DMNCC, LOGL_INFO, " support for 14400 bps is incomplete\n");
 		bcap->data.user_rate = GSM48_BCAP_UR_9600;
 		bcap->data.interm_rate = GSM48_BCAP_IR_16k;
-		break;
-	}
-
-	/* Connection element (octet 6c) */
-	switch (cp->ce) {
-	case DATA_CALL_CE_TRANSP:
-		bcap->data.transp = GSM48_BCAP_TR_TRANSP;
-		break;
-	case DATA_CALL_CE_TRANSP_PREF:
-		bcap->data.transp = GSM48_BCAP_TR_TR_PREF;
-		break;
-	case DATA_CALL_CE_NON_TRANSP:
-		bcap->data.transp = GSM48_BCAP_TR_RLP;
-		break;
-	case DATA_CALL_CE_NON_TRANSP_PREF:
-		bcap->data.transp = GSM48_BCAP_TR_RLP_PREF;
 		break;
 	}
 

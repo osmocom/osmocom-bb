@@ -6,6 +6,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
+#include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/gsm23003.h>
 #include <osmocom/gsm/gsm48.h>
 
@@ -130,19 +131,11 @@ enum data_call_rate {
 	DATA_CALL_RATE_V110_14400,
 };
 
-/* Connection Element (transparency) */
-enum data_call_ce {
-	DATA_CALL_CE_TRANSP,
-	DATA_CALL_CE_TRANSP_PREF,
-	DATA_CALL_CE_NON_TRANSP,
-	DATA_CALL_CE_NON_TRANSP_PREF,
-};
-
 /* Data (CSD) call parameters */
 struct data_call_params {
-	enum data_call_type	type;
-	enum data_call_rate	rate;
-	enum data_call_ce	ce;
+	enum data_call_type		type;
+	enum data_call_rate		rate;
+	enum gsm48_bcap_transp		transp;
 };
 
 struct gsm_settings {
