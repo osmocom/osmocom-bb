@@ -136,6 +136,12 @@ struct data_call_params {
 	enum data_call_type		type;
 	enum data_call_rate		rate;
 	enum gsm48_bcap_transp		transp;
+
+	/* async call parameters */
+	bool				is_async;
+	unsigned int			nr_stop_bits;
+	unsigned int			nr_data_bits;
+	enum gsm48_bcap_parity		parity;
 };
 
 struct gsm_settings {

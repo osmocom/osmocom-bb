@@ -217,11 +217,11 @@ static void mncc_set_bcap_data(struct gsm_mncc *mncc,
 			/* TODO: make these fields configurable via *set */
 			.rate_adaption = GSM48_BCAP_RA_V110_X30,
 			.sig_access = GSM48_BCAP_SA_I440_I450,
-			.async = 1,
+			.async = cp->is_async,
 			.transp = cp->transp,
-			.nr_data_bits = 8,
-			.parity = GSM48_BCAP_PAR_NONE,
-			.nr_stop_bits = 1,
+			.nr_data_bits = cp->nr_data_bits,
+			.nr_stop_bits = cp->nr_stop_bits,
+			.parity = cp->parity,
 			/* .user_rate is set below */
 			/* .interm_rate is set below */
 		},

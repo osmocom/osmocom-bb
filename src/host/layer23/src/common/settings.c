@@ -139,6 +139,12 @@ int gsm_settings_init(struct osmocom_ms *ms)
 		.type = DATA_CALL_TYPE_ISDN,
 		.rate = DATA_CALL_RATE_V110_9600,
 		.transp = GSM48_BCAP_TR_TRANSP,
+
+		/* async call parameters (8-N-1) */
+		.is_async = true,
+		.nr_stop_bits = 1,
+		.nr_data_bits = 8,
+		.parity = GSM48_BCAP_PAR_NONE,
 	};
 
 	return 0;

@@ -756,6 +756,119 @@ DEFUN(call_params_data_ce,
 	return CMD_SUCCESS;
 }
 
+DEFUN(call_params_data_sync_async,
+      call_params_data_sync_async_cmd,
+      CALL_PARAMS_DATA_CMD " (sync|async)",
+      CALL_PARAMS_DATA_CMD_DESC
+      "Synchronous connection (always used for FAX calls)\n"
+      "Asynchronous connection (does not apply to FAX calls)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct data_call_params *cp;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	cp = &set->call_params.data;
+
+	cp->is_async = (argv[1][0] == 'a');
+
+	return CMD_SUCCESS;
+}
+
+#define CALL_PARAMS_DATA_ASYNC_CMD \
+	CALL_PARAMS_DATA_CMD " async"
+#define CALL_PARAMS_DATA_ASYNC_CMD_DESC \
+	CALL_PARAMS_DATA_CMD_DESC \
+	"Asynchronous connection params (does not apply to FAX calls)\n"
+
+DEFUN(call_params_data_async_nr_stop_bits,
+      call_params_data_async_nr_stop_bits_cmd,
+      CALL_PARAMS_DATA_ASYNC_CMD " nr-stop-bits <1-2>",
+      CALL_PARAMS_DATA_ASYNC_CMD_DESC
+      "Number of stop bits (soft-UART config)\n"
+      "Number of stop bits (default: 1)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct data_call_params *cp;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	cp = &set->call_params.data;
+
+	cp->nr_stop_bits = atoi(argv[1]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(call_params_data_async_nr_data_bits,
+      call_params_data_async_nr_data_bits_cmd,
+      CALL_PARAMS_DATA_ASYNC_CMD " nr-data-bits <7-8>",
+      CALL_PARAMS_DATA_ASYNC_CMD_DESC
+      "Number of data bits (soft-UART config)\n"
+      "Number of data bits (default: 8)\n")
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct data_call_params *cp;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	cp = &set->call_params.data;
+
+	cp->nr_data_bits = atoi(argv[1]);
+
+	return CMD_SUCCESS;
+}
+
+static const struct value_string async_parity_names[] = {
+	{ GSM48_BCAP_PAR_NONE,		"none" },
+	{ GSM48_BCAP_PAR_EVEN,		"even" },
+	{ GSM48_BCAP_PAR_ODD,		"odd" },
+	{ GSM48_BCAP_PAR_ONE,		"mark" },
+	{ GSM48_BCAP_PAR_ZERO,		"space" },
+	{ 0, NULL }
+};
+
+static const struct value_string async_parity_descs[] = {
+	{ GSM48_BCAP_PAR_NONE,		"No parity bit (default)" },
+	{ GSM48_BCAP_PAR_EVEN,		"Even parity" },
+	{ GSM48_BCAP_PAR_ODD,		"Odd parity" },
+	{ GSM48_BCAP_PAR_ONE,		"Always 1" },
+	{ GSM48_BCAP_PAR_ZERO,		"Always 0" },
+	{ 0, NULL }
+};
+
+DEFUN(call_params_data_async_parity,
+      call_params_data_async_parity_cmd,
+      CALL_PARAMS_DATA_ASYNC_CMD /* generated */,
+      CALL_PARAMS_DATA_ASYNC_CMD_DESC /* generated */)
+{
+	struct osmocom_ms *ms;
+	struct gsm_settings *set;
+	struct data_call_params *cp;
+	int val;
+
+	ms = l23_vty_get_ms(argv[0], vty);
+	if (!ms)
+		return CMD_WARNING;
+	set = &ms->settings;
+	cp = &set->call_params.data;
+
+	val = get_string_value(async_parity_names, argv[1]);
+	OSMO_ASSERT(val >= 0); /* should not happen */
+	cp->parity = (enum gsm48_bcap_parity)val;
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
 	"Send an SMS\nName of MS (see \"show ms\")\nPhone number to send SMS "
 	"(Use digits '0123456789*#abc', and '+' to dial international)\n"
@@ -2766,6 +2879,19 @@ int ms_vty_init(void)
 {
 	int rc;
 
+	call_params_data_async_parity_cmd.string =
+		vty_cmd_string_from_valstr(NULL,
+					   async_parity_names,
+					   CALL_PARAMS_DATA_ASYNC_CMD
+					   " parity (", "|", ")", 0);
+
+	call_params_data_async_parity_cmd.doc =
+		vty_cmd_string_from_valstr(NULL,
+					   async_parity_descs,
+					   CALL_PARAMS_DATA_ASYNC_CMD_DESC
+					   "Parity mode (soft-UART config)\n",
+					   "\n", "", 0);
+
 	if ((rc = l23_vty_init(config_write, l23_vty_signal_cb)) < 0)
 		return rc;
 
@@ -2792,6 +2918,10 @@ int ms_vty_init(void)
 	install_element(ENABLE_NODE, &call_params_data_type_cmd);
 	install_element(ENABLE_NODE, &call_params_data_rate_cmd);
 	install_element(ENABLE_NODE, &call_params_data_ce_cmd);
+	install_element(ENABLE_NODE, &call_params_data_sync_async_cmd);
+	install_element(ENABLE_NODE, &call_params_data_async_nr_stop_bits_cmd);
+	install_element(ENABLE_NODE, &call_params_data_async_nr_data_bits_cmd);
+	install_element(ENABLE_NODE, &call_params_data_async_parity_cmd);
 	install_element(ENABLE_NODE, &sms_cmd);
 	install_element(ENABLE_NODE, &service_cmd);
 	install_element(ENABLE_NODE, &vgcs_enter_cmd);
