@@ -244,7 +244,10 @@ static const struct bcap_data_set {
 	[DATA_CALL_TR_V34_9600] = {
 		.ir = GSM48_BCAP_IR_16k,
 		.ur = GSM48_BCAP_UR_9600,
-		.mt = GSM48_BCAP_MT_V34, /* XXX */
+		.mt = GSM48_BCAP_MT_V32,
+		/* (Octet 6c) Modem type: According to ITU-T Rec. V.32
+		 * (Octet 6d) Other modem type: According to ITU-T Rec. V.34 (2)
+		 * TODO: gsm48_encode_bearer_cap() does not support octet 6d */
 	},
 #endif
 	[DATA_CALL_TR_V110_300] = {

@@ -656,8 +656,9 @@ static const struct value_string data_type_rate_descs[] = {
 	{ DATA_CALL_TR_V26ter_2400,	"2400 bps (V.26ter)" },
 	{ DATA_CALL_TR_V32_4800,	"4800 bps (V.32)" },
 	{ DATA_CALL_TR_V32_9600,	"9600 bps (V.32)" },
-	{ DATA_CALL_TR_V34_9600,	"9600 bps (V.34)" },
 #if 0
+	/* TODO: V.34 is not supported, see notes in bcap_data_set[] */
+	{ DATA_CALL_TR_V34_9600,	"9600 bps (V.34)" },
 	/* TODO: rates below 2400 bps are not supported */
 	{ DATA_CALL_TR_V110_300,	"300 bps (V.110)" },
 	{ DATA_CALL_TR_V110_1200,	"1200 bps (V.110)" },
