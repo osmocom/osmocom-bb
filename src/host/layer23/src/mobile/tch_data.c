@@ -290,9 +290,7 @@ static int tch_csd_rx_from_l1(struct osmocom_ms *ms, struct msgb *msg)
 	const struct gsm48_rr_cd *cd = &ms->rrlayer.cd_now;
 	const struct csd_v110_frame_desc *desc;
 	ubit_t data[4 * 60];
-
-	if (msgb_l3len(msg) < 30)
-		return -EINVAL;
+	size_t data_len;
 
 	if ((cd->chan_nr & RSL_CHAN_NR_MASK) == RSL_CHAN_Bm_ACCHs)
 		desc = &csd_v110_lchan_desc[cd->mode].fr;
@@ -301,17 +299,25 @@ static int tch_csd_rx_from_l1(struct osmocom_ms *ms, struct msgb *msg)
 	if (OSMO_UNLIKELY(desc->num_blocks == 0))
 		return -ENOTSUP;
 
+	data_len = desc->num_blocks * desc->num_bits;
+	OSMO_ASSERT(sizeof(data) >= data_len);
+
 	switch (ms->settings.tch_data.io_format) {
 	case TCH_DATA_IOF_OSMO:
+		/* trxcon emits raw bits from the convolutional decoder */
+		if (OSMO_UNLIKELY(msgb_l3len(msg) != data_len))
+			return -EINVAL;
+		memcpy(&data[0], msgb_l3(msg), msgb_l3len(msg));
 		break;
 	case TCH_DATA_IOF_TI:
-		/* the layer1 firmware emits frames with swapped words (LE ordering) */
+		/* the layer1 firmware emits packed bits (LE ordering) */
+		if (OSMO_UNLIKELY(msgb_l3len(msg) < data_len / 8))
+			return -EINVAL;
+		/* ... with swapped words (LE ordering) */
 		swap_words(msgb_l3(msg), msgb_l3len(msg));
+		osmo_pbit2ubit_ext(data, 0, msgb_l3(msg), 0, data_len, 1);
 		break;
 	}
-
-	/* unpack packed bits (MSB goes first) */
-	osmo_pbit2ubit_ext(data, 0, msgb_l3(msg), 0, sizeof(data), 1);
 
 	for (unsigned int i = 0; i < desc->num_blocks; i++) {
 		struct osmo_v110_decoded_frame df;
@@ -340,6 +346,7 @@ static int tch_csd_tx_to_l1(struct osmocom_ms *ms)
 	const struct csd_v110_frame_desc *desc;
 	ubit_t data[60 * 4];
 	struct msgb *nmsg;
+	size_t data_len;
 
 	if ((cd->chan_nr & RSL_CHAN_NR_MASK) == RSL_CHAN_Bm_ACCHs)
 		desc = &csd_v110_lchan_desc[cd->mode].fr;
@@ -347,6 +354,9 @@ static int tch_csd_tx_to_l1(struct osmocom_ms *ms)
 		desc = &csd_v110_lchan_desc[cd->mode].hr;
 	if (OSMO_UNLIKELY(desc->num_blocks == 0))
 		return -ENOTSUP;
+
+	data_len = desc->num_blocks * desc->num_bits;
+	OSMO_ASSERT(sizeof(data) >= data_len);
 
 	for (unsigned int i = 0; i < desc->num_blocks; i++) {
 		struct osmo_v110_decoded_frame df;
@@ -368,19 +378,23 @@ static int tch_csd_tx_to_l1(struct osmocom_ms *ms)
 			osmo_csd_3k6_encode_frame(&data[i * 36], 36, &df);
 	}
 
-	nmsg = msgb_alloc_headroom(33 + 64, 64, __func__);
-	OSMO_ASSERT(nmsg != NULL);
-
-	nmsg->l2h = msgb_put(nmsg, 33); /* XXX: proper size */
-
-	/* pack unpacked bits (MSB goes first) */
-	osmo_ubit2pbit_ext(msgb_l2(nmsg), 0, &data[0], 0, sizeof(data), 1);
-
 	switch (ms->settings.tch_data.io_format) {
 	case TCH_DATA_IOF_OSMO:
+		/* trxcon operates on unpacked bits */
+		nmsg = msgb_alloc_headroom(data_len + 64, 64, __func__);
+		if (nmsg == NULL)
+			return -ENOMEM;
+		memcpy(msgb_put(nmsg, data_len), &data[0], data_len);
 		break;
 	case TCH_DATA_IOF_TI:
-		/* the layer1 firmware expects frames with swapped words (LE ordering) */
+		/* XXX: the layer1 firmware expects TRAFFIC.req with len=33 bytes */
+		nmsg = msgb_alloc_headroom(33 + 64, 64, __func__);
+		if (nmsg == NULL)
+			return -ENOMEM;
+		nmsg->l2h = msgb_put(nmsg, 33);
+		/* the layer1 firmware expects packed bits (LE ordering) */
+		osmo_ubit2pbit_ext(msgb_l2(nmsg), 0, &data[0], 0, sizeof(data), 1);
+		/* ... with swapped words (LE ordering) */
 		swap_words(msgb_l2(nmsg), msgb_l2len(nmsg));
 		break;
 	}
