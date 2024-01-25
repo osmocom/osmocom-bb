@@ -644,6 +644,11 @@ DEFUN(call_dtmf, call_dtmf_cmd,
 	CALL_PARAMS_CMD_DESC \
 	"Parameters for data calls\n"
 
+#define CFG_TCH_DATA_CALL_PARAMS_CMD \
+	"call-params"
+#define CFG_TCH_DATA_CALL_PARAMS_CMD_DESC \
+	"Parameters for data calls\n"
+
 /* only supported rate/type ('<speed>' in AT+CBST) values are listed here */
 static const struct value_string data_type_rate_descs[] = {
 #if 0
@@ -673,18 +678,33 @@ static const struct value_string data_type_rate_descs[] = {
 	{ 0, NULL }
 };
 
-static char *call_params_data_type_rate_cmd_string(void *ctx)
+static void _data_type_rate_cmd_string(void *ctx, struct cmd_element *cmd)
 {
 
 	const struct value_string *vs;
 	char *string;
 
-	string = talloc_asprintf(ctx, CALL_PARAMS_DATA_CMD " type-rate (");
+	string = talloc_asprintf(ctx, "%s type-rate (", cmd->string);
 	for (vs = &data_type_rate_descs[0]; vs->value || vs->str; vs++)
 		string = talloc_asprintf_append(string, "%u|", vs->value);
 	string[strlen(string) - 1] = ')';
+	cmd->string = string;
+}
 
-	return string;
+DEFUN(cfg_ms_tch_data_cp_type_rate,
+      cfg_ms_tch_data_cp_type_rate_cmd,
+      CFG_TCH_DATA_CALL_PARAMS_CMD /* generated */,
+      CFG_TCH_DATA_CALL_PARAMS_CMD_DESC /* generated */)
+{
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct data_call_params *cp = &ms->settings.call_params.data;
+	int val;
+
+	val = atoi(argv[0]);
+	OSMO_ASSERT(get_value_string_or_null(data_type_rate_descs, val) != NULL);
+	cp->type_rate = (enum data_call_type_rate)val;
+
+	return CMD_SUCCESS;
 }
 
 DEFUN(call_params_data_type_rate,
@@ -692,50 +712,36 @@ DEFUN(call_params_data_type_rate,
       CALL_PARAMS_DATA_CMD /* generated */,
       CALL_PARAMS_DATA_CMD_DESC /* generated */)
 {
-	struct osmocom_ms *ms;
-	struct gsm_settings *set;
-	struct data_call_params *cp;
-	int val;
-
-	ms = l23_vty_get_ms(argv[0], vty);
-	if (!ms)
+	vty->index = l23_vty_get_ms(argv[0], vty);
+	if (vty->index == NULL)
 		return CMD_WARNING;
-	set = &ms->settings;
-	cp = &set->call_params.data;
 
-	val = atoi(argv[1]);
-	OSMO_ASSERT(get_value_string_or_null(data_type_rate_descs, val) != NULL);
-	cp->type_rate = (enum data_call_type_rate)val;
-
-	return CMD_SUCCESS;
+	return cfg_ms_tch_data_cp_type_rate(self, vty, argc - 1, argv + 1);
 }
 
-DEFUN(call_params_data_ce,
-      call_params_data_ce_cmd,
-      CALL_PARAMS_DATA_CMD " ce (transparent|non-transparent) [prefer]",
-      CALL_PARAMS_DATA_CMD_DESC
-      "Connection element (does not apply to FAX calls)\n"
-      "Transparent connection\n"
-      "Non-transparent connection (RLP)\n"
-      "Prefer the selected mode, but also accept other(s)\n")
+#define CALL_PARAMS_CE_CMD \
+	"ce (transparent|non-transparent) [prefer]"
+#define CALL_PARAMS_CE_CMD_DESC \
+	"Connection element (does not apply to FAX calls)\n" \
+	"Transparent connection\n" \
+	"Non-transparent connection (RLP)\n" \
+	"Prefer the selected mode, but also accept other(s)\n"
+
+DEFUN(cfg_ms_tch_data_cp_ce,
+      cfg_ms_tch_data_cp_ce_cmd,
+      CFG_TCH_DATA_CALL_PARAMS_CMD " " CALL_PARAMS_CE_CMD,
+      CFG_TCH_DATA_CALL_PARAMS_CMD_DESC CALL_PARAMS_CE_CMD_DESC)
 {
-	struct osmocom_ms *ms;
-	struct gsm_settings *set;
-	struct data_call_params *cp;
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct data_call_params *cp = &ms->settings.call_params.data;
 
-	ms = l23_vty_get_ms(argv[0], vty);
-	if (!ms)
-		return CMD_WARNING;
-	set = &ms->settings;
-	cp = &set->call_params.data;
-
-	if (!strcmp(argv[1], "transparent")) {
-		if (argc > 2)
+	if (!strcmp(argv[0], "transparent")) {
+		if (argc > 1)
 			cp->transp = GSM48_BCAP_TR_TR_PREF;
 		else
 			cp->transp = GSM48_BCAP_TR_TRANSP;
-	} else if (!strcmp(argv[1], "non-transparent")) {
-		if (argc > 2)
+	} else if (!strcmp(argv[0], "non-transparent")) {
+		if (argc > 1)
 			cp->transp = GSM48_BCAP_TR_RLP_PREF;
 		else
 			cp->transp = GSM48_BCAP_TR_RLP;
@@ -746,76 +752,114 @@ DEFUN(call_params_data_ce,
 	return CMD_SUCCESS;
 }
 
-DEFUN(call_params_data_sync_async,
-      call_params_data_sync_async_cmd,
-      CALL_PARAMS_DATA_CMD " (sync|async)",
-      CALL_PARAMS_DATA_CMD_DESC
-      "Synchronous connection (always used for FAX calls)\n"
-      "Asynchronous connection (does not apply to FAX calls)\n")
+DEFUN(call_params_data_ce,
+      call_params_data_ce_cmd,
+      CALL_PARAMS_DATA_CMD " " CALL_PARAMS_CE_CMD,
+      CALL_PARAMS_DATA_CMD_DESC CALL_PARAMS_CE_CMD_DESC)
 {
-	struct osmocom_ms *ms;
-	struct gsm_settings *set;
-	struct data_call_params *cp;
-
-	ms = l23_vty_get_ms(argv[0], vty);
-	if (!ms)
+	vty->index = l23_vty_get_ms(argv[0], vty);
+	if (vty->index == NULL)
 		return CMD_WARNING;
-	set = &ms->settings;
-	cp = &set->call_params.data;
 
-	cp->is_async = (argv[1][0] == 'a');
+	return cfg_ms_tch_data_cp_ce(self, vty, argc - 1, argv + 1);
+}
+
+#define CALL_PARAMS_SYNC_ASYNC_CMD "(sync|async)"
+#define CALL_PARAMS_SYNC_ASYNC_CMD_DESC \
+	"Synchronous connection (always used for FAX calls)\n" \
+	"Asynchronous connection (does not apply to FAX calls)\n"
+
+DEFUN(cfg_ms_tch_data_cp_sync_async,
+      cfg_ms_tch_data_cp_sync_async_cmd,
+      CFG_TCH_DATA_CALL_PARAMS_CMD " " CALL_PARAMS_SYNC_ASYNC_CMD,
+      CFG_TCH_DATA_CALL_PARAMS_CMD_DESC CALL_PARAMS_SYNC_ASYNC_CMD_DESC)
+{
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct data_call_params *cp = &ms->settings.call_params.data;
+
+	cp->is_async = (argv[0][0] == 'a');
 
 	return CMD_SUCCESS;
 }
 
-#define CALL_PARAMS_DATA_ASYNC_CMD \
-	CALL_PARAMS_DATA_CMD " async"
-#define CALL_PARAMS_DATA_ASYNC_CMD_DESC \
-	CALL_PARAMS_DATA_CMD_DESC \
+DEFUN(call_params_data_sync_async,
+      call_params_data_sync_async_cmd,
+      CALL_PARAMS_DATA_CMD " " CALL_PARAMS_SYNC_ASYNC_CMD,
+      CALL_PARAMS_DATA_CMD_DESC CALL_PARAMS_SYNC_ASYNC_CMD_DESC)
+{
+	vty->index = l23_vty_get_ms(argv[0], vty);
+	if (vty->index == NULL)
+		return CMD_WARNING;
+
+	return cfg_ms_tch_data_cp_sync_async(self, vty, argc - 1, argv + 1);
+}
+
+#define CALL_PARAMS_ASYNC_CMD "async"
+#define CALL_PARAMS_ASYNC_CMD_DESC \
 	"Asynchronous connection params (does not apply to FAX calls)\n"
+
+#define CALL_PARAMS_ASYNC_NR_STOP_BITS_CMD \
+	CALL_PARAMS_ASYNC_CMD " nr-stop-bits <1-2>"
+#define CALL_PARAMS_ASYNC_NR_STOP_BITS_CMD_DESC \
+	CALL_PARAMS_ASYNC_CMD_DESC \
+	"Number of stop bits (soft-UART config)\n" \
+	"Number of stop bits (default: 1)\n"
+
+DEFUN(cfg_ms_tch_data_cp_async_nr_stop_bits,
+      cfg_ms_tch_data_cp_async_nr_stop_bits_cmd,
+      CFG_TCH_DATA_CALL_PARAMS_CMD " " CALL_PARAMS_ASYNC_NR_STOP_BITS_CMD,
+      CFG_TCH_DATA_CALL_PARAMS_CMD_DESC CALL_PARAMS_ASYNC_NR_STOP_BITS_CMD_DESC)
+{
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct data_call_params *cp = &ms->settings.call_params.data;
+
+	cp->nr_stop_bits = atoi(argv[0]);
+
+	return CMD_SUCCESS;
+}
 
 DEFUN(call_params_data_async_nr_stop_bits,
       call_params_data_async_nr_stop_bits_cmd,
-      CALL_PARAMS_DATA_ASYNC_CMD " nr-stop-bits <1-2>",
-      CALL_PARAMS_DATA_ASYNC_CMD_DESC
-      "Number of stop bits (soft-UART config)\n"
-      "Number of stop bits (default: 1)\n")
+      CALL_PARAMS_DATA_CMD " " CALL_PARAMS_ASYNC_NR_STOP_BITS_CMD,
+      CALL_PARAMS_DATA_CMD_DESC CALL_PARAMS_ASYNC_NR_STOP_BITS_CMD_DESC)
 {
-	struct osmocom_ms *ms;
-	struct gsm_settings *set;
-	struct data_call_params *cp;
-
-	ms = l23_vty_get_ms(argv[0], vty);
-	if (!ms)
+	vty->index = l23_vty_get_ms(argv[0], vty);
+	if (vty->index == NULL)
 		return CMD_WARNING;
-	set = &ms->settings;
-	cp = &set->call_params.data;
 
-	cp->nr_stop_bits = atoi(argv[1]);
+	return cfg_ms_tch_data_cp_async_nr_stop_bits(self, vty, argc - 1, argv + 1);
+}
+
+#define CALL_PARAMS_ASYNC_NR_DATA_BITS_CMD \
+	CALL_PARAMS_ASYNC_CMD " nr-data-bits <7-8>"
+#define CALL_PARAMS_ASYNC_NR_DATA_BITS_CMD_DESC \
+	CALL_PARAMS_ASYNC_CMD_DESC \
+	"Number of data bits (soft-UART config)\n" \
+	"Number of data bits (default: 8)\n"
+
+DEFUN(cfg_ms_tch_data_cp_async_nr_data_bits,
+      cfg_ms_tch_data_cp_async_nr_data_bits_cmd,
+      CFG_TCH_DATA_CALL_PARAMS_CMD " " CALL_PARAMS_ASYNC_NR_DATA_BITS_CMD,
+      CFG_TCH_DATA_CALL_PARAMS_CMD_DESC CALL_PARAMS_ASYNC_NR_DATA_BITS_CMD_DESC)
+{
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct data_call_params *cp = &ms->settings.call_params.data;
+
+	cp->nr_data_bits = atoi(argv[0]);
 
 	return CMD_SUCCESS;
 }
 
 DEFUN(call_params_data_async_nr_data_bits,
       call_params_data_async_nr_data_bits_cmd,
-      CALL_PARAMS_DATA_ASYNC_CMD " nr-data-bits <7-8>",
-      CALL_PARAMS_DATA_ASYNC_CMD_DESC
-      "Number of data bits (soft-UART config)\n"
-      "Number of data bits (default: 8)\n")
+      CALL_PARAMS_DATA_CMD " " CALL_PARAMS_ASYNC_NR_DATA_BITS_CMD,
+      CALL_PARAMS_DATA_CMD_DESC CALL_PARAMS_ASYNC_NR_DATA_BITS_CMD_DESC)
 {
-	struct osmocom_ms *ms;
-	struct gsm_settings *set;
-	struct data_call_params *cp;
-
-	ms = l23_vty_get_ms(argv[0], vty);
-	if (!ms)
+	vty->index = l23_vty_get_ms(argv[0], vty);
+	if (vty->index == NULL)
 		return CMD_WARNING;
-	set = &ms->settings;
-	cp = &set->call_params.data;
 
-	cp->nr_data_bits = atoi(argv[1]);
-
-	return CMD_SUCCESS;
+	return cfg_ms_tch_data_cp_async_nr_data_bits(self, vty, argc - 1, argv + 1);
 }
 
 static const struct value_string async_parity_names[] = {
@@ -836,27 +880,40 @@ static const struct value_string async_parity_descs[] = {
 	{ 0, NULL }
 };
 
-DEFUN(call_params_data_async_parity,
-      call_params_data_async_parity_cmd,
-      CALL_PARAMS_DATA_ASYNC_CMD /* generated */,
-      CALL_PARAMS_DATA_ASYNC_CMD_DESC /* generated */)
+#define CALL_PARAMS_ASYNC_PARITY_CMD \
+	CALL_PARAMS_ASYNC_CMD " parity"
+#define CALL_PARAMS_ASYNC_PARITY_CMD_DESC \
+	CALL_PARAMS_ASYNC_CMD_DESC \
+	"Parity mode (soft-UART config)\n"
+
+DEFUN(cfg_ms_tch_data_cp_async_parity,
+      cfg_ms_tch_data_cp_async_parity_cmd,
+      CFG_TCH_DATA_CALL_PARAMS_CMD /* generated */,
+      CFG_TCH_DATA_CALL_PARAMS_CMD_DESC
+      CALL_PARAMS_ASYNC_PARITY_CMD_DESC /* generated */)
 {
-	struct osmocom_ms *ms;
-	struct gsm_settings *set;
-	struct data_call_params *cp;
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct data_call_params *cp = &ms->settings.call_params.data;
 	int val;
 
-	ms = l23_vty_get_ms(argv[0], vty);
-	if (!ms)
-		return CMD_WARNING;
-	set = &ms->settings;
-	cp = &set->call_params.data;
-
-	val = get_string_value(async_parity_names, argv[1]);
+	val = get_string_value(async_parity_names, argv[0]);
 	OSMO_ASSERT(val >= 0); /* should not happen */
 	cp->parity = (enum gsm48_bcap_parity)val;
 
 	return CMD_SUCCESS;
+}
+
+DEFUN(call_params_data_async_parity,
+      call_params_data_async_parity_cmd,
+      CALL_PARAMS_DATA_CMD /* generated */,
+      CALL_PARAMS_DATA_CMD_DESC
+      CALL_PARAMS_ASYNC_PARITY_CMD_DESC /* generated */)
+{
+	vty->index = l23_vty_get_ms(argv[0], vty);
+	if (vty->index == NULL)
+		return CMD_WARNING;
+
+	return cfg_ms_tch_data_cp_async_parity(self, vty, argc - 1, argv + 1);
 }
 
 DEFUN(sms, sms_cmd, "sms MS_NAME NUMBER .LINE",
@@ -1605,6 +1662,32 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 		vty_out(vty, "  unix-socket %s%s",
 			set->tch_data.unix_socket_path, VTY_NEWLINE);
 	}
+
+	vty_out(vty, "  call-params type-rate %d%s",
+		(int)set->call_params.data.type_rate, VTY_NEWLINE);
+	switch (set->call_params.data.transp) {
+	case GSM48_BCAP_TR_TR_PREF:
+		vty_out(vty, "  call-params ce transparent prefer%s", VTY_NEWLINE);
+		break;
+	case GSM48_BCAP_TR_TRANSP:
+		vty_out(vty, "  call-params ce transparent%s", VTY_NEWLINE);
+		break;
+	case GSM48_BCAP_TR_RLP_PREF:
+		vty_out(vty, "  call-params ce non-transparent prefer%s", VTY_NEWLINE);
+		break;
+	case GSM48_BCAP_TR_RLP:
+		vty_out(vty, "  call-params ce non-transparent%s", VTY_NEWLINE);
+		break;
+	}
+	vty_out(vty, "  call-params %s%s",
+		set->call_params.data.is_async ? "async" : "sync", VTY_NEWLINE);
+	vty_out(vty, "  call-params async nr-stop-bits %u%s",
+		set->call_params.data.nr_stop_bits, VTY_NEWLINE);
+	vty_out(vty, "  call-params async nr-data-bits %u%s",
+		set->call_params.data.nr_data_bits, VTY_NEWLINE);
+	vty_out(vty, "  call-params async parity %s%s",
+		get_value_string(async_parity_names, set->call_params.data.parity),
+		VTY_NEWLINE);
 
 	if (ms->lua_script)
 		vty_out(vty, " lua-script %s%s", ms->lua_script, VTY_NEWLINE);
@@ -2869,9 +2952,16 @@ int ms_vty_init(void)
 {
 	int rc;
 
-	call_params_data_type_rate_cmd.string =
-		call_params_data_type_rate_cmd_string(NULL);
+	_data_type_rate_cmd_string(NULL, &cfg_ms_tch_data_cp_type_rate_cmd);
+	_data_type_rate_cmd_string(NULL, &call_params_data_type_rate_cmd);
 
+	cfg_ms_tch_data_cp_type_rate_cmd.doc =
+		vty_cmd_string_from_valstr(NULL,
+					   data_type_rate_descs,
+					   CFG_TCH_DATA_CALL_PARAMS_CMD_DESC
+					   "Type and rate (values like in AT+CBST; "
+					   "see 3GPP TS 27.007, section 6.7)\n",
+					   "\n", "", 0);
 	call_params_data_type_rate_cmd.doc =
 		vty_cmd_string_from_valstr(NULL,
 					   data_type_rate_descs,
@@ -2880,17 +2970,28 @@ int ms_vty_init(void)
 					   "see 3GPP TS 27.007, section 6.7)\n",
 					   "\n", "", 0);
 
+	cfg_ms_tch_data_cp_async_parity_cmd.string =
+		vty_cmd_string_from_valstr(NULL,
+					   async_parity_names,
+					   CFG_TCH_DATA_CALL_PARAMS_CMD " "
+					   CALL_PARAMS_ASYNC_PARITY_CMD " (",
+					   "|", ")", 0);
 	call_params_data_async_parity_cmd.string =
 		vty_cmd_string_from_valstr(NULL,
 					   async_parity_names,
-					   CALL_PARAMS_DATA_ASYNC_CMD
-					   " parity (", "|", ")", 0);
+					   CALL_PARAMS_DATA_CMD " "
+					   CALL_PARAMS_ASYNC_PARITY_CMD " (",
+					   "|", ")", 0);
 
+	cfg_ms_tch_data_cp_async_parity_cmd.doc =
+		vty_cmd_string_from_valstr(NULL,
+					   async_parity_descs,
+					   cfg_ms_tch_data_cp_async_parity_cmd.doc,
+					   "\n", "", 0);
 	call_params_data_async_parity_cmd.doc =
 		vty_cmd_string_from_valstr(NULL,
 					   async_parity_descs,
-					   CALL_PARAMS_DATA_ASYNC_CMD_DESC
-					   "Parity mode (soft-UART config)\n",
+					   call_params_data_async_parity_cmd.doc,
 					   "\n", "", 0);
 
 	if ((rc = l23_vty_init(config_write, l23_vty_signal_cb)) < 0)
@@ -3083,6 +3184,12 @@ int ms_vty_init(void)
 	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_no_io_handler_cmd);
 	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_io_tch_format_cmd);
 	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_unix_sock_cmd);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_cp_type_rate_cmd);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_cp_ce_cmd);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_cp_sync_async_cmd);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_cp_async_nr_stop_bits_cmd);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_cp_async_nr_data_bits_cmd);
+	install_element(TCH_DATA_NODE, &cfg_ms_tch_data_cp_async_parity_cmd);
 
 	return 0;
 }
