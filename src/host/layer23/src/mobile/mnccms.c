@@ -414,12 +414,28 @@ static int mncc_handle_bcap_speech(const struct gsm_mncc_bearer_cap *bcap,
 static int mncc_handle_bcap_data(const struct gsm_mncc_bearer_cap *bcap,
 				 const struct gsm_settings *set)
 {
-	if (bcap->data.rate_adaption != GSM48_BCAP_RA_V110_X30) {
-		LOGP(DMNCC, LOGL_ERROR,
-		     "%s(): Rate adaption (octet 5) 0x%02x is not supported\n",
-		     __func__, bcap->data.rate_adaption);
-		return -ENOTSUP;
+	switch (bcap->transfer) {
+	case GSM48_BCAP_ITCAP_UNR_DIG_INF:
+		if (bcap->data.rate_adaption != GSM48_BCAP_RA_V110_X30) {
+			LOGP(DMNCC, LOGL_ERROR,
+			     "%s(): Rate adaption (octet 5) 0x%02x is not supported\n",
+			     __func__, bcap->data.rate_adaption);
+			return -ENOTSUP;
+		}
+		break;
+	case GSM48_BCAP_ITCAP_3k1_AUDIO:
+	case GSM48_BCAP_ITCAP_FAX_G3:
+		if (bcap->data.rate_adaption != GSM48_BCAP_RA_NONE) {
+			LOGP(DMNCC, LOGL_ERROR,
+			     "%s(): Rate adaption (octet 5) 0x%02x was expected to be NONE\n",
+			     __func__, bcap->data.rate_adaption);
+			return -ENOTSUP;
+		}
+		break;
+	default:
+		break;
 	}
+
 	if (bcap->data.sig_access != GSM48_BCAP_SA_I440_I450) {
 		LOGP(DMNCC, LOGL_ERROR,
 		     "%s(): Signalling access protocol (octet 5) 0x%02x is not supported\n",
