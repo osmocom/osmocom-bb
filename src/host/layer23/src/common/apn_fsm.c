@@ -220,7 +220,6 @@ struct osmo_fsm apn_fsm = {
 	.timer_cb = apn_fsm_timer_cb,
 	.event_names = apn_fsm_event_names,
 	.log_subsys = DTUN,
-	.timer_cb = apn_fsm_timer_cb,
 };
 
 int apn_fsm_ctx_init(struct apn_fsm_ctx *ctx, struct osmobb_apn *apn)
