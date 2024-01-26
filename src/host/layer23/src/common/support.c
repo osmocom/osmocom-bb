@@ -99,7 +99,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->half_v3 = 0;
 
 	/* CSD modes */
-	sup->csd_tch_f144 = 1;
+	sup->csd_tch_f144 = 0;
 	sup->csd_tch_f96 = 1;
 	sup->csd_tch_f48 = 1;
 	sup->csd_tch_h48 = 1;
