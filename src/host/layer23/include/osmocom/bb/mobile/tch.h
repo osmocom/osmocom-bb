@@ -5,6 +5,7 @@ struct gsm_data_frame;
 struct msgb;
 
 struct tch_state {
+	bool rx_only; /* Rx TCH frames, but Tx nothing */
 	bool is_voice; /* voice (true) or data (false) */
 	union {
 		struct tch_voice_state {

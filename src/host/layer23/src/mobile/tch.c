@@ -51,24 +51,35 @@ int tch_voice_serve_ms(struct osmocom_ms *ms);
 static int tch_recv_cb(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct tch_state *state = ms->tch_state;
-	int rc;
 
 	if (state == NULL) {
 		msgb_free(msg);
 		return 0;
 	}
 
-	if (state->is_voice)
-		rc = tch_voice_recv(ms, msg);
-	else
-		rc = tch_data_recv(ms, msg);
-	return rc;
+	if (state->is_voice) {
+		return tch_voice_recv(ms, msg);
+	} else {
+		/* Rx only mode makes no sense for data calls, so we discard
+		 * received DL frames and thus do not trigger sending UL frames. */
+		if (!state->rx_only)
+			return tch_data_recv(ms, msg);
+		msgb_free(msg);
+		return 0;
+	}
 }
 
 /* Send an Uplink voice frame to the lower layers */
 int tch_send_msg(struct osmocom_ms *ms, struct msgb *msg)
 {
-	/* Forward to RR */
+	struct tch_state *state = ms->tch_state;
+
+	if (state == NULL || state->rx_only) {
+		/* TODO: fix callers and print a warning here */
+		msgb_free(msg);
+		return -EIO;
+	}
+
 	return gsm48_rr_tx_traffic(ms, msg);
 }
 
@@ -119,18 +130,21 @@ int tch_serve_ms(struct osmocom_ms *ms)
 	return rc;
 }
 
-static void tch_trans_cstate_active_cb(struct gsm_trans *trans)
+static void tch_trans_cstate_active_cb(struct gsm_trans *trans, bool rx_only)
 {
 	struct osmocom_ms *ms = trans->ms;
 	struct tch_state *state;
 	enum gsm48_chan_mode ch_mode;
 
-	if (ms->tch_state != NULL)
+	if (ms->tch_state != NULL) {
+		ms->tch_state->rx_only = rx_only;
 		return; /* TODO: handle modify? */
+	}
 
 	state = talloc_zero(ms, struct tch_state);
 	OSMO_ASSERT(state != NULL);
 	ms->tch_state = state;
+	ms->tch_state->rx_only = rx_only;
 
 	ch_mode = ms->rrlayer.cd_now.mode;
 	switch (ch_mode) {
@@ -181,8 +195,11 @@ static void tch_trans_free_cb(struct gsm_trans *trans)
 static void tch_trans_state_chg_cb(struct gsm_trans *trans)
 {
 	switch (trans->cc.state) {
-	case GSM_CSTATE_ACTIVE:
-		tch_trans_cstate_active_cb(trans);
+	case GSM_CSTATE_CALL_DELIVERED: /* MO call: Rx CC ALERTING */
+		tch_trans_cstate_active_cb(trans, true);
+		break;
+	case GSM_CSTATE_ACTIVE: /* MO/MT call: Rx CC CONNECT */
+		tch_trans_cstate_active_cb(trans, false);
 		break;
 	case GSM_CSTATE_NULL:
 		tch_trans_free_cb(trans);
