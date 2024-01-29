@@ -2692,23 +2692,6 @@ ALIAS_DEPRECATED(cfg_ms_tch_voice, /* alias to 'tch-voice' */
 		 cfg_ms_audio_cmd,
 		 "audio", "(deprecated alias for 'tch-voice')\n");
 
-
-static int set_tch_voice_io_handler(struct vty *vty, enum tch_voice_io_handler val)
-{
-	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	/* Don't restart on unchanged value */
-	if (val == set->tch_voice.io_handler)
-		return CMD_SUCCESS;
-	set->tch_voice.io_handler = val;
-
-	/* Restart required */
-	vty_restart_if_started(vty, ms);
-
-	return CMD_SUCCESS;
-}
-
 DEFUN(cfg_ms_tch_voice_io_handler, cfg_ms_tch_voice_io_handler_cmd,
 	"io-handler (none|gapk|l1phy|mncc-sock|loopback)",
 	"Set TCH frame I/O handler for voice calls\n"
@@ -2718,8 +2701,9 @@ DEFUN(cfg_ms_tch_voice_io_handler, cfg_ms_tch_voice_io_handler_cmd,
 	"External MNCC application (e.g. LCR) via MNCC socket\n"
 	"Return TCH frame payload back to sender\n")
 {
-	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
 	int val = get_string_value(tch_voice_io_handler_names, argv[0]);
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct gsm_settings *set = &ms->settings;
 
 	OSMO_ASSERT(val >= 0);
 
@@ -2738,13 +2722,20 @@ DEFUN(cfg_ms_tch_voice_io_handler, cfg_ms_tch_voice_io_handler_cmd,
 	}
 #endif
 
-	return set_tch_voice_io_handler(vty, val);
+	set->tch_voice.io_handler = (enum tch_voice_io_handler)val;
+
+	return CMD_SUCCESS;
 }
 
 DEFUN(cfg_ms_tch_voice_no_io_handler, cfg_ms_tch_voice_no_io_handler_cmd,
 	"no io-handler", NO_STR "Disable TCH frame handling for voice calls\n")
 {
-	return set_tch_voice_io_handler(vty, TCH_VOICE_IOH_NONE);
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->tch_voice.io_handler = TCH_VOICE_IOH_NONE;
+
+	return CMD_SUCCESS;
 }
 
 DEFUN(cfg_ms_tch_voice_io_tch_format, cfg_ms_tch_voice_io_tch_format_cmd,
@@ -2805,22 +2796,6 @@ DEFUN(cfg_ms_tch_data,
 	return CMD_SUCCESS;
 }
 
-static int set_tch_data_io_handler(struct vty *vty, enum tch_data_io_handler val)
-{
-	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
-	struct gsm_settings *set = &ms->settings;
-
-	/* Don't restart on unchanged value */
-	if (val == set->tch_data.io_handler)
-		return CMD_SUCCESS;
-	set->tch_data.io_handler = val;
-
-	/* Restart required */
-	vty_restart_if_started(vty, ms);
-
-	return CMD_SUCCESS;
-}
-
 DEFUN(cfg_ms_tch_data_io_handler,
       cfg_ms_tch_data_io_handler_cmd,
       "io-handler (none|unix-sock|loopback)",
@@ -2830,17 +2805,25 @@ DEFUN(cfg_ms_tch_data_io_handler,
       "Return TCH frame payload back to sender\n")
 {
 	int val = get_string_value(tch_data_io_handler_names, argv[0]);
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct gsm_settings *set = &ms->settings;
 
 	OSMO_ASSERT(val >= 0);
+	set->tch_data.io_handler = (enum tch_data_io_handler)val;
 
-	return set_tch_data_io_handler(vty, val);
+	return CMD_SUCCESS;
 }
 
 DEFUN(cfg_ms_tch_data_no_io_handler,
       cfg_ms_tch_data_no_io_handler_cmd,
       "no io-handler", NO_STR "Disable TCH frame handling for data calls\n")
 {
-	return set_tch_data_io_handler(vty, TCH_DATA_IOH_NONE);
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->tch_data.io_handler = TCH_DATA_IOH_NONE;
+
+	return CMD_SUCCESS;
 }
 
 DEFUN(cfg_ms_tch_data_io_tch_format,

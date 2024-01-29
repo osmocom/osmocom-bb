@@ -6996,20 +6996,7 @@ int gsm48_rr_init(struct osmocom_ms *ms)
 	start_rr_t_meas(rr, 1, 0);
 
 	rr->tch_loop_mode = L1CTL_TCH_LOOP_OPEN;
-
-	/* Configure audio handling in the L1PHY */
-	switch (ms->settings.tch_voice.io_handler) {
-	case TCH_VOICE_IOH_L1PHY:
-		rr->audio_mode = AUDIO_RX_SPEAKER | AUDIO_TX_MICROPHONE;
-		break;
-	case TCH_VOICE_IOH_MNCC_SOCK:
-	case TCH_VOICE_IOH_LOOPBACK:
-	case TCH_VOICE_IOH_GAPK:
-		rr->audio_mode = AUDIO_RX_TRAFFIC_IND | AUDIO_TX_TRAFFIC_REQ;
-		break;
-	case TCH_VOICE_IOH_NONE:
-		rr->audio_mode = 0x00;
-	}
+	rr->audio_mode = 0x00; /* set in tch_{voice,data}_state_init() */
 
 	/* List of notifications about ongoing ASCI calls */
 	INIT_LLIST_HEAD(&rr->vgcs.notif_list);
@@ -7125,9 +7112,6 @@ int gsm48_rr_audio_mode(struct osmocom_ms *ms, uint8_t mode)
 {
 	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	uint8_t ch_type, ch_subch, ch_ts;
-
-	if (ms->settings.tch_voice.io_handler != TCH_VOICE_IOH_NONE)
-		return 0;
 
 	LOGP(DRR, LOGL_INFO, "setting audio mode to %d\n", mode);
 

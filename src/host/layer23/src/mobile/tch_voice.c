@@ -34,6 +34,8 @@
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/tch.h>
 
+#include <l1ctl_proto.h>
+
 /* Forward a Downlink voice frame to the external MNCC handler */
 static int tch_forward_mncc(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -119,11 +121,19 @@ int tch_voice_serve_ms(struct osmocom_ms *ms)
 
 int tch_voice_state_init(struct gsm_trans *trans, struct tch_voice_state *state)
 {
-#ifdef WITH_GAPK_IO
 	struct osmocom_ms *ms = trans->ms;
-	const struct gsm48_rr_cd *cd = &ms->rrlayer.cd_now;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
+	const struct gsm48_rr_cd *cd = &rr->cd_now;
 
 	switch (state->handler) {
+	case TCH_VOICE_IOH_L1PHY:
+		rr->audio_mode = AUDIO_RX_SPEAKER | AUDIO_TX_MICROPHONE;
+		break;
+	case TCH_VOICE_IOH_MNCC_SOCK:
+	case TCH_VOICE_IOH_LOOPBACK:
+		rr->audio_mode = AUDIO_RX_TRAFFIC_IND | AUDIO_TX_TRAFFIC_REQ;
+		break;
+#ifdef WITH_GAPK_IO
 	case TCH_VOICE_IOH_GAPK:
 		if ((cd->chan_nr & RSL_CHAN_NR_MASK) == RSL_CHAN_Bm_ACCHs)
 			state->gapk_io = gapk_io_state_alloc_mode_rate(ms, cd->mode, true);
@@ -131,11 +141,13 @@ int tch_voice_state_init(struct gsm_trans *trans, struct tch_voice_state *state)
 			state->gapk_io = gapk_io_state_alloc_mode_rate(ms, cd->mode, false);
 		if (state->gapk_io == NULL)
 			return -1;
+		rr->audio_mode = AUDIO_RX_TRAFFIC_IND | AUDIO_TX_TRAFFIC_REQ;
 		break;
-	default:
+#endif
+	case TCH_VOICE_IOH_NONE:
+		rr->audio_mode = 0x00;
 		break;
 	}
-#endif
 
 	return 0;
 }

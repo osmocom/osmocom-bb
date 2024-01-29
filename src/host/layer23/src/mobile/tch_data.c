@@ -36,6 +36,8 @@
 #include <osmocom/bb/mobile/transaction.h>
 #include <osmocom/bb/mobile/tch.h>
 
+#include <l1ctl_proto.h>
+
 struct csd_v110_frame_desc {
 	uint16_t num_blocks;
 	uint16_t num_bits;
@@ -503,6 +505,7 @@ int tch_data_state_init(struct gsm_trans *trans,
 			struct tch_data_state *state)
 {
 	struct osmocom_ms *ms = trans->ms;
+	struct gsm48_rrlayer *rr = &ms->rrlayer;
 	const struct gsm_mncc_bearer_cap *bcap = trans->cc.bcap;
 	int rc;
 
@@ -514,13 +517,13 @@ int tch_data_state_init(struct gsm_trans *trans,
 		state->sock = tch_csd_sock_init(ms);
 		if (state->sock == NULL)
 			return -ENOMEM;
+		rr->audio_mode = AUDIO_RX_TRAFFIC_IND | AUDIO_TX_TRAFFIC_REQ;
 		break;
 	case TCH_DATA_IOH_LOOPBACK:
 	case TCH_DATA_IOH_NONE:
+		rr->audio_mode = AUDIO_RX_TRAFFIC_IND | AUDIO_TX_TRAFFIC_REQ;
 		/* we don't need V.110 TA / soft-UART */
 		return 0;
-	default:
-		break;
 	}
 
 	if (bcap->data.async) {

@@ -133,8 +133,9 @@ int tch_serve_ms(struct osmocom_ms *ms)
 static void tch_trans_cstate_active_cb(struct gsm_trans *trans, bool rx_only)
 {
 	struct osmocom_ms *ms = trans->ms;
+	const struct gsm48_rrlayer *rr = &ms->rrlayer;
+	const struct gsm48_rr_cd *cd = &rr->cd_now;
 	struct tch_state *state;
-	enum gsm48_chan_mode ch_mode;
 
 	if (ms->tch_state != NULL) {
 		ms->tch_state->rx_only = rx_only;
@@ -146,8 +147,7 @@ static void tch_trans_cstate_active_cb(struct gsm_trans *trans, bool rx_only)
 	ms->tch_state = state;
 	ms->tch_state->rx_only = rx_only;
 
-	ch_mode = ms->rrlayer.cd_now.mode;
-	switch (ch_mode) {
+	switch (cd->mode) {
 	case GSM48_CMODE_SPEECH_V1:
 	case GSM48_CMODE_SPEECH_EFR:
 	case GSM48_CMODE_SPEECH_AMR:
@@ -168,12 +168,15 @@ static void tch_trans_cstate_active_cb(struct gsm_trans *trans, bool rx_only)
 	case GSM48_CMODE_SIGN:
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unhandled channel mode %s\n",
-		     get_value_string(gsm48_chan_mode_names, ch_mode));
+		     get_value_string(gsm48_chan_mode_names, cd->mode));
 exit_free:
 		talloc_free(state);
 		ms->tch_state = NULL;
 		return;
 	}
+
+	/* rr->audio_mode has been set by tch_{voice,data}_state_init(), apply it */
+	gsm48_rr_audio_mode(ms, rr->audio_mode);
 }
 
 static void tch_trans_free_cb(struct gsm_trans *trans)
@@ -187,6 +190,7 @@ static void tch_trans_free_cb(struct gsm_trans *trans)
 		tch_voice_state_free(&state->voice);
 	else
 		tch_data_state_free(&state->data);
+	ms->rrlayer.audio_mode = 0x00;
 
 	talloc_free(state);
 	ms->tch_state = NULL;
