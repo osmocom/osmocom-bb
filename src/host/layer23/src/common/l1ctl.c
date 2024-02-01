@@ -983,7 +983,7 @@ static int rx_l1_gprs_dl_block_ind(struct osmocom_ms *ms, struct msgb *msg)
 		    rxlev2dbm(ind->meas.rx_lev), 0,
 		    msgb_l2(msg), msgb_l2len(msg));
 
-	DEBUGP(DL1C, "Rx GPRS DL block (fn=%u, tn=%u, len=%u): %s\n",
+	DEBUGP(DL1C, "Rx GPRS DL BLOCK.ind (fn=%u, tn=%u, len=%u): %s\n",
 	       fn, ind->hdr.tn, msgb_l2len(msg), msgb_hexdump_l2(msg));
 
 	/* distribute or drop */
@@ -1012,7 +1012,7 @@ static int rx_l1_gprs_rts_ind(struct osmocom_ms *ms, struct msgb *msg)
 		return -EINVAL;
 	}
 
-	DEBUGP(DL1C, "Rx RTS.ind (fn=%u, tn=%u, usf=%u)\n",
+	DEBUGP(DL1C, "Rx GPRS RTS.ind (fn=%u, tn=%u, usf=%u)\n",
 	       ntohl(ind->fn), ind->tn, ind->usf);
 
 	/* distribute or drop */
