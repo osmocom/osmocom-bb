@@ -118,8 +118,8 @@ static struct msgb *prim_dequeue_pdtch(struct l1sched_lchan_state *lchan, uint32
 		} /* else: the ship has sailed, drop your ticket */
 
 		LOGP_LCHAND(lchan, LOGL_ERROR,
-			    "%s(): dropping stale Tx primitive (current Fn=%u, prim Fn=%u)\n",
-			    __func__, fn, prim->data_req.frame_nr);
+			    "%s(): dropping stale Tx prim (current Fn=%u, prim Fn=%u): %s\n",
+			    __func__, fn, prim->data_req.frame_nr, msgb_hexdump_l2(msg));
 		llist_del(&msg->list);
 		msgb_free(msg);
 	}
