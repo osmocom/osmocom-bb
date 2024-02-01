@@ -525,8 +525,13 @@ static void l1sched_reset_lchan(struct l1sched_lchan_state *lchan)
 	lchan->tx_bursts = NULL;
 
 	/* Flush the queue of pending Tx prims */
-	while ((msg = msgb_dequeue(&lchan->tx_prims)) != NULL)
+	while ((msg = msgb_dequeue(&lchan->tx_prims)) != NULL) {
+		const struct l1sched_prim *prim = l1sched_prim_from_msgb(msg);
+
+		LOGP_LCHANC(lchan, LOGL_NOTICE, "%s(): dropping Tx prim (fn=%u): %s\n",
+			    __func__, prim->data_req.frame_nr, msgb_hexdump_l2(msg));
 		msgb_free(msg);
+	}
 
 	/* Channel specific stuff */
 	if (L1SCHED_CHAN_IS_TCH(lchan->type)) {
