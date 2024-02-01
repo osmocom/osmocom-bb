@@ -60,6 +60,7 @@ enum {
 	/* Extended (11-bit) RACH (see 3GPP TS 05.02, section 5.2.7) */
 	L1CTL_EXT_RACH_REQ		= 0x24,
 	L1CTL_GPRS_RTS_IND		= 0x25,
+	L1CTL_GPRS_UL_BLOCK_CNF		= 0x26,
 };
 
 enum ccch_mode {
@@ -399,6 +400,13 @@ struct l1ctl_gprs_rts_ind {
 	uint32_t fn;
 	uint8_t tn;
 	uint8_t usf;
+} __attribute__((packed));
+
+/* payload of L1CTL_GPRS_UL_BLOCK_CNF */
+struct l1ctl_gprs_ul_block_cnf {
+	uint32_t fn;
+	uint8_t tn;
+	uint8_t data[0];
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */

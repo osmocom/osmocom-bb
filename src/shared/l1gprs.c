@@ -1,7 +1,7 @@
 /*
  * l1gprs - GPRS layer 1 implementation
  *
- * (C) 2022-2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
+ * (C) 2022-2024 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  * Author: Vadim Yanitskiy <vyanitskiy@sysmocom.de>
  *
  * All Rights Reserved
@@ -654,6 +654,45 @@ int l1gprs_handle_ul_block_req(struct l1gprs_state *gprs,
 	};
 
 	return 0;
+}
+
+struct msgb *l1gprs_handle_ul_block_cnf(struct l1gprs_state *gprs,
+					uint32_t fn, uint8_t tn,
+					const uint8_t *data,
+					size_t data_len)
+{
+	const struct l1gprs_pdch *pdch = NULL;
+	struct l1ctl_gprs_ul_block_cnf *l1bc;
+	struct msgb *msg;
+
+	OSMO_ASSERT(tn < ARRAY_SIZE(gprs->pdch));
+	pdch = &gprs->pdch[tn];
+
+	LOGP_PDCH(pdch, LOGL_DEBUG, "Rx UL BLOCK.cnf (fn=%u)\n", fn);
+
+	if (pdch->ul_tbf_count + pdch->dl_tbf_count == 0) {
+		LOGP_PDCH(pdch, LOGL_ERROR,
+			  "Rx UL BLOCK.cnf (fn=%u), but this PDCH has no active TBFs\n",
+			  fn);
+		return NULL;
+	}
+
+	msg = l1gprs_l1ctl_msgb_alloc(L1CTL_GPRS_UL_BLOCK_CNF);
+	if (OSMO_UNLIKELY(msg == NULL)) {
+		LOGP_GPRS(gprs, LOGL_ERROR, "l1gprs_l1ctl_msgb_alloc() failed\n");
+		return NULL;
+	}
+
+	l1bc = (void *)msgb_put(msg, sizeof(*l1bc));
+	*l1bc = (struct l1ctl_gprs_ul_block_cnf) {
+		.fn = htonl(fn),
+		.tn = tn,
+	};
+
+	if (data != NULL && data_len > 0)
+		memcpy(msgb_put(msg, data_len), data, data_len);
+
+	return msg;
 }
 
 /* Check if a Downlink block is a PTCCH/D (see 3GPP TS 45.002, table 6) */
