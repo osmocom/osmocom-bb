@@ -754,11 +754,11 @@ struct msgb *l1gprs_handle_rts_ind(struct l1gprs_state *gprs, uint32_t fn, uint8
 	struct l1ctl_gprs_rts_ind *l1bi;
 	struct msgb *msg;
 
+	OSMO_ASSERT(tn < ARRAY_SIZE(gprs->pdch));
 	pdch = &gprs->pdch[tn];
 
 	LOGP_PDCH(pdch, LOGL_DEBUG,
-		  "Rx RTS.ind (%s, fn=%u, usf=%u)\n",
-		  ((fn % 104) == 12) ? "PTCCH" : "PDTCH",
+		  "Rx RTS.ind (PDTCH, fn=%u, usf=%u)\n",
 		  fn, usf);
 
 	l1gprs_check_pending_tbfs(gprs, fn);
