@@ -610,6 +610,18 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 		l1sched_prim_from_user(trxcon->sched, msg);
 		break;
 	}
+	case TRXCON_EV_TX_DATA_CNF:
+	{
+		const struct trxcon_param_tx_data_cnf *cnf = data;
+		struct msgb *msg;
+
+		msg = l1gprs_handle_ul_block_cnf(trxcon->gprs,
+						 cnf->frame_nr, cnf->chan_nr & 0x07,
+						 cnf->data, cnf->data_len);
+		if (msg != NULL)
+			trxcon_l1ctl_send(trxcon, msg);
+		break;
+	}
 	case TRXCON_EV_RX_DATA_IND:
 	{
 		const struct trxcon_param_rx_data_ind *ind = data;
@@ -654,8 +666,6 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 	case TRXCON_EV_DCH_REL_REQ:
 		l1sched_reset(trxcon->sched, false);
 		/* TODO: switch to (not implemented) TRXCON_ST_DCH_TUNING? */
-		break;
-	case TRXCON_EV_TX_DATA_CNF:
 		break;
 	default:
 		OSMO_ASSERT(0);

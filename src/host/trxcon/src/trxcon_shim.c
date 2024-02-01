@@ -102,6 +102,8 @@ static int handle_prim_data_cnf(struct trxcon_inst *trxcon, struct msgb *msg)
 		.link_id = prim->data_cnf.link_id,
 		.band_arfcn = trxcon->l1p.band_arfcn,
 		.frame_nr = prim->data_cnf.frame_nr,
+		.data_len = msgb_l2len(msg),
+		.data = msgb_l2(msg),
 	};
 
 	if (trxcon->gsmtap != NULL) {

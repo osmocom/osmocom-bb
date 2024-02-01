@@ -160,8 +160,9 @@ int tx_pdtch_fn(struct l1sched_lchan_state *lchan,
 		return -EINVAL;
 	}
 
-	/* Confirm data / traffic sending (pass ownership of the msgb/prim) */
-	l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
+	/* Cache the prim, so that we can confirm it later (see below) */
+	OSMO_ASSERT(lchan->prim == NULL);
+	lchan->prim = msg;
 
 send_burst:
 	/* Determine which burst should be sent */
@@ -182,6 +183,13 @@ send_burst:
 	br->burst_len = GSM_NBITS_NB_GMSK_BURST;
 
 	LOGP_LCHAND(lchan, LOGL_DEBUG, "Scheduled at fn=%u burst=%u\n", br->fn, br->bid);
+
+	if (br->bid == 3) {
+		/* Confirm data / traffic sending (pass ownership of the msgb/prim) */
+		l1sched_lchan_emit_data_cnf(lchan, lchan->prim,
+					    GSM_TDMA_FN_SUB(br->fn, 3));
+		lchan->prim = NULL;
+	}
 
 	return 0;
 }

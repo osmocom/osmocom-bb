@@ -105,6 +105,8 @@ struct trxcon_param_tx_data_cnf {
 	uint8_t link_id;
 	uint16_t band_arfcn;
 	uint32_t frame_nr;
+	size_t data_len;
+	const uint8_t *data;
 };
 
 /* param of TRXCON_EV_RX_DATA_IND */
