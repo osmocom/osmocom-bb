@@ -162,12 +162,17 @@ static int modem_rlcmac_prim_down_cb(struct osmo_gprs_rlcmac_prim *prim, void *u
 	}
 }
 
-static int l1ctl_dl_block_cb(struct osmocom_ms *ms, struct msgb *msg)
+static int l1ctl_ul_block_cnf_cb(struct osmocom_ms *ms, struct msgb *msg)
+{
+	return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_BLOCK_CNF, msg);
+}
+
+static int l1ctl_dl_block_ind_cb(struct osmocom_ms *ms, struct msgb *msg)
 {
 	return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_BLOCK_IND, msg);
 }
 
-static int l1ctl_rts_cb(struct osmocom_ms *ms, struct msgb *msg)
+static int l1ctl_rts_ind_cb(struct osmocom_ms *ms, struct msgb *msg)
 {
 	return osmo_fsm_inst_dispatch(ms->grr_fi, GRR_EV_PDCH_RTS_IND, msg);
 }
@@ -186,8 +191,9 @@ int modem_rlcmac_init(struct osmocom_ms *ms)
 	osmo_gprs_rlcmac_prim_set_up_cb(modem_rlcmac_prim_up_cb, ms);
 	osmo_gprs_rlcmac_prim_set_down_cb(modem_rlcmac_prim_down_cb, ms);
 
-	ms->l1_entity.l1_gprs_dl_block_ind = &l1ctl_dl_block_cb;
-	ms->l1_entity.l1_gprs_rts_ind = &l1ctl_rts_cb;
+	ms->l1_entity.l1_gprs_ul_block_cnf = &l1ctl_ul_block_cnf_cb;
+	ms->l1_entity.l1_gprs_dl_block_ind = &l1ctl_dl_block_ind_cb;
+	ms->l1_entity.l1_gprs_rts_ind = &l1ctl_rts_ind_cb;
 
 	return rc;
 }

@@ -949,6 +949,36 @@ static int rx_l1_neigh_pm_ind(struct osmocom_ms *ms, struct msgb *msg)
 	return 0;
 }
 
+/* Receive L1CTL_GPRS_UL_BLOCK_CNF */
+static int rx_l1_gprs_ul_block_cnf(struct osmocom_ms *ms, struct msgb *msg)
+{
+	const struct l1ctl_gprs_ul_block_cnf *cnf = (void *)msg->l1h;
+
+	if (msgb_l1len(msg) < sizeof(*cnf)) {
+		LOGP(DL1C, LOGL_ERROR,
+		     "Rx malformed GPRS UL BLOCK.cnf (len=%u < %zu)\n",
+		     msgb_l1len(msg), sizeof(*cnf));
+		return -EINVAL;
+	}
+	if (OSMO_UNLIKELY(cnf->tn >= 8)) {
+		LOGP(DL1C, LOGL_ERROR,
+		     "Rx malformed GPRS UL BLOCK.cnf (tn=%u)\n", cnf->tn);
+		return -EINVAL;
+	}
+
+	msg->l2h = (void *)&cnf->data[0];
+
+	DEBUGP(DL1C, "Rx GPRS UL BLOCK.cnf (fn=%u, tn=%u, len=%u): %s\n",
+	       ntohl(cnf->fn), cnf->tn, msgb_l2len(msg), msgb_hexdump_l2(msg));
+
+	/* distribute or drop */
+	if (ms->l1_entity.l1_gprs_ul_block_cnf)
+		return ms->l1_entity.l1_gprs_ul_block_cnf(ms, msg);
+
+	msgb_free(msg);
+	return 0;
+}
+
 /* Receive L1CTL_GPRS_DL_BLOCK_IND */
 static int rx_l1_gprs_dl_block_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
@@ -1170,6 +1200,9 @@ int l1ctl_recv(struct osmocom_ms *ms, struct msgb *msg)
 		break;
 	case L1CTL_TRAFFIC_CONF:
 		msgb_free(msg);
+		break;
+	case L1CTL_GPRS_UL_BLOCK_CNF:
+		rc = rx_l1_gprs_ul_block_cnf(ms, msg);
 		break;
 	case L1CTL_GPRS_DL_BLOCK_IND:
 		rc = rx_l1_gprs_dl_block_ind(ms, msg);

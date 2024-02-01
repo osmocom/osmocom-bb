@@ -521,6 +521,18 @@ static void handle_pdch_establish_req(struct osmo_fsm_inst *fi,
 	osmo_fsm_inst_state_chg(fi, GRR_ST_PACKET_TRANSFER, 0, 0);
 }
 
+static void handle_pdch_block_cnf(struct osmocom_ms *ms, struct msgb *msg)
+{
+	const struct l1ctl_gprs_ul_block_cnf *cnf = (void *)msg->l1h;
+	const uint32_t fn = osmo_load32be(&cnf->fn);
+	struct osmo_gprs_rlcmac_prim *prim;
+
+	prim = osmo_gprs_rlcmac_prim_alloc_l1ctl_pdch_data_cnf(cnf->tn, fn,
+							       msgb_l2(msg),
+							       msgb_l2len(msg));
+	osmo_gprs_rlcmac_prim_lower_up(prim);
+}
+
 static void handle_pdch_block_ind(struct osmocom_ms *ms, struct msgb *msg)
 {
 	const struct l1ctl_gprs_dl_block_ind *ind = (void *)msg->l1h;
@@ -753,6 +765,9 @@ static void grr_st_packet_transfer_action(struct osmo_fsm_inst *fi,
 					   lp->pdch_data_req.data_len);
 		break;
 	}
+	case GRR_EV_PDCH_BLOCK_CNF:
+		handle_pdch_block_cnf(ms, (struct msgb *)data);
+		break;
 	case GRR_EV_PDCH_BLOCK_IND:
 		handle_pdch_block_ind(ms, (struct msgb *)data);
 		break;
@@ -819,6 +834,7 @@ static const struct osmo_fsm_state grr_fsm_states[] = {
 		.in_event_mask  = S(GRR_EV_PDCH_UL_TBF_CFG_REQ)
 				| S(GRR_EV_PDCH_DL_TBF_CFG_REQ)
 				| S(GRR_EV_PDCH_BLOCK_REQ)
+				| S(GRR_EV_PDCH_BLOCK_CNF)
 				| S(GRR_EV_PDCH_BLOCK_IND)
 				| S(GRR_EV_PDCH_RTS_IND)
 				| S(GRR_EV_PDCH_RELEASE_REQ),
@@ -838,6 +854,7 @@ static const struct value_string grr_fsm_event_names[] = {
 	OSMO_VALUE_STRING(GRR_EV_PDCH_UL_TBF_CFG_REQ),
 	OSMO_VALUE_STRING(GRR_EV_PDCH_DL_TBF_CFG_REQ),
 	OSMO_VALUE_STRING(GRR_EV_PDCH_BLOCK_REQ),
+	OSMO_VALUE_STRING(GRR_EV_PDCH_BLOCK_CNF),
 	OSMO_VALUE_STRING(GRR_EV_PDCH_BLOCK_IND),
 	OSMO_VALUE_STRING(GRR_EV_PDCH_RTS_IND),
 	{ 0, NULL }

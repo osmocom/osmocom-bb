@@ -42,6 +42,7 @@ struct osmosap_entity {
 
 struct osmol1_entity {
 	int (*l1_traffic_ind)(struct osmocom_ms *ms, struct msgb *msg);
+	int (*l1_gprs_ul_block_cnf)(struct osmocom_ms *ms, struct msgb *msg);
 	int (*l1_gprs_dl_block_ind)(struct osmocom_ms *ms, struct msgb *msg);
 	int (*l1_gprs_rts_ind)(struct osmocom_ms *ms, struct msgb *msg);
 };
