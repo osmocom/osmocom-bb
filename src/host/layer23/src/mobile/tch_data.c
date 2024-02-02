@@ -317,6 +317,10 @@ static int tch_csd_rx_from_l1(struct osmocom_ms *ms, struct msgb *msg)
 		swap_words(msgb_l3(msg), msgb_l3len(msg));
 		osmo_pbit2ubit_ext(data, 0, msgb_l3(msg), 0, data_len, 1);
 		break;
+	default:
+		LOGP(DCSD, LOGL_FATAL,
+		     "%s(): unhandled data I/O format\n", __func__);
+		OSMO_ASSERT(0);
 	}
 
 	for (unsigned int i = 0; i < desc->num_blocks; i++) {
@@ -397,6 +401,10 @@ static int tch_csd_tx_to_l1(struct osmocom_ms *ms)
 		/* ... with swapped words (LE ordering) */
 		swap_words(msgb_l2(nmsg), msgb_l2len(nmsg));
 		break;
+	default:
+		LOGP(DCSD, LOGL_FATAL,
+		     "%s(): unhandled data I/O format\n", __func__);
+		OSMO_ASSERT(0);
 	}
 
 	return gsm48_rr_tx_traffic(ms, nmsg);
