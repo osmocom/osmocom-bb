@@ -30,7 +30,7 @@
 #define X(s) (1 << (s))
 
 static struct osmo_tdef T_defs_apn[] = {
-	{ .T=1, .default_val=30, .desc = "Activating timeout (s)" },
+	{ .T=1, .default_val=65, .desc = "Activating timeout (s)" },
 	{ 0 } /* empty item at the end */
 };
 
