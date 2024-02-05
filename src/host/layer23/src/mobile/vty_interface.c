@@ -2721,6 +2721,8 @@ DEFUN(cfg_ms_tch_voice_io_handler, cfg_ms_tch_voice_io_handler_cmd,
 	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
 	int val = get_string_value(tch_voice_io_handler_names, argv[0]);
 
+	OSMO_ASSERT(val >= 0);
+
 	if (val == TCH_VOICE_IOH_MNCC_SOCK) {
 		if (ms->settings.mncc_handler != MNCC_HANDLER_INTERNAL) {
 			vty_out(vty, "TCH voice I/O handler 'mncc-sock' can only be used "
@@ -2755,12 +2757,13 @@ DEFUN(cfg_ms_tch_voice_io_tch_format, cfg_ms_tch_voice_io_tch_format_cmd,
 	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
 	struct gsm_settings *set = &ms->settings;
 
+	OSMO_ASSERT(val >= 0);
+
 	if (set->tch_voice.io_handler != TCH_VOICE_IOH_GAPK) {
 		vty_out(vty, "This parameter is only valid for GAPK%s", VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	OSMO_ASSERT(val >= 0);
 	set->tch_voice.io_format = val;
 
 	return CMD_SUCCESS;
@@ -2827,6 +2830,8 @@ DEFUN(cfg_ms_tch_data_io_handler,
       "Return TCH frame payload back to sender\n")
 {
 	int val = get_string_value(tch_data_io_handler_names, argv[0]);
+
+	OSMO_ASSERT(val >= 0);
 
 	return set_tch_data_io_handler(vty, val);
 }
