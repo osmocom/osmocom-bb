@@ -407,7 +407,7 @@ static int tch_csd_tx_to_l1(struct osmocom_ms *ms)
 		OSMO_ASSERT(0);
 	}
 
-	return gsm48_rr_tx_traffic(ms, nmsg);
+	return tch_send_msg(ms, nmsg);
 }
 
 static int tch_data_check_bcap(const struct gsm_mncc_bearer_cap *bcap)
