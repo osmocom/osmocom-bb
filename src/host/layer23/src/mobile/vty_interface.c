@@ -2695,7 +2695,7 @@ ALIAS_DEPRECATED(cfg_ms_tch_voice, /* alias to 'tch-voice' */
 
 static int set_tch_voice_io_handler(struct vty *vty, enum tch_voice_io_handler val)
 {
-	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
 	struct gsm_settings *set = &ms->settings;
 
 	/* Don't restart on unchanged value */
@@ -2718,7 +2718,7 @@ DEFUN(cfg_ms_tch_voice_io_handler, cfg_ms_tch_voice_io_handler_cmd,
 	"External MNCC application (e.g. LCR) via MNCC socket\n"
 	"Return TCH frame payload back to sender\n")
 {
-	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
 	int val = get_string_value(tch_voice_io_handler_names, argv[0]);
 
 	if (val == TCH_VOICE_IOH_MNCC_SOCK) {
@@ -2752,7 +2752,7 @@ DEFUN(cfg_ms_tch_voice_io_tch_format, cfg_ms_tch_voice_io_tch_format_cmd,
 	"Texas Instruments format, used by Calypso based phones (e.g. Motorola C1xx)\n")
 {
 	int val = get_string_value(tch_voice_io_format_names, argv[0]);
-	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
 	struct gsm_settings *set = &ms->settings;
 
 	if (set->tch_voice.io_handler != TCH_VOICE_IOH_GAPK) {
@@ -2804,7 +2804,7 @@ DEFUN(cfg_ms_tch_data,
 
 static int set_tch_data_io_handler(struct vty *vty, enum tch_data_io_handler val)
 {
-	struct osmocom_ms *ms = (struct osmocom_ms *) vty->index;
+	struct osmocom_ms *ms = (struct osmocom_ms *)vty->index;
 	struct gsm_settings *set = &ms->settings;
 
 	/* Don't restart on unchanged value */
