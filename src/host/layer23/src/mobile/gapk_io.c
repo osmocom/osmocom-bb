@@ -503,6 +503,7 @@ gapk_io_state_alloc_mode_rate(struct osmocom_ms *ms,
 	return gapk_io_state_alloc(ms, codec);
 }
 
+/* Enqueue a Downlink TCH frame */
 void gapk_io_enqueue_dl(struct gapk_io_state *state, struct msgb *msg)
 {
 	if (state->tch_dl_fb_len >= GAPK_ULDL_QUEUE_LIMIT) {
@@ -513,49 +514,23 @@ void gapk_io_enqueue_dl(struct gapk_io_state *state, struct msgb *msg)
 
 	msgb_enqueue_count(&state->tch_dl_fb, msg,
 			   &state->tch_dl_fb_len);
+
+	/* Decode and play a received DL TCH frame */
+	osmo_gapk_pq_execute(state->pq_sink);
 }
 
-/* Serves both UL/DL TCH frame I/O buffers */
-int gapk_io_serve_ms(struct osmocom_ms *ms, struct gapk_io_state *state)
+/* Dequeue an Uplink TCH frame */
+void gapk_io_dequeue_ul(struct osmocom_ms *ms, struct gapk_io_state *state)
 {
-	int work = 0;
+	struct msgb *msg;
 
-	/**
-	 * Make sure we have at least two DL frames
-	 * to prevent discontinuous playback.
-	 */
-	if (state->tch_dl_fb_len < 2)
-		return 0;
+	/* Record and encode an UL TCH frame */
+	osmo_gapk_pq_execute(state->pq_source);
 
-	/**
-	 * TODO: if there is an active call, but no TCH frames
-	 * in DL buffer, put silence frames using the upcoming
-	 * ECU (Error Concealment Unit) of libosmocodec.
-	 */
-	while (!llist_empty(&state->tch_dl_fb)) {
-		/* Decode and play a received DL TCH frame */
-		osmo_gapk_pq_execute(state->pq_sink);
-
-		/* Record and encode an UL TCH frame back */
-		osmo_gapk_pq_execute(state->pq_source);
-
-		work |= 1;
-	}
-
-	while (!llist_empty(&state->tch_ul_fb)) {
-		struct msgb *tch_msg;
-
-		/* Obtain one TCH frame from the UL buffer */
-		tch_msg = msgb_dequeue_count(&state->tch_ul_fb,
-					     &state->tch_ul_fb_len);
-
-		/* Push a voice frame to the lower layers */
-		tch_send_msg(ms, tch_msg);
-
-		work |= 1;
-	}
-
-	return work;
+	/* Obtain one TCH frame from the UL buffer */
+	msg = msgb_dequeue_count(&state->tch_ul_fb, &state->tch_ul_fb_len);
+	if (msg != NULL)
+		tch_send_msg(ms, msg);
 }
 
 /**

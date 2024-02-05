@@ -90,11 +90,12 @@ int tch_voice_recv(struct osmocom_ms *ms, struct msgb *msg)
 		return tch_forward_mncc(ms, msg);
 	case TCH_VOICE_IOH_GAPK:
 #ifdef WITH_GAPK_IO
-		/* Enqueue a frame to the DL TCH buffer */
-		if (state->gapk_io != NULL)
+		if (state->gapk_io != NULL) {
 			gapk_io_enqueue_dl(state->gapk_io, msg);
-		else
+			gapk_io_dequeue_ul(ms, state->gapk_io);
+		} else {
 			msgb_free(msg);
+		}
 		break;
 #endif
 	case TCH_VOICE_IOH_L1PHY:
@@ -103,18 +104,6 @@ int tch_voice_recv(struct osmocom_ms *ms, struct msgb *msg)
 		msgb_free(msg);
 		break;
 	}
-
-	return 0;
-}
-
-int tch_voice_serve_ms(struct osmocom_ms *ms)
-{
-#ifdef WITH_GAPK_IO
-	struct tch_voice_state *state = &ms->tch_state->voice;
-
-	if (state->handler == TCH_VOICE_IOH_GAPK)
-		return gapk_io_serve_ms(ms, state->gapk_io);
-#endif
 
 	return 0;
 }

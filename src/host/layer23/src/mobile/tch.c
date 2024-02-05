@@ -45,7 +45,6 @@ void tch_data_state_free(struct tch_data_state *state);
 
 int tch_voice_recv(struct osmocom_ms *ms, struct msgb *msg);
 int tch_data_recv(struct osmocom_ms *ms, struct msgb *msg);
-int tch_voice_serve_ms(struct osmocom_ms *ms);
 
 /* Receive a Downlink traffic (voice/data) frame from the lower layers */
 static int tch_recv_cb(struct osmocom_ms *ms, struct msgb *msg)
@@ -114,20 +113,6 @@ int tch_send_mncc_frame(struct osmocom_ms *ms, const struct gsm_data_frame *fram
 	memcpy(nmsg->l2h, frame->data, len);
 
 	return tch_send_msg(ms, nmsg);
-}
-
-int tch_serve_ms(struct osmocom_ms *ms)
-{
-	struct tch_state *state = ms->tch_state;
-	int rc = 0;
-
-	if (state == NULL)
-		return 0;
-	if (state->is_voice)
-		rc = tch_voice_serve_ms(ms);
-	/* TODO: else tch_data_serve_ms() */
-
-	return rc;
 }
 
 static void tch_trans_cstate_active_cb(struct gsm_trans *trans, bool rx_only)

@@ -42,6 +42,6 @@ gapk_io_state_alloc_mode_rate(struct osmocom_ms *ms,
 void gapk_io_state_free(struct gapk_io_state *state);
 
 void gapk_io_enqueue_dl(struct gapk_io_state *state, struct msgb *msg);
-int gapk_io_serve_ms(struct osmocom_ms *ms, struct gapk_io_state *state);
+void gapk_io_dequeue_ul(struct osmocom_ms *ms, struct gapk_io_state *state);
 
 #endif /* WITH_GAPK_IO */
