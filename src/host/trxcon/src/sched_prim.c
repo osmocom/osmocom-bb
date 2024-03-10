@@ -94,7 +94,7 @@ static struct msgb *prim_compose_mr(struct l1sched_lchan_state *lchan)
 
 	prim = l1sched_prim_from_msgb(msg);
 	prim->data_req = (struct l1sched_prim_chdr) {
-		.chan_nr = l1sched_lchan_desc[lchan->type].chan_nr,
+		.chan_nr = l1sched_lchan_desc[lchan->type].chan_nr | lchan->ts->index,
 		.link_id = L1SCHED_CH_LID_SACCH,
 	};
 
