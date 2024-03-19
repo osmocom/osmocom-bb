@@ -1,0 +1,5 @@
+osmocom-bb (0.1.0) unstable; urgency=medium
+
+  * Initial debian packaging for layer23
+
+ -- Oliver Smith <osmith@sysmocom.de>  Mon, 19 Mar 2024 11:38:22 +0100

@@ -1,0 +1,29 @@
+Source: osmocom-bb
+Section: net
+Priority: optional
+Maintainer: Osmocom team <openbsc@lists.osmocom.org>
+Build-Depends: debhelper (>= 10),
+               dh-autoreconf,
+               autotools-dev,
+               autoconf,
+               automake,
+               libtool,
+               pkg-config,
+               libosmocore-dev (>= 1.5.0),
+               libosmo-csn1-dev,
+               libosmo-gprs-gmm-dev,
+               libosmo-gprs-llc-dev,
+               libosmo-gprs-rlcmac-dev,
+               libosmo-gprs-sm-dev,
+               libosmo-gprs-sndcp-dev,
+               libosmogapk-dev
+Standards-Version: 4.1.4
+Vcs-Browser: https://gitea.osmocom.org/phone-side/osmocom-bb
+Vcs-Git: https://gerrit.osmocom.org/osmocom-bb
+Homepage: https://osmocom.org/projects/baseband/wiki
+
+Package: osmocom-bb-layer23
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: MS-side implementation of L2 and L3 GSM protocols

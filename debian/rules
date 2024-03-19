@@ -1,0 +1,7 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ -D src/host/layer23 --with-autoreconf
+
+override_dh_auto_configure:
+	dh_auto_configure -D src/host/layer23 -- --with-gapk-io
