@@ -305,13 +305,7 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 		const uint8_t *data = msg ? msgb_l2(msg) : NULL;
 		size_t data_len = msg ? msgb_l2len(msg) : 0;
 
-		if (msg == NULL) {
-			/* TODO: It's not clear what to do for TCH/AFS.
-			 * TODO: Send dummy FACCH maybe? */
-			goto send_burst; /* send something */
-		}
-
-		if (data_len != GSM_MACBLOCK_LEN) { /* TCH/AFS: speech */
+		if (msg != NULL && msg != msg_facch) { /* TCH/AFS: speech */
 			if (!l1sched_lchan_amr_prim_is_valid(lchan, msg, amr_fn_is_cmr))
 				goto free_bad_msg;
 			/* pull the AMR header - sizeof(struct amr_hdr) */
@@ -319,6 +313,7 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			data += 2;
 		}
 
+		/* if msg == NULL, transmit a dummy speech block with inverted CRC6 */
 		rc = gsm0503_tch_afs_encode(BUFPOS(bursts_p, 0),
 					    data, data_len,
 					    amr_fn_is_cmr,
