@@ -3,7 +3,7 @@
  * TDMA scheduler: handlers for DL / UL bursts on logical channels
  *
  * (C) 2017-2022 by Vadim Yanitskiy <axilirator@gmail.com>
- * (C) 2021-2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
+ * (C) 2021-2024 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * All Rights Reserved
  *
@@ -290,39 +290,49 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 		/* fall-through */
 	case GSM48_CMODE_SPEECH_V1:
 	case GSM48_CMODE_SPEECH_EFR:
-		if (msg == NULL) {
-			/* transmit a dummy speech block with inverted CRC3 */
-			gsm0503_tch_fr_encode(bursts_p, NULL, 0, 1);
-			goto send_burst;
-		}
+		/* if msg == NULL, transmit a dummy speech block with inverted CRC3 */
 		rc = gsm0503_tch_fr_encode(BUFPOS(bursts_p, 0),
-					   msgb_l2(msg),
-					   msgb_l2len(msg), 1);
+					   msg ? msgb_l2(msg) : NULL,
+					   msg ? msgb_l2len(msg) : 0, 1);
+		/* confirm traffic sending (pass ownership of the msgb/prim) */
+		if (OSMO_LIKELY(rc == 0))
+			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
+		else /* unlikely: encoding failed, drop msgb/prim */
+			msgb_free(msg);
+		/* drop the other msgb/prim  */
+		msgb_free((msg == msg_facch) ? msg_tch : msg_facch);
 		break;
 	case GSM48_CMODE_SPEECH_AMR:
 	{
 		bool amr_fn_is_cmr = !sched_tchf_ul_amr_cmi_map[br->fn % 26];
-		const uint8_t *data = msg ? msgb_l2(msg) : NULL;
-		size_t data_len = msg ? msgb_l2len(msg) : 0;
+		unsigned int offset = 0;
 
 		if (msg != NULL && msg != msg_facch) { /* TCH/AFS: speech */
-			if (!l1sched_lchan_amr_prim_is_valid(lchan, msg, amr_fn_is_cmr))
-				goto free_bad_msg;
+			if (!l1sched_lchan_amr_prim_is_valid(lchan, msg, amr_fn_is_cmr)) {
+				msgb_free(msg);
+				msg_tch = NULL;
+				msg = NULL;
+			}
 			/* pull the AMR header - sizeof(struct amr_hdr) */
-			data_len -= 2;
-			data += 2;
+			offset = 2;
 		}
 
 		/* if msg == NULL, transmit a dummy speech block with inverted CRC6 */
 		rc = gsm0503_tch_afs_encode(BUFPOS(bursts_p, 0),
-					    data, data_len,
+					    msg ? msgb_l2(msg) + offset : NULL,
+					    msg ? msgb_l2len(msg) - offset : 0,
 					    amr_fn_is_cmr,
 					    lchan->amr.codec,
 					    lchan->amr.codecs,
 					    lchan->amr.ul_ft,
 					    lchan->amr.ul_cmr);
-		if (msg == NULL)
-			goto send_burst;
+		/* confirm traffic sending (pass ownership of the msgb/prim) */
+		if (OSMO_LIKELY(rc == 0))
+			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
+		else /* unlikely: encoding failed, drop prim */
+			msgb_free(msg);
+		/* drop the other primitive */
+		msgb_free((msg == msg_facch) ? msg_tch : msg_facch);
 		break;
 	}
 	/* CSD (TCH/F14.4): 14.5 kbit/s radio interface rate */
@@ -342,7 +352,7 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			/* Confirm FACCH sending (pass ownership of the msgb/prim) */
 			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
 		}
-		goto send_burst;
+		break;
 	/* CSD (TCH/F9.6): 12.0 kbit/s radio interface rate */
 	case GSM48_CMODE_DATA_12k0:
 		if ((msg = msg_tch) != NULL) {
@@ -360,7 +370,7 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			/* Confirm FACCH sending (pass ownership of the msgb/prim) */
 			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
 		}
-		goto send_burst;
+		break;
 	/* CSD (TCH/F4.8): 6.0 kbit/s radio interface rate */
 	case GSM48_CMODE_DATA_6k0:
 		if ((msg = msg_tch) != NULL) {
@@ -378,41 +388,32 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 			/* Confirm FACCH sending (pass ownership of the msgb/prim) */
 			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
 		}
-		goto send_burst;
+		break;
 	/* CSD (TCH/F2.4): 3.6 kbit/s radio interface rate */
 	case GSM48_CMODE_DATA_3k6:
 		if ((msg = msg_facch) != NULL) {
 			/* FACCH/F does steal a TCH/F2.4 frame completely */
-			rc = gsm0503_tch_fr_facch_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
+			gsm0503_tch_fr_facch_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
+			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
+			msgb_free(msg_tch);
 		} else if ((msg = msg_tch) != NULL) {
 			OSMO_ASSERT(msgb_l2len(msg) == 2 * 36);
-			rc = gsm0503_tch_fr24_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
+			gsm0503_tch_fr24_encode(BUFPOS(bursts_p, 0), msgb_l2(msg));
+			l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
 		} else {
 			ubit_t idle[2 * 36];
 			memset(&idle[0], 0x01, sizeof(idle));
 			gsm0503_tch_fr24_encode(BUFPOS(bursts_p, 0), &idle[0]);
-			goto send_burst;
 		}
 		break;
 	default:
 		LOGP_LCHAND(lchan, LOGL_ERROR,
 			    "TCH mode %s is unknown or not supported\n",
 			    gsm48_chan_mode_name(lchan->tch_mode));
-		goto free_bad_msg;
-	}
-
-	if (rc) {
-		LOGP_LCHAND(lchan, LOGL_ERROR, "Failed to encode L2 payload (len=%u): %s\n",
-			    msgb_l2len(msg), msgb_hexdump_l2(msg));
-free_bad_msg:
 		msgb_free(msg_facch);
 		msgb_free(msg_tch);
-		return -EINVAL;
+		break;
 	}
-
-	/* Confirm data / traffic sending (pass ownership of the msgb/prim) */
-	l1sched_lchan_emit_data_cnf(lchan, msg, br->fn);
-	msgb_free((msg == msg_facch) ? msg_tch : msg_facch);
 
 send_burst:
 	/* Determine which burst should be sent */
