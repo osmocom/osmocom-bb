@@ -321,6 +321,8 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 					    lchan->amr.codecs,
 					    lchan->amr.ul_ft,
 					    lchan->amr.ul_cmr);
+		if (msg == NULL)
+			goto send_burst;
 		break;
 	}
 	/* CSD (TCH/F14.4): 14.5 kbit/s radio interface rate */
