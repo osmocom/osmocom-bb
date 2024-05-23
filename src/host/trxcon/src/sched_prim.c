@@ -337,7 +337,8 @@ int l1sched_lchan_emit_data_cnf(struct l1sched_lchan_state *lchan,
 {
 	struct l1sched_prim *prim;
 
-	OSMO_ASSERT(msg != NULL);
+	if (msg == NULL)
+		return -ENODEV;
 
 	/* convert from DATA.req to DATA.cnf */
 	prim = l1sched_prim_from_msgb(msg);
