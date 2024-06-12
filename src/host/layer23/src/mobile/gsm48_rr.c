@@ -3703,6 +3703,7 @@ static int gsm48_rr_tx_meas_rep(struct osmocom_ms *ms)
 
 		/* get 6 strongest measurements */
 		strongest = 127; /* infinite */
+		strongest_i = -1; /* make gcc happy */
 		for (n = 0; n < 6; n++) {
 			current = -128; /* -infinite */
 			index = 0;
