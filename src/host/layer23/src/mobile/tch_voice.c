@@ -122,8 +122,8 @@ int tch_voice_state_init(struct gsm_trans *trans, struct tch_voice_state *state)
 	case TCH_VOICE_IOH_LOOPBACK:
 		rr->audio_mode = AUDIO_RX_TRAFFIC_IND | AUDIO_TX_TRAFFIC_REQ;
 		break;
-#ifdef WITH_GAPK_IO
 	case TCH_VOICE_IOH_GAPK:
+#ifdef WITH_GAPK_IO
 		if ((cd->chan_nr & RSL_CHAN_NR_MASK) == RSL_CHAN_Bm_ACCHs)
 			state->gapk_io = gapk_io_state_alloc_mode_rate(ms, cd->mode, true);
 		else /* RSL_CHAN_Lm_ACCHs */
