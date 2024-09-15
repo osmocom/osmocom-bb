@@ -25,8 +25,8 @@
 #include <delay.h>
 #include <memory.h>
 
-#define K2X0_WIDTH		128
-#define K2X0_HEIGHT		128
+#define K2XX_WIDTH		128
+#define K2XX_HEIGHT		128
 
 #define ARMIO_LATCH_OUT		0xfffe4802
 #define CS3_ADDR		0x02000000
@@ -38,11 +38,11 @@
 
 #define CL761_CLK		(1 << 4)
 #define CL761_RESET		(1 << 9)
-#define K2X0_ENABLE_BACKLIGHT	(1 << 3)
+#define K2XX_ENABLE_BACKLIGHT	(1 << 3)
 
-static uint8_t fb_k2x0_mem[K2X0_WIDTH * K2X0_HEIGHT];
+static uint8_t fb_k2xx_mem[K2XX_WIDTH * K2XX_HEIGHT];
 
-static const uint8_t k2x0_initdata[] = {
+static const uint8_t k2xx_initdata[] = {
 	0x2c,	/* CMD:  Standby Mode off */
 	0x02,	/* CMD:  Oscillation Mode Set */
 	0x01,	/* DATA: oscillator on */
@@ -95,7 +95,7 @@ void cl761_write_reg(uint8_t reg, uint16_t data)
 	writew(data, CL761_DATA_ADDR);
 }
 
-static void fb_k2x0_init(void)
+static void fb_k2xx_init(void)
 {
 	unsigned int i;
 	uint16_t reg;
@@ -116,14 +116,14 @@ static void fb_k2x0_init(void)
 	delay_ms(1);
 
 	reg &= ~CL761_CLK;
-	reg |= (1 << 1) | K2X0_ENABLE_BACKLIGHT;
+	reg |= (1 << 1) | K2XX_ENABLE_BACKLIGHT;
 	writew(reg, ARMIO_LATCH_OUT);
 
-	for (i = 0; i < sizeof(k2x0_initdata); i++)
-		writew(k2x0_initdata[i], DISPLAY_CMD_ADDR);
+	for (i = 0; i < sizeof(k2xx_initdata); i++)
+		writew(k2xx_initdata[i], DISPLAY_CMD_ADDR);
 }
 
-static void fb_k2x0_flush(void)
+static void fb_k2xx_flush(void)
 {
 	unsigned int i;
 	int x, y;
@@ -170,21 +170,21 @@ static void fb_k2x0_flush(void)
 	fb_rgb332->damage_y1 = fb_rgb332->damage_y2 = 0;
 }
 
-static struct framebuffer fb_k2x0_framebuffer = {
-	.name = "k2x0",
-	.init = fb_k2x0_init,
+static struct framebuffer fb_k2xx_framebuffer = {
+	.name = "k2xx",
+	.init = fb_k2xx_init,
 	.clear = fb_rgb332_clear,
 	.boxto = fb_rgb332_boxto,
 	.lineto = fb_rgb332_lineto,
 	.putstr = fb_rgb332_putstr,
-	.flush = fb_k2x0_flush,
-	.width = K2X0_WIDTH,
-	.height = K2X0_HEIGHT
+	.flush = fb_k2xx_flush,
+	.width = K2XX_WIDTH,
+	.height = K2XX_HEIGHT
 };
 
-static struct fb_rgb332 fb_k2x0_rgb332 = {
-	.mem = fb_k2x0_mem
+static struct fb_rgb332 fb_k2xx_rgb332 = {
+	.mem = fb_k2xx_mem
 };
 
-struct framebuffer *framebuffer = &fb_k2x0_framebuffer;
-struct fb_rgb332 *fb_rgb332 = &fb_k2x0_rgb332;
+struct framebuffer *framebuffer = &fb_k2xx_framebuffer;
+struct fb_rgb332 *fb_rgb332 = &fb_k2xx_rgb332;
