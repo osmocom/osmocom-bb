@@ -390,20 +390,6 @@ extern const uint8_t l1sched_nb_training_bits[8][26];
 
 const char *l1sched_burst_mask2str(const uint32_t *mask, int bits);
 
-/* Interleaved TCH/H block TDMA frame mapping */
-bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
-	uint32_t fn, bool ul, bool facch, bool start);
-
-#define l1sched_tchh_traffic_start(chan, fn, ul) \
-	l1sched_tchh_block_map_fn(chan, fn, ul, 0, 1)
-#define l1sched_tchh_traffic_end(chan, fn, ul) \
-	l1sched_tchh_block_map_fn(chan, fn, ul, 0, 0)
-
-#define l1sched_tchh_facch_start(chan, fn, ul) \
-	l1sched_tchh_block_map_fn(chan, fn, ul, 1, 1)
-#define l1sched_tchh_facch_end(chan, fn, ul) \
-	l1sched_tchh_block_map_fn(chan, fn, ul, 1, 0)
-
 /* Measurement history */
 void l1sched_lchan_meas_push(struct l1sched_lchan_state *lchan,
 			     const struct l1sched_burst_ind *bi);

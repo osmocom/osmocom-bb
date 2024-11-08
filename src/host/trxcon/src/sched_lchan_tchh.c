@@ -80,50 +80,8 @@ static const uint8_t sched_tchh_ul_amr_cmi_map[26] = {
 	[18] = 1, /* TCH/H(1): a=18 */
 };
 
-static const uint8_t tch_h0_traffic_block_map[3][4] = {
-	/* B0(0,2,4,6), B1(4,6,8,10), B2(8,10,0,2) */
-	{ 0, 2, 4, 6 },
-	{ 4, 6, 8, 10 },
-	{ 8, 10, 0, 2 },
-};
-
-static const uint8_t tch_h1_traffic_block_map[3][4] = {
-	/* B0(1,3,5,7), B1(5,7,9,11), B2(9,11,1,3) */
-	{ 1, 3, 5, 7 },
-	{ 5, 7, 9, 11 },
-	{ 9, 11, 1, 3 },
-};
-
-static const uint8_t tch_h0_dl_facch_block_map[3][6] = {
-	/* B0(4,6,8,10,13,15), B1(13,15,17,19,21,23), B2(21,23,0,2,4,6) */
-	{ 4, 6, 8, 10, 13, 15 },
-	{ 13, 15, 17, 19, 21, 23 },
-	{ 21, 23, 0, 2, 4, 6 },
-};
-
-static const uint8_t tch_h0_ul_facch_block_map[3][6] = {
-	/* B0(0,2,4,6,8,10), B1(8,10,13,15,17,19), B2(17,19,21,23,0,2) */
-	{ 0, 2, 4, 6, 8, 10 },
-	{ 8, 10, 13, 15, 17, 19 },
-	{ 17, 19, 21, 23, 0, 2 },
-};
-
-static const uint8_t tch_h1_dl_facch_block_map[3][6] = {
-	/* B0(5,7,9,11,14,16), B1(14,16,18,20,22,24), B2(22,24,1,3,5,7) */
-	{ 5, 7, 9, 11, 14, 16 },
-	{ 14, 16, 18, 20, 22, 24 },
-	{ 22, 24, 1, 3, 5, 7 },
-};
-
-const uint8_t tch_h1_ul_facch_block_map[3][6] = {
-	/* B0(1,3,5,7,9,11), B1(9,11,14,16,18,20), B2(18,20,22,24,1,3) */
-	{ 1, 3, 5, 7, 9, 11 },
-	{ 9, 11, 14, 16, 18, 20 },
-	{ 18, 20, 22, 24, 1, 3 },
-};
-
-/* FACCH/H channel mapping for Downlink (see 3GPP TS 45.002, table 1).
- * This mapping is valid for both FACCH/H(0) and FACCH/H(1).
+/* FACCH/H channel mappings for DL and UL (see 3GPP TS 45.002, table 1).
+ * These mappings are valid for both FACCH/H(0) and FACCH/H(1).
  * TDMA frame number of burst 'f' is used as the table index. */
 static const uint8_t sched_tchh_dl_facch_map[26] = {
 	[15] = 1, /* FACCH/H(0): B0(4,6,8,10,13,15) */
@@ -132,6 +90,16 @@ static const uint8_t sched_tchh_dl_facch_map[26] = {
 	[24] = 1, /* FACCH/H(1): B1(14,16,18,20,22,24) */
 	[6]  = 1, /* FACCH/H(0): B2(21,23,0,2,4,6) */
 	[7]  = 1, /* FACCH/H(1): B2(22,24,1,3,5,7) */
+};
+
+/* TDMA frame number of burst 'a' is used as the table index. */
+static const uint8_t sched_tchh_ul_facch_map[26] = {
+	[0]  = 1, /* FACCH/H(0): B0(0,2,4,6,8,10) */
+	[1]  = 1, /* FACCH/H(1): B0(1,3,5,7,9,11) */
+	[8]  = 1, /* FACCH/H(0): B1(8,10,13,15,17,19) */
+	[9]  = 1, /* FACCH/H(1): B1(9,11,14,16,18,20) */
+	[17] = 1, /* FACCH/H(0): B2(17,19,21,23,0,2) */
+	[18] = 1, /* FACCH/H(1): B2(18,20,22,24,1,3) */
 };
 
 /* 3GPP TS 45.002, table 2 in clause 7: Mapping tables for TCH/H2.4 and TCH/H4.8.
@@ -168,63 +136,6 @@ static const uint8_t sched_tchh_dl_csd_map[26] = {
 	[10] = 1, /* TCH/H(0): B2(17 ... 10) */
 	[11] = 1, /* TCH/H(1): B2(18 ... 11) */
 };
-
-/**
- * Can a TCH/H block transmission be initiated / finished
- * on a given frame number and a given channel type?
- *
- * See GSM 05.02, clause 7, table 1
- *
- * @param  chan   channel type (L1SCHED_TCHH_0 or L1SCHED_TCHH_1)
- * @param  fn     the current frame number
- * @param  ul     Uplink or Downlink?
- * @param  facch  FACCH/H or traffic?
- * @param  start  init or end of transmission?
- * @return        true (yes) or false (no)
- */
-bool l1sched_tchh_block_map_fn(enum l1sched_lchan_type chan,
-	uint32_t fn, bool ul, bool facch, bool start)
-{
-	uint8_t fn_mf;
-	int i = 0;
-
-	/* Just to be sure */
-	OSMO_ASSERT(chan == L1SCHED_TCHH_0 || chan == L1SCHED_TCHH_1);
-
-	/* Calculate a modulo */
-	fn_mf = facch ? (fn % 26) : (fn % 13);
-
-#define MAP_GET_POS(map) \
-	(start ? 0 : ARRAY_SIZE(map[i]) - 1)
-
-#define BLOCK_MAP_FN(map) \
-	do { \
-		if (map[i][MAP_GET_POS(map)] == fn_mf) \
-			return true; \
-	} while (++i < ARRAY_SIZE(map))
-
-	/* Choose a proper block map */
-	if (facch) {
-		if (ul) {
-			if (chan == L1SCHED_TCHH_0)
-				BLOCK_MAP_FN(tch_h0_ul_facch_block_map);
-			else
-				BLOCK_MAP_FN(tch_h1_ul_facch_block_map);
-		} else {
-			if (chan == L1SCHED_TCHH_0)
-				BLOCK_MAP_FN(tch_h0_dl_facch_block_map);
-			else
-				BLOCK_MAP_FN(tch_h1_dl_facch_block_map);
-		}
-	} else {
-		if (chan == L1SCHED_TCHH_0)
-			BLOCK_MAP_FN(tch_h0_traffic_block_map);
-		else
-			BLOCK_MAP_FN(tch_h1_traffic_block_map);
-	}
-
-	return false;
-}
 
 static int decode_hr_facch(struct l1sched_lchan_state *lchan)
 {
@@ -278,7 +189,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 
 		/* Align reception of the first FACCH/H frame */
 		if (lchan->tch_mode == GSM48_CMODE_SIGN) {
-			if (!l1sched_tchh_facch_start(lchan->type, bi->fn, 0))
+			if (!sched_tchh_dl_facch_map[bi->fn % 26])
 				return 0;
 		}
 	}
@@ -451,7 +362,7 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 		/* Align transmission of the first frame */
 		switch (lchan->tch_mode) {
 		case GSM48_CMODE_SIGN:
-			if (!l1sched_tchh_facch_start(lchan->type, br->fn, 1))
+			if (!sched_tchh_ul_facch_map[br->fn % 26])
 				return 0;
 			break;
 		case GSM48_CMODE_DATA_6k0:
@@ -485,7 +396,7 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 
 	/* dequeue a pair of TCH and FACCH frames */
 	msg_tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
-	if (l1sched_tchh_facch_start(lchan->type, br->fn, true))
+	if (sched_tchh_ul_facch_map[br->fn % 26])
 		msg_facch = l1sched_lchan_prim_dequeue_tch(lchan, true);
 	else
 		msg_facch = NULL;
@@ -495,7 +406,7 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	/* populate the buffer with bursts */
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
-		if (!l1sched_tchh_facch_start(lchan->type, br->fn, 1))
+		if (!sched_tchh_ul_facch_map[br->fn % 26])
 			goto send_burst; /* XXX: should not happen */
 		if (msg == NULL)
 			msg = l1sched_lchan_prim_dummy_lapdm(lchan);
