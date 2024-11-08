@@ -310,8 +310,6 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		/* Data (CSD) is interleaved over 22 bursts */
 		if ((*mask & 0x3fffff) != 0x3fffff)
 			return 0;
-		if (!sched_tchh_dl_csd_map[bi->fn % 26])
-			return 0; /* CSD: skip decoding attempt, need 2 more bursts */
 		break;
 	default:
 		/* Speech is interleaved over 4 bursts */
@@ -372,14 +370,20 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	/* CSD (TCH/H4.8): 6.0 kbit/s radio interface rate */
 	case GSM48_CMODE_DATA_6k0:
 		/* FACCH/H does not steal TCH/H4.8 frames, but only disturbs some bits */
-		decode_hr_facch(lchan);
+		if (sched_tchh_dl_facch_map[bi->fn % 26])
+			decode_hr_facch(lchan);
+		if (!sched_tchh_dl_csd_map[bi->fn % 26])
+			return 0;
 		rc = gsm0503_tch_hr48_decode(&tch_data[0], BUFPOS(bursts_p, 0),
 					     &n_errors, &n_bits_total);
 		break;
 	/* CSD (TCH/H2.4): 3.6 kbit/s radio interface rate */
 	case GSM48_CMODE_DATA_3k6:
 		/* FACCH/H does not steal TCH/H2.4 frames, but only disturbs some bits */
-		decode_hr_facch(lchan);
+		if (sched_tchh_dl_facch_map[bi->fn % 26])
+			decode_hr_facch(lchan);
+		if (!sched_tchh_dl_csd_map[bi->fn % 26])
+			return 0;
 		rc = gsm0503_tch_hr24_decode(&tch_data[0], BUFPOS(bursts_p, 0),
 					     &n_errors, &n_bits_total);
 		break;
