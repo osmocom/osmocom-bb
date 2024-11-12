@@ -81,15 +81,26 @@ static const uint8_t sched_tchh_ul_amr_cmi_map[26] = {
 };
 
 /* FACCH/H channel mappings for DL and UL (see 3GPP TS 45.002, table 1).
- * These mappings are valid for both FACCH/H(0) and FACCH/H(1).
- * TDMA frame number of burst 'f' is used as the table index. */
-static const uint8_t sched_tchh_dl_facch_map[26] = {
+ * These mappings are valid for both FACCH/H(0) and FACCH/H(1). */
+
+/* TDMA frame number of burst 'f' is used as the table index. */
+static const uint8_t sched_tchh_dl_facch_f_map[26] = {
 	[15] = 1, /* FACCH/H(0): B0(4,6,8,10,13,15) */
 	[16] = 1, /* FACCH/H(1): B0(5,7,9,11,14,16) */
 	[23] = 1, /* FACCH/H(0): B1(13,15,17,19,21,23) */
 	[24] = 1, /* FACCH/H(1): B1(14,16,18,20,22,24) */
 	[6]  = 1, /* FACCH/H(0): B2(21,23,0,2,4,6) */
 	[7]  = 1, /* FACCH/H(1): B2(22,24,1,3,5,7) */
+};
+
+/* TDMA frame number of burst 'a' is used as the table index. */
+static const uint8_t sched_tchh_dl_facch_a_map[26] = {
+	[4]  = 1, /* FACCH/H(0): B0(4,6,8,10,13,15) */
+	[5]  = 1, /* FACCH/H(1): B0(5,7,9,11,14,16) */
+	[13] = 1, /* FACCH/H(0): B1(13,15,17,19,21,23) */
+	[14] = 1, /* FACCH/H(1): B1(14,16,18,20,22,24) */
+	[21] = 1, /* FACCH/H(0): B2(21,23,0,2,4,6) */
+	[22] = 1, /* FACCH/H(1): B2(22,24,1,3,5,7) */
 };
 
 /* TDMA frame number of burst 'a' is used as the table index. */
@@ -189,7 +200,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 
 		/* Align reception of the first FACCH/H frame */
 		if (lchan->tch_mode == GSM48_CMODE_SIGN) {
-			if (!sched_tchh_dl_facch_map[bi->fn % 26])
+			if (!sched_tchh_dl_facch_a_map[bi->fn % 26])
 				return 0;
 		}
 	}
@@ -246,14 +257,14 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	case GSM48_CMODE_SIGN:
 	case GSM48_CMODE_SPEECH_V1: /* HR */
 		rc = gsm0503_tch_hr_decode(&tch_data[0], BUFTAIL8(bursts_p),
-					   !sched_tchh_dl_facch_map[bi->fn % 26],
+					   !sched_tchh_dl_facch_f_map[bi->fn % 26],
 					   &n_errors, &n_bits_total);
 		break;
 	case GSM48_CMODE_SPEECH_AMR: /* AMR */
 		/* See comment in function rx_tchf_fn() */
 		amr = 2;
 		rc = gsm0503_tch_ahs_decode_dtx(&tch_data[amr], BUFTAIL8(bursts_p),
-						!sched_tchh_dl_facch_map[bi->fn % 26],
+						!sched_tchh_dl_facch_f_map[bi->fn % 26],
 						!sched_tchh_dl_amr_cmi_map[bi->fn % 26],
 						lchan->amr.codec,
 						lchan->amr.codecs,
@@ -281,7 +292,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	/* CSD (TCH/H4.8): 6.0 kbit/s radio interface rate */
 	case GSM48_CMODE_DATA_6k0:
 		/* FACCH/H does not steal TCH/H4.8 frames, but only disturbs some bits */
-		if (sched_tchh_dl_facch_map[bi->fn % 26])
+		if (sched_tchh_dl_facch_f_map[bi->fn % 26])
 			decode_hr_facch(lchan);
 		if (!sched_tchh_dl_csd_map[bi->fn % 26])
 			return 0;
@@ -291,7 +302,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 	/* CSD (TCH/H2.4): 3.6 kbit/s radio interface rate */
 	case GSM48_CMODE_DATA_3k6:
 		/* FACCH/H does not steal TCH/H2.4 frames, but only disturbs some bits */
-		if (sched_tchh_dl_facch_map[bi->fn % 26])
+		if (sched_tchh_dl_facch_f_map[bi->fn % 26])
 			decode_hr_facch(lchan);
 		if (!sched_tchh_dl_csd_map[bi->fn % 26])
 			return 0;
