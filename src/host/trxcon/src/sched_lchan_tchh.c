@@ -50,16 +50,16 @@
 #define BUFPOS(buf, n) &buf[(n) * BPLEN]
 #define BUFTAIL8(buf) BUFPOS(buf, (BUFMAX - 8))
 
-/* 3GPP TS 45.009, table 3.2.1.3-{2,4}: AMR on Downlink TCH/H.
- *
- * +---+---+---+---+---+---+
- * | a | b | c | d | e | f |  Burst 'a' received first
- * +---+---+---+---+---+---+
- *  ^^^^^^^^^^^^^^^^^^^^^^^   FACCH frame  (bursts 'a' .. 'f')
- *  ^^^^^^^^^^^^^^^           Speech frame (bursts 'a' .. 'd')
- *
- * TDMA frame number of burst 'f' is always used as the table index. */
-static const uint8_t sched_tchh_dl_amr_cmi_map[26] = {
+/* ------------------------------------------------------------------
+ * 3GPP TS 45.009, table 3.2.1.3-2
+ * "TDMA frames for Codec Mode Indication for TCH/AHS, O-TCH/AHS and O-TCH/WHS"
+ * These mappings are valid for both TCH/H(0) and TCH/H(1). */
+
+/* TDMA frame number (mod 26) of burst 'f' (see below) is the table index.
+ * Even though a TCH/AHS block is interleaved over 4 bursts ('a' .. 'd'),
+ * we need to "think" 2 TDMA slots ahead because of the way we put bursts
+ * to the DL buffer (see doc/l1sched_tch.txt). */
+static const uint8_t sched_tchh_dl_amr_cmi_f_map[26] = {
 	[15] = 1, /* TCH/H(0): a=4  / d=10 / f=15 */
 	[23] = 1, /* TCH/H(0): a=13 / d=19 / f=23 */
 	[6]  = 1, /* TCH/H(0): a=21 / d=2  / f=6 */
@@ -69,8 +69,8 @@ static const uint8_t sched_tchh_dl_amr_cmi_map[26] = {
 	[7]  = 1, /* TCH/H(1): a=22 / d=3  / f=7 */
 };
 
-/* TDMA frame number of burst 'a' is always used as the table index. */
-static const uint8_t sched_tchh_ul_amr_cmi_map[26] = {
+/* TDMA frame number (mod 26) of burst 'a' (first) is the table index. */
+static const uint8_t sched_tchh_ul_amr_cmi_a_map[26] = {
 	[0]  = 1, /* TCH/H(0): a=0 */
 	[8]  = 1, /* TCH/H(0): a=8 */
 	[17] = 1, /* TCH/H(0): a=17 */
@@ -80,10 +80,11 @@ static const uint8_t sched_tchh_ul_amr_cmi_map[26] = {
 	[18] = 1, /* TCH/H(1): a=18 */
 };
 
-/* FACCH/H channel mappings for DL and UL (see 3GPP TS 45.002, table 1).
+/* ------------------------------------------------------------------
+ * FACCH/H channel mappings for DL and UL (see 3GPP TS 45.002, table 1).
  * These mappings are valid for both FACCH/H(0) and FACCH/H(1). */
 
-/* TDMA frame number of burst 'f' is used as the table index. */
+/* TDMA frame number (mod 26) of burst 'f' (last) is the table index. */
 static const uint8_t sched_tchh_dl_facch_f_map[26] = {
 	[15] = 1, /* FACCH/H(0): B0(4,6,8,10,13,15) */
 	[16] = 1, /* FACCH/H(1): B0(5,7,9,11,14,16) */
@@ -93,7 +94,7 @@ static const uint8_t sched_tchh_dl_facch_f_map[26] = {
 	[7]  = 1, /* FACCH/H(1): B2(22,24,1,3,5,7) */
 };
 
-/* TDMA frame number of burst 'a' is used as the table index. */
+/* TDMA frame number (mod 26) of burst 'a' (first) is the table index. */
 static const uint8_t sched_tchh_dl_facch_a_map[26] = {
 	[4]  = 1, /* FACCH/H(0): B0(4,6,8,10,13,15) */
 	[5]  = 1, /* FACCH/H(1): B0(5,7,9,11,14,16) */
@@ -103,8 +104,8 @@ static const uint8_t sched_tchh_dl_facch_a_map[26] = {
 	[22] = 1, /* FACCH/H(1): B2(22,24,1,3,5,7) */
 };
 
-/* TDMA frame number of burst 'a' is used as the table index. */
-static const uint8_t sched_tchh_ul_facch_map[26] = {
+/* TDMA frame number (mod 26) of burst 'a' (first) is the table index. */
+static const uint8_t sched_tchh_ul_facch_a_map[26] = {
 	[0]  = 1, /* FACCH/H(0): B0(0,2,4,6,8,10) */
 	[1]  = 1, /* FACCH/H(1): B0(1,3,5,7,9,11) */
 	[8]  = 1, /* FACCH/H(0): B1(8,10,13,15,17,19) */
@@ -113,22 +114,12 @@ static const uint8_t sched_tchh_ul_facch_map[26] = {
 	[18] = 1, /* FACCH/H(1): B2(18,20,22,24,1,3) */
 };
 
-/* 3GPP TS 45.002, table 2 in clause 7: Mapping tables for TCH/H2.4 and TCH/H4.8.
- *
- * +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
- * | a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p | q | r | s | t | u | v |
- * +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
- *
- * TCH/H(0): B0(0,2,4,6,8,10,13,15,17,19,21,23,0,2,4,6,8,10,13,15,17,19)
- * TCH/H(1): B0(1,3,5,7,9,11,14,16,18,20,22,24,1,3,5,7,9,11,14,16,18,20)
- * TCH/H(0): B1(8,10,13,15,17,19,21,23,0,2,4,6,8,10,13,15,17,19,21,23,0,2)
- * TCH/H(1): B1(9,11,14,16,18,20,22,24,1,3,5,7,9,11,14,16,18,20,22,24,1,3)
- * TCH/H(0): B2(17,19,21,23,0,2,4,6,8,10,13,15,17,19,21,23,0,2,4,6,8,10)
- * TCH/H(1): B2(18,20,22,24,1,3,5,7,9,11,14,16,18,20,22,24,1,3,5,7,9,11)
- *
- * TDMA frame number of burst 'a' % 26 is the table index.
- * This mapping is valid for both TCH/H(0) and TCH/H(1). */
-static const uint8_t sched_tchh_ul_csd_map[26] = {
+/* ------------------------------------------------------------------
+ * 3GPP TS 45.002, table 2 in clause 7: Mapping tables for TCH/H2.4 and TCH/H4.8.
+ * These mappings are valid for both TCH/H(0) and TCH/H(1). */
+
+/* TDMA frame number (mod 26) of burst 'a' (first) is the table index. */
+static const uint8_t sched_tchh_ul_csd_a_map[26] = {
 	[0]  = 1, /* TCH/H(0): B0(0  ... 19) */
 	[1]  = 1, /* TCH/H(1): B0(1  ... 20) */
 	[8]  = 1, /* TCH/H(0): B1(8  ... 2) */
@@ -137,9 +128,8 @@ static const uint8_t sched_tchh_ul_csd_map[26] = {
 	[18] = 1, /* TCH/H(1): B2(18 ... 11) */
 };
 
-/* TDMA frame number of burst 'v' % 26 is the table index.
- * This mapping is valid for both TCH/H(0) and TCH/H(1). */
-static const uint8_t sched_tchh_dl_csd_map[26] = {
+/* TDMA frame number (mod 26) of burst 'v' (last) is the table index. */
+static const uint8_t sched_tchh_dl_csd_v_map[26] = {
 	[19] = 1, /* TCH/H(0): B0(0  ... 19) */
 	[20] = 1, /* TCH/H(1): B0(1  ... 20) */
 	[2]  = 1, /* TCH/H(0): B1(8  ... 2) */
@@ -265,7 +255,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		amr = 2;
 		rc = gsm0503_tch_ahs_decode_dtx(&tch_data[amr], BUFTAIL8(bursts_p),
 						!sched_tchh_dl_facch_f_map[bi->fn % 26],
-						!sched_tchh_dl_amr_cmi_map[bi->fn % 26],
+						!sched_tchh_dl_amr_cmi_f_map[bi->fn % 26],
 						lchan->amr.codec,
 						lchan->amr.codecs,
 						&lchan->amr.dl_ft,
@@ -294,7 +284,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		/* FACCH/H does not steal TCH/H4.8 frames, but only disturbs some bits */
 		if (sched_tchh_dl_facch_f_map[bi->fn % 26])
 			decode_hr_facch(lchan);
-		if (!sched_tchh_dl_csd_map[bi->fn % 26])
+		if (!sched_tchh_dl_csd_v_map[bi->fn % 26])
 			return 0;
 		rc = gsm0503_tch_hr48_decode(&tch_data[0], BUFPOS(bursts_p, 0),
 					     &n_errors, &n_bits_total);
@@ -304,7 +294,7 @@ int rx_tchh_fn(struct l1sched_lchan_state *lchan,
 		/* FACCH/H does not steal TCH/H2.4 frames, but only disturbs some bits */
 		if (sched_tchh_dl_facch_f_map[bi->fn % 26])
 			decode_hr_facch(lchan);
-		if (!sched_tchh_dl_csd_map[bi->fn % 26])
+		if (!sched_tchh_dl_csd_v_map[bi->fn % 26])
 			return 0;
 		rc = gsm0503_tch_hr24_decode(&tch_data[0], BUFPOS(bursts_p, 0),
 					     &n_errors, &n_bits_total);
@@ -373,12 +363,12 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 		/* Align transmission of the first frame */
 		switch (lchan->tch_mode) {
 		case GSM48_CMODE_SIGN:
-			if (!sched_tchh_ul_facch_map[br->fn % 26])
+			if (!sched_tchh_ul_facch_a_map[br->fn % 26])
 				return 0;
 			break;
 		case GSM48_CMODE_DATA_6k0:
 		case GSM48_CMODE_DATA_3k6:
-			if (!sched_tchh_ul_csd_map[br->fn % 26])
+			if (!sched_tchh_ul_csd_a_map[br->fn % 26])
 				return 0;
 			break;
 		}
@@ -400,14 +390,14 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	case GSM48_CMODE_DATA_6k0:
 	case GSM48_CMODE_DATA_3k6:
 		/* CSD: skip dequeueing/encoding, send 2 more bursts */
-		if (!sched_tchh_ul_csd_map[br->fn % 26])
+		if (!sched_tchh_ul_csd_a_map[br->fn % 26])
 			goto send_burst;
 		break;
 	}
 
 	/* dequeue a pair of TCH and FACCH frames */
 	msg_tch = l1sched_lchan_prim_dequeue_tch(lchan, false);
-	if (sched_tchh_ul_facch_map[br->fn % 26])
+	if (sched_tchh_ul_facch_a_map[br->fn % 26])
 		msg_facch = l1sched_lchan_prim_dequeue_tch(lchan, true);
 	else
 		msg_facch = NULL;
@@ -417,7 +407,7 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 	/* populate the buffer with bursts */
 	switch (lchan->tch_mode) {
 	case GSM48_CMODE_SIGN:
-		if (!sched_tchh_ul_facch_map[br->fn % 26])
+		if (!sched_tchh_ul_facch_a_map[br->fn % 26])
 			goto send_burst; /* XXX: should not happen */
 		if (msg == NULL)
 			msg = l1sched_lchan_prim_dummy_lapdm(lchan);
@@ -439,7 +429,7 @@ int tx_tchh_fn(struct l1sched_lchan_state *lchan,
 		break;
 	case GSM48_CMODE_SPEECH_AMR:
 	{
-		bool amr_fn_is_cmr = !sched_tchh_ul_amr_cmi_map[br->fn % 26];
+		bool amr_fn_is_cmr = !sched_tchh_ul_amr_cmi_a_map[br->fn % 26];
 		unsigned int offset = 0;
 
 		if (msg != NULL && msg != msg_facch) { /* TCH/AHS: speech */

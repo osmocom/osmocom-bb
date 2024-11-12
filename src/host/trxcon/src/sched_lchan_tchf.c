@@ -47,22 +47,19 @@
 #define BUFPOS(buf, n) &buf[(n) * BPLEN]
 #define BUFTAIL8(buf) BUFPOS(buf, (BUFMAX - 8))
 
-/* 3GPP TS 45.009, table 3.2.1.3-{1,3}: AMR on Downlink TCH/F.
- *
- * +---+---+---+---+---+---+---+---+
- * | a | b | c | d | e | f | g | h |  Burst 'a' received first
- * +---+---+---+---+---+---+---+---+
- *  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   Speech/FACCH frame  (bursts 'a' .. 'h')
- *
- * TDMA frame number of burst 'h' is always used as the table index. */
-static const uint8_t sched_tchf_dl_amr_cmi_map[26] = {
+/* ------------------------------------------------------------------
+ * 3GPP TS 45.009, table 3.2.1.3-1
+ * "TDMA frames for Codec Mode Indication for TCH/AFS, TCH/WFS and O-TCH/WFS" */
+
+/* TDMA frame number (mod 26) of burst 'h' (last) is the table index. */
+static const uint8_t sched_tchf_dl_amr_cmi_h_map[26] = {
 	[11] = 1, /* TCH/F: a=4  / h=11 */
 	[20] = 1, /* TCH/F: a=13 / h=20 */
 	[3]  = 1, /* TCH/F: a=21 / h=3 (21+7=28, 25 is idle -> 29. 29%26=3) */
 };
 
-/* TDMA frame number of burst 'a' should be used as the table index. */
-static const uint8_t sched_tchf_ul_amr_cmi_map[26] = {
+/* TDMA frame number (mod 26) of burst 'a' (first) is the table index. */
+static const uint8_t sched_tchf_ul_amr_cmi_a_map[26] = {
 	[0]  = 1, /* TCH/F: a=0 */
 	[8]  = 1, /* TCH/F: a=8 */
 	[17] = 1, /* TCH/F: a=17 */
@@ -166,7 +163,7 @@ int rx_tchf_fn(struct l1sched_lchan_state *lchan,
 		 * know this before we actually decode the frame) */
 		amr = 2;
 		rc = gsm0503_tch_afs_decode_dtx(&tch_data[amr], BUFTAIL8(bursts_p),
-						!sched_tchf_dl_amr_cmi_map[bi->fn % 26],
+						!sched_tchf_dl_amr_cmi_h_map[bi->fn % 26],
 						lchan->amr.codec,
 						lchan->amr.codecs,
 						&lchan->amr.dl_ft,
@@ -304,7 +301,7 @@ int tx_tchf_fn(struct l1sched_lchan_state *lchan,
 		break;
 	case GSM48_CMODE_SPEECH_AMR:
 	{
-		bool amr_fn_is_cmr = !sched_tchf_ul_amr_cmi_map[br->fn % 26];
+		bool amr_fn_is_cmr = !sched_tchf_ul_amr_cmi_a_map[br->fn % 26];
 		unsigned int offset = 0;
 
 		if (msg != NULL && msg != msg_facch) { /* TCH/AFS: speech */
