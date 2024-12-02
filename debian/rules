@@ -7,6 +7,10 @@ DH_ARGS := -D src/host/$$SUBPKG_DIR --with-autoreconf
 	export SUBPKG_CFG=--with-gapk-io; \
 	dh $@ $(DH_ARGS)
 
+	export SUBPKG=trxcon; \
+	export SUBPKG_DIR=trxcon; \
+	dh $@ $(DH_ARGS)
+
 # We need to run autoreconf multiple times, but dh_autoreconf can only run once
 # (see dh-autoreconf(7)). Run autoreconf directly to work around this.
 override_dh_autoreconf:
