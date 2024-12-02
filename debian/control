@@ -33,3 +33,9 @@ Architecture: any
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: OsmocomBB <-> SDR connection bridge
+
+Package: osmocom-bb-virtphy
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Osmocom virtual physical layer
