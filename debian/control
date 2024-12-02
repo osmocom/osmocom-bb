@@ -28,6 +28,12 @@ Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: MS-side implementation of L2 and L3 GSM protocols
 
+Package: osmocom-bb-trx-toolkit
+Architecture: any
+Multi-Arch: foreign
+Depends: python3
+Description: Tools for the TRX interface and emulating a virtual Um-interface
+
 Package: osmocom-bb-trxcon
 Architecture: any
 Multi-Arch: foreign
