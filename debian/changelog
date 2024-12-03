@@ -1,3 +1,31 @@
+osmocom-bb (0.2.0) unstable; urgency=medium
+
+  [ Harald Welte ]
+  * Add funding link to github mirror
+
+  [ Vadim Yanitskiy ]
+  * trxcon/l1sched: fix sending dummy TCH/A[FH]S blocks
+  * trxcon/l1sched: fix NULL pointer dereference in tx_tch[fh]_fn()
+  * trxcon/l1sched: make l1sched_lchan_emit_data_cnf() NULL-safe
+  * trxcon/l1sched: refactor prim management in tx_tch[fh]_fn()
+  * mobile: cosmetic: fix -Wswitch in tch_voice_state_init()
+  * mobile: fix -Wmaybe-uninitialized in gsm48_rr_tx_meas_rep()
+  * firmware: rename 'se_k2x0' -> 'se_k2xx' (include K205)
+  * firmware: k2xx: fix comments about flash organization
+  * trxcon/l1sched: fix decoding of DL FACCH/H for TCH/H4.8 and TCH/H2.4
+  * trxcon/l1sched: replace old API with sched_tchh_ul_facch_map[]
+  * trxcon/l1sched: fix FACCH/H regression in rx_tchh_fn()
+  * trxcon/l1sched: check-in trx_sched_tch.txt from osmo-bts.git
+  * trxcon/l1sched: clarify TDMA Fn (mod 26) maps
+
+  [ Oliver Smith ]
+  * debian: prepare for more subpackages
+  * debian: add subpackage osmocom-bb-trxcon
+  * debian: add subpackage osmocom-bb-virtphy
+  * debian: add subpackage osmocom-bb-trx-toolkit
+
+ -- Oliver Smith <osmith@sysmocom.de>  Tue, 03 Dec 2024 12:02:10 +0100
+
 osmocom-bb (0.1.0) unstable; urgency=medium
 
   * Initial debian packaging for layer23
