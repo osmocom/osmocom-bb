@@ -24,7 +24,7 @@ verify_value_string_arrays_are_terminated.py \
 export PKG_CONFIG_PATH="$inst/lib/pkgconfig:$PKG_CONFIG_PATH"
 export LD_LIBRARY_PATH="$inst/lib"
 
-osmo-build-dep.sh libosmocore "" ac_cv_path_DOXYGEN=false
+osmo-build-dep.sh libosmocore "" --disable-doxygen
 osmo-build-dep.sh libosmo-gprs
 osmo-build-dep.sh gapk
 
