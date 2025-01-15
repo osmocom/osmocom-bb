@@ -22,6 +22,7 @@ APP_CR_HOLDERS = [("2017-2019", "Vadim Yanitskiy <axilirator@gmail.com>")]
 
 import logging as log
 import threading
+import time
 import signal
 import os
 
@@ -96,7 +97,25 @@ class CLCKGen:
 				os.sched_setscheduler(0, os.SCHED_RR, sched_param)
 			except OSError:
 				log.error("CLCKGen: Failed to set real time process scheduler to SCHED_RR, priority %u" % (self.sched_rr_prio))
-		while not self._breaker.wait(self.ctr_interval):
+
+		# run .send_clck_ind() every .ctr_interval
+		# be careful not to accumulate timing error when organizing the clock loop
+		ns = 1e-9
+		us = 1e-6
+		t_tick = int(self.ctr_interval // ns)
+		t_next = time.monotonic_ns()
+		while 1:
+			t_next += t_tick
+			t = time.monotonic_ns()
+			dt = (t_next - t)
+			if dt < 0:
+				log.warning("CLCKGen: time overrun by %dus; resetting the clock" % (dt * ns // us))
+				t_next = time.monotonic_ns()
+				dt = 0
+
+			if self._breaker.wait(dt * ns):
+				break
+
 			self.send_clck_ind()
 
 	def send_clck_ind(self):
