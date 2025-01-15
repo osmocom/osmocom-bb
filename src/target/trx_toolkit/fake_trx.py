@@ -398,6 +398,8 @@ class Application(ApplicationBase):
 
 		# Init shared clock generator
 		self.clck_gen = CLCKGen([])
+		# This method will be called on each TDMA frame
+		self.clck_gen.clck_handler = self.clck_handler
 
 		# Power measurement emulation
 		# Noise: -120 .. -105
@@ -463,13 +465,17 @@ class Application(ApplicationBase):
 			for trx in self.trx_list.trx_list:
 				# DATA interface
 				if trx.data_if.sock in r_event:
-					msg = trx.recv_data_msg()
-					if msg is not None:
-						self.burst_fwd.forward_msg(trx, msg)
+					trx.recv_data_msg()
 
 				# CTRL interface
 				if trx.ctrl_if.sock in r_event:
 					trx.ctrl_if.handle_rx()
+
+	# This method will be called by the clock thread
+	def clck_handler(self, fn):
+		# We assume that this list is immutable at run-time
+		for trx in self.trx_list.trx_list:
+			trx.clck_tick(self.burst_fwd, fn)
 
 	def shutdown(self):
 		log.info("Shutting down...")
