@@ -1123,6 +1123,10 @@ int sim_apdu_resp(struct osmocom_ms *ms, struct msgb *msg)
 				payload, payload_len);
 			break;
 		case SIM_JOB_SEEK_RECORD:
+			if (length < 0 || length > 255) {
+				LOGP(DSIM, LOGL_ERROR, "invalid seek record value: %d exceeds [0..255]\n", length);
+				goto request_error;
+			}
 			gsm1111_tx_seek(ms, sh->seek_type_mode, data, length);
 			break;
 		case SIM_JOB_INCREASE:
