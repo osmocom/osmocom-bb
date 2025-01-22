@@ -63,6 +63,11 @@ class CLCKGen_Test(unittest.TestCase):
 		finally:
 			clck.stop()
 
+	# verify that default tick interval is 1 TDMA frame exactly
+	def test_period_is_gsm_frame(self):
+		clck = clck_gen.CLCKGen([])
+		self.assertEqual(clck.ctr_interval, 4.615e-3)
+
 
 if __name__ == '__main__':
 	unittest.main()
