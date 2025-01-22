@@ -34,9 +34,6 @@ class CLCKGen:
 	SEC_DELAY_US = 1000 * 1000
 	GSM_FRAME_US = 4615.0
 
-	# Average loop back delay
-	LO_DELAY_US = 90.0
-
 	def __init__(self, clck_links, clck_start = 0, ind_period = 102):
 		# This event is needed to control the thread
 		self._breaker = threading.Event()
@@ -47,7 +44,7 @@ class CLCKGen:
 		self.clck_start = clck_start
 
 		# Calculate counter time
-		self.ctr_interval  = self.GSM_FRAME_US - self.LO_DELAY_US
+		self.ctr_interval  = self.GSM_FRAME_US
 		self.ctr_interval /= self.SEC_DELAY_US
 
 		# (Optional) clock consumer
