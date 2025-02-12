@@ -79,7 +79,7 @@ static struct {
 	.trx_remote_ip = "127.0.0.1",
 	.trx_bind_ip = "0.0.0.0",
 	.trx_base_port = 6700,
-	.trx_fn_advance = 0,
+	.trx_fn_advance = 2,
 	.phyq_fbsb_extend_fns = 0,
 };
 
@@ -184,7 +184,7 @@ static void print_help(void)
 	printf("  -b --trx-bind     TRX bind IP address (default 0.0.0.0)\n");
 	printf("  -i --trx-remote   TRX remote IP address (default 127.0.0.1)\n");
 	printf("  -p --trx-port     Base port of TRX instance (default 6700)\n");
-	printf("  -f --trx-advance  Uplink burst scheduling advance (default 0)\n");
+	printf("  -f --trx-advance  Uplink burst scheduling advance (default 2)\n");
 	printf("  -F --fbsb-extend  FBSB timeout extension (in TDMA FNs, default 0)\n");
 	printf("  -s --socket       Listening socket for layer23 (default /tmp/osmocom_l2)\n");
 	printf("  -g --gsmtap-ip    The destination IP used for GSMTAP (disabled by default)\n");
