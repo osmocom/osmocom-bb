@@ -312,18 +312,16 @@ class Transceiver:
 		emit = []
 		wait = []
 
-		self._tx_queue_lock.acquire()
+		with self._tx_queue_lock:
+			for msg in self._tx_queue:
+				if msg.fn < fn:
+					drop.append(msg)
+				elif msg.fn == fn:
+					emit.append(msg)
+				else:
+					wait.append(msg)
 
-		for msg in self._tx_queue:
-			if msg.fn < fn:
-				drop.append(msg)
-			elif msg.fn == fn:
-				emit.append(msg)
-			else:
-				wait.append(msg)
-
-		self._tx_queue = wait
-		self._tx_queue_lock.release()
+			self._tx_queue = wait
 
 		for msg in emit:
 			fwd.forward_msg(self, msg)
