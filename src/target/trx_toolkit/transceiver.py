@@ -310,6 +310,7 @@ class Transceiver:
 
 		drop = []
 		emit = []
+		wait = []
 
 		self._tx_queue_lock.acquire()
 
@@ -318,8 +319,10 @@ class Transceiver:
 				drop.append(msg)
 			elif msg.fn == fn:
 				emit.append(msg)
+			else:
+				wait.append(msg)
 
-		self._tx_queue = [msg for msg in self._tx_queue if msg.fn > fn]
+		self._tx_queue = wait
 		self._tx_queue_lock.release()
 
 		for msg in emit:
