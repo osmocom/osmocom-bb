@@ -81,7 +81,7 @@ class TrainingSeqGMSK(Enum):
 		self.tsc_set = tsc_set
 
 		# Generate Training Sequence bits
-		self.seq = [int(x) for x in seq_str]
+		self.seq = bytearray(int(x) for x in seq_str)
 
 	@classmethod
 	def pick(self, burst):

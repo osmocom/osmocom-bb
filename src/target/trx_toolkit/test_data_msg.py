@@ -19,6 +19,7 @@
 # GNU General Public License for more details.
 
 import unittest
+from array import array
 
 from data_msg import Msg, TxMsg, RxMsg
 
@@ -136,8 +137,8 @@ class Msg_Test(unittest.TestCase):
 
 	# Validate bit conversations
 	def test_bit_conv(self):
-		usbits_ref = list(range(0, 256))
-		sbits_ref = list(range(-127, 128))
+		usbits_ref = array('B', range(0, 256))
+		sbits_ref = array('b', range(-127, 128))
 
 		# Test both usbit2sbit() and sbit2usbit()
 		sbits = Msg.usbit2sbit(usbits_ref)
@@ -147,10 +148,10 @@ class Msg_Test(unittest.TestCase):
 
 		# Test both sbit2ubit() and ubit2sbit()
 		ubits = Msg.sbit2ubit(sbits_ref)
-		self.assertEqual(ubits, ([1] * 127 + [0] * 128))
+		self.assertEqual(ubits, bytearray([1] * 127 + [0] * 128))
 
 		sbits = Msg.ubit2sbit(ubits)
-		self.assertEqual(sbits, ([-127] * 127 + [127] * 128))
+		self.assertEqual(sbits, array('b', [-127] * 127 + [127] * 128))
 
 	def _test_transform(self, msg):
 		# Prepare given messages

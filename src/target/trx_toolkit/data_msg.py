@@ -23,7 +23,12 @@ import abc
 
 from typing import List
 from enum import Enum
+from array import array
 from gsm_shared import *
+
+# _bu2s converts unsigned byte to signed.
+def _bu2s(x):
+	return struct.unpack('b', struct.pack('B', x))[0]
 
 class Modulation(Enum):
 	""" Modulation types defined in 3GPP TS 45.002 """
@@ -63,7 +68,7 @@ class Msg(abc.ABC):
 	KNOWN_VERSIONS = (0, 1)
 
 	def __init__(self, fn = None, tn = None, burst = None, ver = 0):
-		self.burst = burst
+		self.burst = burst	# bytes|bytearray for ubit,  array[b] for sbit,  array[B] for usbit
 		self.ver = ver
 		self.fn = fn
 		self.tn = tn
@@ -126,24 +131,29 @@ class Msg(abc.ABC):
 		return result
 
 	@staticmethod
-	def usbit2sbit(bits: List[int]) -> List[int]:
+	def usbit2sbit(bits): # array[B] -> array[b]
 		''' Convert unsigned soft-bits {254..0} to soft-bits {-127..127}. '''
-		return [-127 if (b == 0xff) else 127 - b for b in bits]
+		return array('b', bits.tobytes().translate(Msg._tab_usbit2sbit))
+	_tab_usbit2sbit = array('b', [-127 if (b == 0xff) else 127 - b  for b in range(0x100)])
 
 	@staticmethod
-	def sbit2usbit(bits: List[int]) -> List[int]:
+	def sbit2usbit(bits): # array[b] -> array[B]
 		''' Convert soft-bits {-127..127} to unsigned soft-bits {254..0}. '''
-		return [127 - b for b in bits]
+		return array('B', bits.tobytes().translate(Msg._tab_sbit2usbit))
+	_tab_sbit2usbit = array('B', [127 - _bu2s(b) for b in range(0x100)])
 
 	@staticmethod
-	def sbit2ubit(bits: List[int]) -> List[int]:
+	def sbit2ubit(bits): # array[b] -> bytearray
 		''' Convert soft-bits {-127..127} to bits {1..0}. '''
-		return [int(b < 0) for b in bits]
+		return bytearray(bits).translate(Msg._tab_sbit2ubit)
+	_tab_sbit2ubit = array('B', [int(_bu2s(b) < 0)  for b in range(0x100)])
 
 	@staticmethod
-	def ubit2sbit(bits: List[int]) -> List[int]:
+	def ubit2sbit(bits: bytearray): # -> array[b]
 		''' Convert bits {1..0} to soft-bits {-127..127}. '''
-		return [-127 if b else 127 for b in bits]
+		return array('b', bits.translate(Msg._tab_ubit2sbit))
+	_tab_ubit2sbit = array('b', [-127 if b else 127  for b in range(0x100)])
+
 
 	def validate(self):
 		''' Validate the message fields (throws ValueError). '''
@@ -328,13 +338,13 @@ class TxMsg(Msg):
 
 		# Distinguish between GSM and EDGE
 		if length >= EDGE_BURST_LEN:
-			self.burst = list(burst[:EDGE_BURST_LEN])
+			self.burst = bytearray(burst[:EDGE_BURST_LEN])
 		else:
-			self.burst = list(burst[:GMSK_BURST_LEN])
+			self.burst = bytearray(burst[:GMSK_BURST_LEN])
 
 	def rand_burst(self, length = GMSK_BURST_LEN):
 		''' Generate a random message specific burst. '''
-		self.burst = [random.randint(0, 1) for _ in range(length)]
+		self.burst = bytearray([random.randint(0, 1) for _ in range(length)])
 
 	def trans(self, ver = None):
 		''' Transform this message into RxMsg. '''
@@ -659,7 +669,7 @@ class RxMsg(Msg):
 	def parse_burst(self, burst):
 		''' Parse message specific burst. '''
 
-		burst = list(burst)
+		burst = array('B', burst)
 
 		if self.ver == 0x00:
 			burst = self._parse_burst_v0(burst)
@@ -673,7 +683,7 @@ class RxMsg(Msg):
 		if length is None:
 			length = self.mod_type.bl
 
-		self.burst = [random.randint(-127, 127) for _ in range(length)]
+		self.burst = array('b', [random.randint(-127, 127) for _ in range(length)])
 
 	def trans(self, ver = None):
 		''' Transform this message to TxMsg. '''

@@ -25,7 +25,7 @@ from gsm_shared import *
 class RandBurstGen:
 
 	# GSM 05.02 Chapter 5.2.6 Dummy Burst
-	db_bits = [
+	db_bits = bytearray([
 		0, 0, 0,
 		1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0,
 		0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0,
@@ -37,7 +37,7 @@ class RandBurstGen:
 		1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1,
 		0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0,
 		0, 0, 0,
-	]
+	])
 
 	# Pick a random TSC for a given burst type
 	def get_rand_tsc(self, bt):
@@ -72,11 +72,11 @@ class RandBurstGen:
 		# Tailing bits
 		buf += [0] * 3
 
-		return buf
+		return bytearray(buf)
 
 	# Generate a frequency correction burst
 	def gen_fb(self):
-		return [0] * GMSK_BURST_LEN
+		return bytearray([0] * GMSK_BURST_LEN)
 
 	# Generate a synchronization burst
 	def gen_sb(self, tsc = None):
@@ -99,7 +99,7 @@ class RandBurstGen:
 		# Tailing bits
 		buf += [0] * 3
 
-		return buf
+		return bytearray(buf)
 
 	# Generate a dummy burst
 	def gen_db(self):
@@ -126,4 +126,4 @@ class RandBurstGen:
 		# Guard period
 		buf += [0] * 60
 
-		return buf
+		return bytearray(buf)
