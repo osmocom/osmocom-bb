@@ -79,16 +79,16 @@ class Msg(abc.ABC):
 		return 1 + 4 # (VER + TN) + FN
 
 	@abc.abstractmethod
-	def gen_hdr(self):
-		''' Generate message specific header. '''
+	def append_hdr_to(self, buf):
+		''' Generate message specific header by appending it to buf. '''
 
 	@abc.abstractmethod
 	def parse_hdr(self, hdr):
 		''' Parse message specific header. '''
 
 	@abc.abstractmethod
-	def gen_burst(self):
-		''' Generate message specific burst. '''
+	def append_burst_to(self, buf):
+		''' Generate message specific burst by appending it to buf. '''
 
 	@abc.abstractmethod
 	def parse_burst(self, burst):
@@ -189,12 +189,11 @@ class Msg(abc.ABC):
 		buf += struct.pack(">L", self.fn)
 
 		# Generate message specific header part
-		hdr = self.gen_hdr()
-		buf += hdr
+		self.append_hdr_to(buf)
 
 		# Generate burst
 		if self.burst is not None:
-			buf += self.gen_burst()
+			self.append_burst_to(buf)
 
 		# This is a rudiment from (legacy) OpenBTS transceiver,
 		# some L1 implementations still expect two dummy bytes.
@@ -228,11 +227,11 @@ class Msg(abc.ABC):
 		self.parse_hdr(msg)
 
 		# Copy burst, skipping header
-		msg_burst = msg[self.HDR_LEN:]
-		if len(msg_burst) > 0:
-			self.parse_burst(msg_burst)
-		else:
+		if len(msg) == self.HDR_LEN:
 			self.burst = None
+			return
+		msg_burst = memoryview(msg)[self.HDR_LEN:]
+		self.parse_burst(msg_burst)
 
 class TxMsg(Msg):
 	''' Tx (L1 -> TRX) message coding API. '''
@@ -308,16 +307,11 @@ class TxMsg(Msg):
 		# Strip useless whitespace and return
 		return result.strip()
 
-	def gen_hdr(self):
-		''' Generate message specific header part. '''
-
-		# Allocate an empty byte-array
-		buf = bytearray()
+	def append_hdr_to(self, buf):
+		''' Generate message specific header by appending it to buf. '''
 
 		# Put power
 		buf.append(self.pwr)
-
-		return buf
 
 	def parse_hdr(self, hdr):
 		''' Parse message specific header part. '''
@@ -325,11 +319,11 @@ class TxMsg(Msg):
 		# Parse power level
 		self.pwr = hdr[5]
 
-	def gen_burst(self):
-		''' Generate message specific burst. '''
+	def append_burst_to(self, buf):
+		''' Generate message specific burst by appending it to buf. '''
 
 		# Copy burst 'as is'
-		return bytearray(self.burst)
+		return buf.extend(self.burst)
 
 	def parse_burst(self, burst):
 		''' Parse message specific burst. '''
@@ -338,9 +332,13 @@ class TxMsg(Msg):
 
 		# Distinguish between GSM and EDGE
 		if length >= EDGE_BURST_LEN:
-			self.burst = bytearray(burst[:EDGE_BURST_LEN])
+			if length > EDGE_BURST_LEN:
+				burst = memoryview(burst)[:EDGE_BURST_LEN]
 		else:
-			self.burst = bytearray(burst[:GMSK_BURST_LEN])
+			if length > GMSK_BURST_LEN:
+				burst = memoryview(burst)[:GMSK_BURST_LEN]
+
+		self.burst = bytearray(burst)
 
 	def rand_burst(self, length = GMSK_BURST_LEN):
 		''' Generate a random message specific burst. '''
@@ -602,11 +600,8 @@ class RxMsg(Msg):
 			self.mod_type = Modulation.ModGMSK
 			self.tsc_set = mts & 0b11
 
-	def gen_hdr(self):
-		''' Generate message specific header part. '''
-
-		# Allocate an empty byte-array
-		buf = bytearray()
+	def append_hdr_to(self, buf):
+		''' Generate message specific header by appending it to buf. '''
 
 		# Put RSSI
 		buf.append(-self.rssi)
@@ -622,8 +617,6 @@ class RxMsg(Msg):
 
 			# C/I: Carrier-to-Interference ratio (in centiBels)
 			buf += struct.pack(">h", self.ci)
-
-		return buf
 
 	def parse_hdr(self, hdr):
 		''' Parse message specific header part. '''
@@ -641,14 +634,11 @@ class RxMsg(Msg):
 			# C/I: Carrier-to-Interference ratio (in centiBels)
 			self.ci = struct.unpack(">h", hdr[9:11])[0]
 
-	def gen_burst(self):
-		''' Generate message specific burst. '''
+	def append_burst_to(self, buf):
+		''' Generate message specific burst appending it to buf. '''
 
 		# Convert soft-bits to unsigned soft-bits
-		burst_usbits = self.sbit2usbit(self.burst)
-
-		# Encode to bytes
-		return bytearray(burst_usbits)
+		buf.extend( self.sbit2usbit(self.burst) )	# XXX copies; can probably remove them with numpy
 
 	def _parse_burst_v0(self, burst):
 		''' Parse message specific burst for header version 0. '''

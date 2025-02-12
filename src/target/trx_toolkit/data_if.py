@@ -67,7 +67,7 @@ class DATAInterface(UDPLink):
 		# Attempt to parse a TRXD Tx message
 		try:
 			msg = TxMsg()
-			msg.parse_msg(bytearray(data))
+			msg.parse_msg(data)
 		except:
 			log.error("Failed to parse a TRXD Tx message "
 				"from R:%s:%u" % (self.remote_addr, self.remote_port))
