@@ -308,14 +308,23 @@ class Transceiver:
 		if not self.running:
 			return
 
+		drop = []
+		emit = []
+
 		self._tx_queue_lock.acquire()
 
 		for msg in self._tx_queue:
-			if msg.fn == fn:
-				fwd.forward_msg(self, msg)
-			elif msg.fn < fn:
-				log.warning("(%s) Stale TRXD message (fn=%u): %s"
-					% (self, fn, msg.desc_hdr()))
+			if msg.fn < fn:
+				drop.append(msg)
+			elif msg.fn == fn:
+				emit.append(msg)
 
 		self._tx_queue = [msg for msg in self._tx_queue if msg.fn > fn]
 		self._tx_queue_lock.release()
+
+		for msg in emit:
+			fwd.forward_msg(self, msg)
+
+		for msg in drop:
+			log.warning("(%s) Stale TRXD message (fn=%u): %s"
+				% (self, fn, msg.desc_hdr()))
