@@ -119,7 +119,7 @@ class Transceiver:
 	immediately.  Instead, they are being scheduled prematurely.
 
 	The rationale is that both transceiver and the L1 implementation
-	are separete processes that are not perfectly synchronized in time.
+	are separate processes that are not perfectly synchronized in time.
 	Moreover, the transceiver needs some time to prepare a burst for
 	transmission.  This is why the time difference between Uplink and
 	Downlink is actually much higher on practice (20 TDMA frame periods
@@ -131,7 +131,7 @@ class Transceiver:
 	the transmit queue until the appropriate time of transmission.
 
 	The API user is supposed to call recv_data_msg() in order to obtain
-	a L12TRX message on the TRXD (data) inteface, so it gets queued by
+	a L12TRX message on the TRXD (data) interface, so it gets queued by
 	this function.  Then, to ensure the timeous transmission, the user
 	of this implementation needs to call clck_tick() on each TDMA
 	frame.  Both functions are thread-safe (queue mutex).
@@ -288,7 +288,7 @@ class Transceiver:
 				"is not running => dropping..." % (self, msg.desc_hdr()))
 			return None
 
-		# Enque the message, it will be sent later
+		# Enqueue the message, it will be sent later
 		self.tx_queue_append(msg)
 		return msg
 
