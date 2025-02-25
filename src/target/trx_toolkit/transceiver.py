@@ -126,9 +126,9 @@ class Transceiver:
 	by default, at the moment of writing this patch).
 
 	In order to reflect that delay in a virtual environment, this
-	implementation, just like a normal transceiver (e.g. osmo-trx),
-	queues all to be transmitted (L12TRX) bursts, so hey remain in
-	the transmit queue until the appropriate time of transmission.
+	implementation, just like osmo-trx, queues all to be transmitted
+	(L12TRX) bursts, so that they remain in the transmit queue until
+	the appropriate time of transmission.
 
 	The API user is supposed to call recv_data_msg() in order to obtain
 	a L12TRX message on the TRXD (data) interface, so it gets queued by
