@@ -122,8 +122,8 @@ class Transceiver:
 	are separate processes that are not perfectly synchronized in time.
 	Moreover, the transceiver needs some time to prepare a burst for
 	transmission.  This is why the time difference between Uplink and
-	Downlink is actually much higher on practice (20 TDMA frame periods
-	by default, at the moment of writing this patch).
+	Downlink is actually much higher on practice (currently 2 TDMA
+	frame periods for both trxcon and osmo-bts-trx).
 
 	In order to reflect that delay in a virtual environment, this
 	implementation, just like osmo-trx, queues all to be transmitted
