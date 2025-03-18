@@ -23,6 +23,7 @@ APP_CR_HOLDERS = [("2017-2019", "Vadim Yanitskiy <axilirator@gmail.com>")]
 import logging as log
 import threading
 import signal
+import os
 
 from app_common import ApplicationBase
 from udp_link import UDPLink
@@ -36,7 +37,7 @@ class CLCKGen:
 	# Average loop back delay
 	LO_DELAY_US = 90.0
 
-	def __init__(self, clck_links, clck_start = 0, ind_period = 102):
+	def __init__(self, clck_links, clck_start = 0, ind_period = 102, sched_rr_prio = None):
 		# This event is needed to control the thread
 		self._breaker = threading.Event()
 		self._thread = None
@@ -51,6 +52,9 @@ class CLCKGen:
 
 		# (Optional) clock consumer
 		self.clck_handler = None
+
+		# RR Scheduler priority of thread. None = don't set it.
+		self.sched_rr_prio = sched_rr_prio
 
 	@property
 	def running(self):
@@ -68,6 +72,7 @@ class CLCKGen:
 		# Initialize and start a new thread
 		self._thread = threading.Thread(target = self._worker)
 		self._thread.setDaemon(True)
+		self._thread.sched_rr_prio = self.sched_rr_prio
 		self._thread.start()
 
 	def stop(self):
@@ -85,6 +90,13 @@ class CLCKGen:
 		self._breaker.clear()
 
 	def _worker(self):
+		if self.sched_rr_prio is not None:
+			sched_param = os.sched_param(self.sched_rr_prio)
+			try:
+				log.info("CLCKGen: Setting real time process scheduler to SCHED_RR, priority %u" % (self.sched_rr_prio))
+				os.sched_setscheduler(0, os.SCHED_RR, sched_param)
+			except OSError:
+				log.error("CLCKGen: Failed to set real time process scheduler to SCHED_RR, priority %u" % (self.sched_rr_prio))
 		while not self._breaker.wait(self.ctr_interval):
 			self.send_clck_ind()
 

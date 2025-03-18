@@ -397,7 +397,7 @@ class Application(ApplicationBase):
 		self.trx_list = TRXList()
 
 		# Init shared clock generator
-		self.clck_gen = CLCKGen([])
+		self.clck_gen = CLCKGen([], sched_rr_prio = self.argv.sched_rr_prio)
 
 		# Power measurement emulation
 		# Noise: -120 .. -105
@@ -524,6 +524,9 @@ class Application(ApplicationBase):
 		trx_group.add_argument("-p", "--bb-base-port",
 			dest = "bb_base_port", type = int, default = 6700,
 			help = "Set BB base port number (default %(default)s)")
+		trx_group.add_argument("-s", "--sched-rr-prio",
+			dest = "sched_rr_prio", type = int, default = None,
+			help = "Set Scheduler RR Priority (default None)")
 
 		mtrx_group = parser.add_argument_group("Additional transceivers")
 		mtrx_group.add_argument("--trx",
