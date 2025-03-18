@@ -27,6 +27,7 @@ import random
 import select
 import sys
 import re
+import os
 
 from app_common import ApplicationBase
 from burst_fwd import BurstForwarder
@@ -397,7 +398,7 @@ class Application(ApplicationBase):
 		self.trx_list = TRXList()
 
 		# Init shared clock generator
-		self.clck_gen = CLCKGen([], sched_rr_prio = self.argv.sched_rr_prio)
+		self.clck_gen = CLCKGen([], sched_rr_prio = None if self.argv.sched_rr_prio is None else self.argv.sched_rr_prio + 1)
 		# This method will be called on each TDMA frame
 		self.clck_gen.clck_handler = self.clck_handler
 
@@ -450,6 +451,14 @@ class Application(ApplicationBase):
 		trx_parent.child_trx_list.add_trx(trx_child)
 
 	def run(self):
+		if self.argv.sched_rr_prio is not None:
+			sched_param = os.sched_param(self.argv.sched_rr_prio)
+			try:
+				log.info("Setting real time process scheduler to SCHED_RR, priority %u" % (self.argv.sched_rr_prio))
+				os.sched_setscheduler(0, os.SCHED_RR, sched_param)
+			except OSError:
+				log.error("Failed to set real time process scheduler to SCHED_RR, priority %u" % (self.argv.sched_rr_prio))
+
 		# Compose list of to be monitored sockets
 		sock_list = []
 		for trx in self.trx_list.trx_list:
