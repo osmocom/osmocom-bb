@@ -70,7 +70,6 @@ class CLCKGen:
 		# Initialize and start a new thread
 		self._thread = threading.Thread(target = self._worker)
 		self._thread.daemon = True
-		self._thread.sched_rr_prio = self.sched_rr_prio
 		self._thread.start()
 
 	def stop(self):
