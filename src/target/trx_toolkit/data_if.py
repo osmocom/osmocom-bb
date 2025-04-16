@@ -70,7 +70,7 @@ class DATAInterface(UDPLink):
 			msg.parse_msg(data)
 		except:
 			log.error("Failed to parse a TRXD Tx message "
-				"from R:%s:%u" % (self.remote_addr, self.remote_port))
+				"from R:%s" % self.desc_remote())
 			return None
 
 		# Make sure the header version matches
@@ -90,7 +90,7 @@ class DATAInterface(UDPLink):
 			msg.parse_msg(bytearray(data))
 		except:
 			log.error("Failed to parse a TRXD Rx message "
-				"from R:%s:%u" % (self.remote_addr, self.remote_port))
+				"from R:%s" % self.desc_remote())
 			return None
 
 		# Make sure the header version matches

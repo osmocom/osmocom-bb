@@ -34,11 +34,15 @@ class UDPLink:
 	def __del__(self):
 		self.sock.close()
 
-	def desc_link(self):
+	def desc_local(self):
 		(bind_addr, bind_port) = self.sock.getsockname()
+		return "%s:%u" % (bind_addr, bind_port)
 
-		return "L:%s:%u <-> R:%s:%u" \
-			% (bind_addr, bind_port, self.remote_addr, self.remote_port)
+	def desc_remote(self):
+		return "%s:%u" % (self.remote_addr, self.remote_port)
+
+	def desc_link(self):
+		return "L:%s <-> R:%s" % (self.desc_local(), self.desc_remote())
 
 	def send(self, data):
 		self.sendto(data, (self.remote_addr, self.remote_port))
