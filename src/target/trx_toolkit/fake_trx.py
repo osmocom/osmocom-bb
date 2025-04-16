@@ -226,8 +226,7 @@ class FakeTRX(Transceiver):
 				return
 
 			# Since TRXDv1, we should send a NOPE.ind
-			del msg.burst # burst bits are omited
-			msg.burst = None
+			msg.burst = None # burst bits are omited
 
 			# TODO: shoud we make these values configurable?
 			msg.toa256 = self.TOA256_NOISE_DEFAULT

@@ -82,7 +82,6 @@ class CLCKGen:
 		self._thread.join()
 
 		# Free memory, reset breaker
-		del self._thread
 		self._thread = None
 		self._breaker.clear()
 

@@ -47,8 +47,7 @@ class BurstForwarder(TRXList):
 		tx_freq = src_trx.get_tx_freq(rx_msg.fn)
 
 		if src_trx.rf_muted:
-			del rx_msg.burst # burst bits are omited
-			rx_msg.burst = None
+			rx_msg.burst = None # burst bits are omited
 
 		# Iterate over all known transceivers
 		for trx in self.trx_list:
