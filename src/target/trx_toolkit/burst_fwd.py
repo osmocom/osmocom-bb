@@ -52,7 +52,7 @@ class BurstForwarder(TRXList):
 
 		# Iterate over all known transceivers
 		for trx in self.trx_list:
-			if trx == src_trx:
+			if trx is src_trx:
 				continue
 
 			# Check transceiver state
