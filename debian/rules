@@ -1,34 +1,15 @@
 #!/usr/bin/make -f
-DH_ARGS := -D src/host/$$SUBPKG_DIR --with-autoreconf
 
 %:
-	export SUBPKG=layer23; \
-	export SUBPKG_DIR=layer23; \
-	export SUBPKG_CFG=--with-gapk-io; \
-	dh $@ $(DH_ARGS)
+	dh $@
 
-	export SUBPKG=trxcon; \
-	export SUBPKG_DIR=trxcon; \
-	dh $@ $(DH_ARGS)
+override_dh_auto_build:
+	$(MAKE) -C src layer23 HOST_CONFARGS="--with-gapk-io"
+	$(MAKE) -C src trxcon
+	$(MAKE) -C src virtphy
 
-	export SUBPKG=virtphy; \
-	export SUBPKG_DIR=virt_phy; \
-	dh $@ $(DH_ARGS)
+# Installs a sub-project from src/host/ to its own DESTDIR
+install-%: src/host/%
+	$(MAKE) -C "$^" DESTDIR="$(CURDIR)/debian/tmp/$*" install
 
-# We need to run autoreconf multiple times, but dh_autoreconf can only run once
-# (see dh-autoreconf(7)). Run autoreconf directly to work around this.
-override_dh_autoreconf:
-	cd src/host/$$SUBPKG_DIR && autoreconf -fi
-
-override_dh_auto_configure:
-	dh_auto_configure -D src/host/$$SUBPKG_DIR -- $$SUBPKG_CFG
-
-override_dh_auto_install:
-	dh_auto_install -O-Dsrc/host/$$SUBPKG_DIR --destdir=debian/osmocom-bb-$$SUBPKG/
-
-# Run dh_prep only for the first subpackage. Otherwise previously built
-# binaries get removed and we end up with empty packages.
-override_dh_prep:
-	if [ "$$SUBPKG" = "layer23" ]; then \
-		dh_prep; \
-	fi
+override_dh_auto_install: install-layer23 install-trxcon install-virt_phy
