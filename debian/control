@@ -22,11 +22,23 @@ Vcs-Browser: https://gitea.osmocom.org/phone-side/osmocom-bb
 Vcs-Git: https://gerrit.osmocom.org/osmocom-bb
 Homepage: https://osmocom.org/projects/baseband/wiki
 
+Package: osmocom-bb-gprsdecode
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: GPRS burst capture decoding utility
+
 Package: osmocom-bb-layer23
 Architecture: any
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: MS-side implementation of L2 and L3 GSM protocols
+
+Package: osmocom-bb-osmocon
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Firmware loading and communication utility
 
 Package: osmocom-bb-trx-toolkit
 Architecture: any

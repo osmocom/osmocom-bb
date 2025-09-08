@@ -5,11 +5,15 @@
 
 override_dh_auto_build:
 	$(MAKE) -C src layer23 HOST_CONFARGS="--with-gapk-io"
-	$(MAKE) -C src trxcon
-	$(MAKE) -C src virtphy
+	$(MAKE) -C src osmocon trxcon virtphy
+	$(MAKE) -C src gprsdecode
 
 # Installs a sub-project from src/host/ to its own DESTDIR
 install-%: src/host/%
 	$(MAKE) -C "$^" DESTDIR="$(CURDIR)/debian/tmp/$*" install
 
-override_dh_auto_install: install-layer23 install-trxcon install-virt_phy
+override_dh_auto_install: install-layer23 \
+			  install-osmocon \
+			  install-trxcon \
+			  install-virt_phy \
+			  install-gprsdecode
