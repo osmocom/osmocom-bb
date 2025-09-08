@@ -1,1 +1,3 @@
 layer23/usr/local/bin/* usr/bin
+doc/examples/mobile/mobile.cfg etc/osmocom/
+doc/examples/modem/modem.cfg etc/osmocom/
