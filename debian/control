@@ -16,11 +16,19 @@ Build-Depends: debhelper (>= 10),
                libosmo-gprs-rlcmac-dev,
                libosmo-gprs-sm-dev,
                libosmo-gprs-sndcp-dev,
-               libosmogapk-dev
+               libosmogapk-dev,
+               osmo-gsm-manuals-dev (>= 1.6.0)
 Standards-Version: 4.1.4
 Vcs-Browser: https://gitea.osmocom.org/phone-side/osmocom-bb
 Vcs-Git: https://gerrit.osmocom.org/osmocom-bb
 Homepage: https://osmocom.org/projects/baseband/wiki
+
+Package: osmocom-bb-doc
+Architecture: all
+Section: doc
+Priority: optional
+Depends: ${misc:Depends}
+Description: ${misc:Package} PDF documentation
 
 Package: osmocom-bb-gprsdecode
 Architecture: any

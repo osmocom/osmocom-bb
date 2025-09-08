@@ -7,6 +7,7 @@ override_dh_auto_build:
 	$(MAKE) -C src layer23 HOST_CONFARGS="--with-gapk-io"
 	$(MAKE) -C src osmocon trxcon virtphy
 	$(MAKE) -C src gprsdecode
+	$(MAKE) -C doc/manuals
 
 # Installs a sub-project from src/host/ to its own DESTDIR
 install-%: src/host/%
@@ -17,3 +18,7 @@ override_dh_auto_install: install-layer23 \
 			  install-trxcon \
 			  install-virt_phy \
 			  install-gprsdecode
+
+# Don't create .pdf.gz files (barely saves space and they can't be opened directly by most pdf readers)
+override_dh_compress:
+	dh_compress -X.pdf
