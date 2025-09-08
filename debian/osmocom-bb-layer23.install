@@ -1,3 +1,6 @@
 layer23/usr/local/bin/* usr/bin
+doc/examples/mobile/*.lua usr/share/doc/osmocom-bb-layer23/mobile/
+doc/examples/mobile/*.cfg usr/share/doc/osmocom-bb-layer23/mobile/
+doc/examples/modem/*.cfg usr/share/doc/osmocom-bb-layer23/modem/
 doc/examples/mobile/mobile.cfg etc/osmocom/
 doc/examples/modem/modem.cfg etc/osmocom/
