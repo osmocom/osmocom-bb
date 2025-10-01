@@ -1,4 +1,5 @@
 
+#include "config.h"
 #include <string.h>
 #include <stdint.h>
 #include <errno.h>
@@ -34,6 +35,7 @@ const char *get_value_string(const struct value_string *vs, uint32_t val)
 	return namebuf;
 }
 
+#if (!EMBEDDED)
 /*! \brief get numeric value for given human-readable string
  *  \param[in] vs Array of value_string tuples
  *  \param[in] str human-readable string
@@ -51,6 +53,7 @@ int get_string_value(const struct value_string *vs, const char *str)
 	}
 	return -EINVAL;
 }
+#endif /* !EMBEDDED */
 
 /*! \brief Convert BCD-encoded digit into printable character
  *  \param[in] bcd A single BCD-encoded digit

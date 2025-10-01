@@ -151,6 +151,7 @@ int log_parse_category(const char *category)
 	return -EINVAL;
 }
 
+#if (!EMBEDDED)
 /*! \brief parse the log category mask
  *  \param[in] target log target to be configured
  *  \param[in] _mask log category mask string
@@ -202,6 +203,7 @@ void log_parse_category_mask(struct log_target* target, const char *_mask)
 
 	free(mask);
 }
+#endif /* !EMBEDDED */
 
 static const char* color(int subsys)
 {
@@ -436,12 +438,14 @@ void log_set_category_filter(struct log_target *target, int category,
 	target->categories[category].loglevel = level;
 }
 
+#if (!EMBEDDED)
 static void _file_output(struct log_target *target, unsigned int level,
 			 const char *log)
 {
 	fprintf(target->tgt_file.out, "%s", log);
 	fflush(target->tgt_file.out);
 }
+#endif /* !EMBEDDED */
 
 /*! \brief Create a new log target skeleton */
 struct log_target *log_target_create(void)
@@ -500,6 +504,7 @@ struct log_target *log_target_create_stderr(void)
 #endif /* stderr */
 }
 
+#if (!EMBEDDED)
 /*! \brief Create a new file-based log target
  *  \param[in] fname File name of the new log file
  *  \returns Log target in case of success, NULL otherwise
@@ -523,6 +528,7 @@ struct log_target *log_target_create_file(const char *fname)
 
 	return target;
 }
+#endif /* !EMBEDDED */
 
 /*! \brief Find a registered log target
  *  \param[in] type Log target type
@@ -552,6 +558,7 @@ void log_target_destroy(struct log_target *target)
 	/* just in case, to make sure we don't have any references */
 	log_del_target(target);
 
+#if (!EMBEDDED)
 	if (target->output == &_file_output) {
 /* since C89/C99 says stderr is a macro, we can safely do this! */
 #ifdef stderr
@@ -563,10 +570,12 @@ void log_target_destroy(struct log_target *target)
 			target->tgt_file.out = NULL;
 		}
 	}
+#endif /* !EMBEDDED */
 
 	talloc_free(target);
 }
 
+#if (!EMBEDDED)
 /*! \brief close and re-open a log file (for log file rotation) */
 int log_target_file_reopen(struct log_target *target)
 {
@@ -580,6 +589,7 @@ int log_target_file_reopen(struct log_target *target)
 
 	return 0;
 }
+#endif /* !EMBEDDED */
 
 /*! \brief Generates the logging command string for VTY
  *  \param[in] unused_info Deprecated parameter, no longer used!
