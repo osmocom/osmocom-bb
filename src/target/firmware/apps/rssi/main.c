@@ -1209,6 +1209,7 @@ static void enter_rach(void)
 	rach_req->ra = rach_ra;
 	rach_req->offset = 0;
 	rach_req->combined = (ccch_conf == 1);
+	rach_req->uic = 0xff; /* disable, use BSIC instead */
 
 	l1a_l23_rx(SC_DLCI_L1A_L23, msg1);
 	l1a_l23_rx(SC_DLCI_L1A_L23, msg2);
