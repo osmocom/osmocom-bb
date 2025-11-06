@@ -1270,6 +1270,7 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 	struct gsm_support *sup = &ms->support;
 	struct gsm_settings *set = &ms->settings;
 	struct bitvec bv;
+	int minimum_len;
 
 	memset(&bv, 0, sizeof(bv));
 	bv.data = buf;
@@ -1328,6 +1329,8 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 		bitvec_set_uint(&bv, 0, 4);
 		bitvec_set_uint(&bv, set->class_900, 4);
 	}
+	/* These octets above shall be included according to GSM 04.08 Version 5.3.0. */
+	minimum_len = (bv.cur_bit + 7) >> 3;
 	/* r support */
 	if (set->r_gsm) {
 		bitvec_set_bit(&bv, ONE);
@@ -1441,6 +1444,16 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 	/* partial bytes will be padded with zero */
 	*len = (bv.cur_bit + 7) >> 3;
 	bitvec_fill(&bv, (*len*8) - bv.cur_bit, ZERO);
+
+	/* Remove all all-zero octets at the end. See the rule in Clause 10.5.7.1:
+	   "Typically, the number of spare bits at the end is the minimum to reach an octet boundary.
+	    The receiver may add any number of bits set to "0" at the end of the received string
+	    if needed for correct decoding."
+	   GSM 04.08 Version 5.3.0 states that spare octets after "octet 3" and "octet 3bis" may be omitted.
+	   Note that "octet 3" refers to the first value (buf[0]) in this TLV information element.
+	 */
+	while (*len > minimum_len && buf[*len - 1] == 0x00)
+		(*len)--;
 
 	return 0;
 }
