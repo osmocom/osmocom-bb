@@ -1274,7 +1274,7 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 
 	memset(&bv, 0, sizeof(bv));
 	bv.data = buf;
-	bv.data_len = 12;
+	bv.data_len = 32;
 
 	/* spare bit */
 	bitvec_set_bit(&bv, 0);
@@ -1439,7 +1439,84 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 	} else {
 		bitvec_set_bit(&bv, ZERO);
 	}
-	/* info: The max number of bits are about 80. */
+	// TODO: Add setting for the following features
+	/* Single Band Support */
+	bitvec_set_bit(&bv, ZERO);
+	/* GSM 750 Band */
+	bitvec_set_bit(&bv, ZERO);
+	/* UMTS  1.28 Mcps */
+	bitvec_set_bit(&bv, ZERO);
+	/* Gerand Feature Package 1 */
+	bitvec_set_bit(&bv, ZERO);
+	/* Extendet DTM GPRS Multi Slot Class */
+	bitvec_set_bit(&bv, ZERO);
+	/* High Multislot Capability */
+	bitvec_set_bit(&bv, ZERO);
+	/* 0 */
+	bitvec_set_bit(&bv, ZERO);
+	/* Gerand Feature Package 1 */
+	bitvec_set_bit(&bv, ZERO);
+	/* GMSK Multislot Power Profile */
+	bitvec_set_uint(&bv, 0, 2);
+	/* 8-PSK Multislot Power Profile */
+	bitvec_set_uint(&bv, 0, 2);
+	/* T-GSM 400 Bands */
+	bitvec_set_bit(&bv, ZERO);
+	/* 0 */
+	bitvec_set_bit(&bv, ZERO);
+	/* Downlink Advanced Receiver Performance */
+	bitvec_set_uint(&bv, 0, 2);
+	/* DTM Enancements Capability */
+	bitvec_set_bit(&bv, ZERO);
+	/* DTM GPRS High Multi Slot Class */
+	bitvec_set_bit(&bv, ZERO);
+	/* Repeated ACCH Capability */
+	bitvec_set_bit(&bv, ZERO);
+	/* GSM 710 Associated Radio Capability */
+	bitvec_set_bit(&bv, ZERO);
+	/* T-GSM 810 Associated Radio Capability */
+	bitvec_set_bit(&bv, ZERO);
+	/* Ciphering Mode Setting Capability */
+	bitvec_set_bit(&bv, ZERO);
+	/* Additional Positioning Capabilities */
+	bitvec_set_bit(&bv, ZERO);
+	/* E-UTRAN FDD supported */
+	bitvec_set_bit(&bv, ZERO);
+	/* E-UTRAN TDD supported */
+	bitvec_set_bit(&bv, ZERO);
+	/* E-UTRAN Measurement and Reporting supported */
+	bitvec_set_bit(&bv, ZERO);
+	/* Priorify-based reselection supported */
+	bitvec_set_bit(&bv, ZERO);
+	/* UTRA CSG Cell Reporting */
+	bitvec_set_bit(&bv, ZERO);
+	/* VAMOS Level */
+	bitvec_set_uint(&bv, 0, 2);
+	/* TIGHTER Capability */
+	bitvec_set_uint(&bv, 0, 2);
+	/* Selective Ciphering of Downlink SACCH */
+	bitvec_set_bit(&bv, ZERO);
+	/* CS to PS SRVCC from GERAN to UTRA */
+	bitvec_set_uint(&bv, 0, 2);
+	/* CS to PS SRVCC from GERAN to E-UTRA */
+	bitvec_set_uint(&bv, 0, 2);
+	/* GERAN Network Sharing support */
+	bitvec_set_bit(&bv, ZERO);
+	/* E-UTRA Wideband RSRQ measurements support */
+	bitvec_set_bit(&bv, ZERO);
+	/* GSM ER Band */
+	if (set->er_gsm)
+		bitvec_set_bit(&bv, ONE);
+	else
+		bitvec_set_bit(&bv, ZERO);
+	/* UTRA Multiple Frequency Band indicators support */
+	bitvec_set_bit(&bv, ZERO);
+	/* E-UTRA Multiple Frequency Band indicators support */
+	bitvec_set_bit(&bv, ZERO);
+	/* Extended TSC Set Capability support */
+	bitvec_set_bit(&bv, ZERO);
+	/* Extended EARFCN value rande */
+	bitvec_set_bit(&bv, ZERO);
 
 	/* partial bytes will be padded with zero */
 	*len = (bv.cur_bit + 7) >> 3;
