@@ -140,8 +140,9 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 		lib/libmini.a \
 		comm/libcomm.a \
 		tiffs/libtiffs.a \
-		../../shared/libosmocore/build-target/src/.libs/libosmocore.a \
-		../../shared/libosmocore/build-target/src/gsm/.libs/libosmogsm.a
+		$(LIBOSMOCORE_PREFIX)/lib/libosmocore.a \
+		$(LIBOSMOCORE_PREFIX)/lib/libosmogsm.a \
+		$(NULL)
 
 
 #
@@ -149,7 +150,7 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 #
 
 # Global include path
-INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include -I../../shared/libosmocore/build-target/include
+INCLUDES=-Iinclude/ -I../../../include -I$(LIBOSMOCORE_PREFIX)/include
 
 # Libraries are defined in subdirectories
 -include calypso/Makefile

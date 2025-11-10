@@ -15,24 +15,7 @@ all: libosmocore-target nofirmware firmware mtk-firmware
 
 nofirmware: layer23 osmocon trxcon gprsdecode virtphy
 
-libosmocore-target: shared/libosmocore/build-target/src/.libs/libosmocore.a
-
-shared/libosmocore/configure: shared/libosmocore/configure.ac
-	cd shared/libosmocore && autoreconf -fi
-
-shared/libosmocore/build-target:
-	mkdir $@
-
-shared/libosmocore/build-target/Makefile: shared/libosmocore/configure shared/libosmocore/build-target
-	cd shared/libosmocore/build-target && ../configure \
-			--host=$(CROSS_HOST) --enable-embedded --disable-shared \
-			--disable-tests ac_cv_header_sys_select_h=no \
-			--disable-tests ac_cv_header_sys_socket_h=no \
-		CFLAGS="-Os -ffunction-sections -I$(TOPDIR)/target/firmware/include -nostartfiles -nodefaultlibs"
-
-shared/libosmocore/build-target/src/.libs/libosmocore.a: shared/libosmocore/build-target/Makefile
-	cd shared/libosmocore/build-target && make
-
+libosmocore-target: $(LIBOSMOCORE_PREFIX)/lib/libosmocore.a
 
 .PHONY: osmocon
 osmocon: host/osmocon/osmocon
@@ -105,7 +88,6 @@ mtk-firmware: libosmocore-target
 
 
 clean:
-	make -C shared/libosmocore/build-target $@
 	make -C host/layer23 $@
 	make -C host/osmocon $@
 	make -C host/gprsdecode $@
@@ -115,7 +97,6 @@ clean:
 	make -C target/firmware -f Makefile.mtk $@
 
 distclean:
-	rm -rf shared/libosmocore/build-target
 	make -C host/layer23 $@
 	make -C host/osmocon $@
 	make -C host/gprsdecode $@
