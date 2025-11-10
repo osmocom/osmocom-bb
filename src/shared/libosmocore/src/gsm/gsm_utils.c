@@ -481,7 +481,7 @@ enum gsm_band gsm_arfcn2band(uint16_t arfcn)
 		return GSM_BAND_1900;
 	else if (arfcn <= 124)
 		return GSM_BAND_900;
-	else if (arfcn >= 955 && arfcn <= 1023)
+	else if (arfcn >= 940 && arfcn <= 1023)
 		return GSM_BAND_900;
 	else if (arfcn >= 128 && arfcn <= 251)
 		return GSM_BAND_850;
@@ -517,8 +517,8 @@ uint16_t gsm_arfcn2freq10(uint16_t arfcn, int uplink)
 		/* Primary GSM + ARFCN 0 of E-GSM */
 		freq10_ul = 8900 + 2 * arfcn;
 		freq10_dl = freq10_ul + 450;
-	} else if (arfcn >= 955 && arfcn <= 1023) {
-		/* E-GSM and R-GSM */
+	} else if (arfcn >= 940 && arfcn <= 1023) {
+		/* E-GSM and R-GSM and ER-GSM */
 		freq10_ul = 8900 + 2 * (arfcn - 1024);
 		freq10_dl = freq10_ul + 450;
 	} else if (arfcn >= 128 && arfcn <= 251) {
