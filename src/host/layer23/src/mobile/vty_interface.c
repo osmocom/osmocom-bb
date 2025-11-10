@@ -1569,12 +1569,13 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	SUP_WRITE(p_gsm, "p-gsm");
 	SUP_WRITE(e_gsm, "e-gsm");
 	SUP_WRITE(r_gsm, "r-gsm");
+	SUP_WRITE(er_gsm, "er-gsm");
 	SUP_WRITE(gsm_850, "gsm-850");
 	SUP_WRITE(gsm_480, "gsm-480");
 	SUP_WRITE(gsm_450, "gsm-450");
 	SUP_WRITE(dcs, "dcs");
 	SUP_WRITE(pcs, "pcs");
-	if (sup->r_gsm || sup->e_gsm || sup->p_gsm)
+	if (sup->er_gsm || sup->r_gsm || sup->e_gsm || sup->p_gsm)
 		if (!l23_vty_hide_default || sup->class_900 != set->class_900)
 			vty_out(vty, "  class-900 %d%s", set->class_900,
 				VTY_NEWLINE);
@@ -2470,6 +2471,7 @@ SUP_EN_DI(a5_7, "a5/7", "A5/7", 0);
 SUP_EN_DI(p_gsm, "p-gsm", "P-GSM (900)", 1);
 SUP_EN_DI(e_gsm, "e-gsm", "E-GSM (850)", 1);
 SUP_EN_DI(r_gsm, "r-gsm", "R-GSM (850)", 1);
+SUP_EN_DI(er_gsm, "er-gsm", "ER-GSM (850)", 1);
 SUP_EN_DI(dcs, "dcs", "DCS (1800)", 1);
 SUP_EN_DI(gsm_850, "gsm-850", "GSM 850", 1);
 SUP_EN_DI(pcs, "pcs", "PCS (1900)", 1);
@@ -3111,6 +3113,8 @@ int ms_vty_init(void)
 	install_element(SUPPORT_NODE, &cfg_ms_sup_di_e_gsm_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_en_r_gsm_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_di_r_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_en_er_gsm_cmd);
+	install_element(SUPPORT_NODE, &cfg_ms_sup_di_er_gsm_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_en_dcs_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_di_dcs_cmd);
 	install_element(SUPPORT_NODE, &cfg_ms_sup_en_gsm_850_cmd);

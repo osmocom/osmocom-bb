@@ -95,6 +95,7 @@ int gsm_settings_init(struct osmocom_ms *ms)
 	set->p_gsm = sup->p_gsm;
 	set->e_gsm = sup->e_gsm;
 	set->r_gsm = sup->r_gsm;
+	set->er_gsm = sup->er_gsm;
 	set->dcs = sup->dcs;
 	set->class_900 = sup->class_900;
 	set->class_dcs = sup->class_dcs;
@@ -179,9 +180,14 @@ int gsm_settings_arfcn(struct osmocom_ms *ms)
 			set->freq_map[i >> 3] |= (1 << (i & 7));
 		set->freq_map[0] |= 1;
 	}
-	if (set->r_gsm)
-		for(i = 955; i <= 974; i++)
+	if (set->r_gsm) {
+		for (i = 955; i <= 974; i++)
 			set->freq_map[i >> 3] |= (1 << (i & 7));
+	}
+	if (set->er_gsm) {
+		for (i = 940; i <= 954; i++)
+			set->freq_map[i >> 3] |= (1 << (i & 7));
+	}
 
 	return 0;
 }

@@ -1284,12 +1284,12 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 	else
 		bitvec_set_bit(&bv, ZERO);
 	/* band 2 supported */
-	if (set->e_gsm || set->r_gsm)
+	if (set->e_gsm || set->r_gsm || set->er_gsm)
 		bitvec_set_bit(&bv, ONE);
 	else
 		bitvec_set_bit(&bv, ZERO);
 	/* band 1 supported */
-	if (set->p_gsm && !(set->e_gsm || set->r_gsm))
+	if (set->p_gsm && !(set->e_gsm || set->r_gsm || set->er_gsm))
 		bitvec_set_bit(&bv, ONE);
 	else
 		bitvec_set_bit(&bv, ZERO);
@@ -1311,15 +1311,15 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 	else
 		bitvec_set_bit(&bv, ZERO);
 	/* radio capability */
-	if (!set->dcs && !set->p_gsm && !(set->e_gsm || set->r_gsm)) {
-		/* Fig. 10.5.7 / TS 24.0008: none of dcs, p, e, r */
+	if (!set->dcs && !set->p_gsm && !(set->e_gsm || set->r_gsm || set->er_gsm)) {
+		/* Fig. 10.5.7 / TS 24.0008: none of dcs, p, e, (e)r */
 	} else
-	if (set->dcs && !set->p_gsm && !(set->e_gsm || set->r_gsm)) {
+	if (set->dcs && !set->p_gsm && !(set->e_gsm || set->r_gsm || set->er_gsm)) {
 		/* dcs only */
 		bitvec_set_uint(&bv, 0, 4);
 		bitvec_set_uint(&bv, set->class_dcs, 4);
 	} else
-	if (set->dcs && (set->p_gsm || (set->e_gsm || set->r_gsm))) {
+	if (set->dcs && (set->p_gsm || (set->e_gsm || set->r_gsm || set->er_gsm))) {
 		/* dcs */
 		bitvec_set_uint(&bv, set->class_dcs, 4);
 		/* low band */
@@ -1332,7 +1332,7 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 	/* These octets above shall be included according to GSM 04.08 Version 5.3.0. */
 	minimum_len = (bv.cur_bit + 7) >> 3;
 	/* r support */
-	if (set->r_gsm) {
+	if (set->r_gsm || set->er_gsm) {
 		bitvec_set_bit(&bv, ONE);
 		bitvec_set_uint(&bv, set->class_900, 3);
 	} else {
@@ -1388,7 +1388,7 @@ static int gsm48_rr_enc_cm3(struct osmocom_ms *ms, uint8_t *buf, uint8_t *len)
 	if (set->edge_psk_sup) {
 		bitvec_set_bit(&bv, ONE);
 		bitvec_set_bit(&bv, set->edge_psk_uplink == 1);
-		if (set->p_gsm || (set->e_gsm || set->r_gsm)) {
+		if (set->p_gsm || (set->e_gsm || set->r_gsm || set->er_gsm)) {
 			bitvec_set_bit(&bv, ONE);
 			bitvec_set_uint(&bv, set->class_900_edge, 2);
 		} else {
@@ -1469,7 +1469,7 @@ int gsm48_rr_enc_cm2(struct osmocom_ms *ms, struct gsm48_classmark2 *cm,
 	cm->a5_1 = !set->a5_1;
 	cm->es_ind = sup->es_ind;
 	cm->rev_lev = sup->rev_lev;
-	cm->fc = (set->r_gsm || set->e_gsm);
+	cm->fc = (set->er_gsm || set->r_gsm || set->e_gsm);
 	cm->vgcs = sup->vgcs;
 	cm->vbs = sup->vbs;
 	cm->sm_cap = set->sms_ptp;
@@ -1511,7 +1511,7 @@ static int gsm48_rr_tx_cm_change(struct osmocom_ms *ms)
 	gsm48_rr_enc_cm2(ms, &cc->cm2, rr->cd_now.arfcn);
 
 	/* classmark 3 */
-	if (set->dcs || set->pcs || set->e_gsm || set->r_gsm || set->gsm_850
+	if (set->dcs || set->pcs || set->e_gsm || set->r_gsm || set->er_gsm || set->gsm_850
 	 || set->a5_7 || set->a5_6 || set->a5_5 || set->a5_4
 	 || sup->ms_sup
 	 || sup->ucs2_treat

@@ -62,6 +62,7 @@ void gsm_support_init(struct osmocom_ms *ms)
 	sup->p_gsm = 1; /* P-GSM */
 	sup->e_gsm = 1; /* E-GSM */
 	sup->r_gsm = 1; /* R-GSM */
+	sup->er_gsm = 1; /* ER-GSM */
 	sup->dcs = 1;
 	sup->gsm_850 = 1;
 	sup->pcs = 1;
@@ -113,7 +114,7 @@ struct gsm_support_scan_max gsm_sup_smax[] = {
 	{ 306, 340, 15, 0 }, /* GSM 480 */
 	{ 438, 511, 25, 0 },
 	{ 128, 251, 30, 0 }, /* GSM 850 */
-	{ 955, 124, 30, 0 }, /* P,E,R GSM */
+	{ 940, 124, 30, 0 }, /* P,E,(E)R GSM */
 	{ 512, 885, 40, 0 }, /* DCS 1800 */
 	{ 1024, 1322, 40, 0 }, /* PCS 1900 */
 	{ 0, 0, 0, 0 }
@@ -130,10 +131,11 @@ void gsm_support_dump(struct osmocom_ms *ms,
 
 	print(priv, "Supported features of MS '%s':\n", sup->ms->name);
 	print(priv, " Phase %d mobile station\n", sup->rev_lev + 1);
+	print(priv, " ER-GSM       : %s\n", SUP_SET(er_gsm));
 	print(priv, " R-GSM        : %s\n", SUP_SET(r_gsm));
 	print(priv, " E-GSM        : %s\n", SUP_SET(e_gsm));
 	print(priv, " P-GSM        : %s\n", SUP_SET(p_gsm));
-	if (set->r_gsm || set->e_gsm || set->p_gsm)
+	if (set->er_gsm || set->r_gsm || set->e_gsm || set->p_gsm)
 		print(priv, " GSM900 Class : %d\n", set->class_900);
 	print(priv, " DCS 1800     : %s\n", SUP_SET(dcs));
 	if (set->dcs)
