@@ -239,6 +239,7 @@ struct gsm_settings {
 	uint8_t			p_gsm;
 	uint8_t			e_gsm;
 	uint8_t			r_gsm;
+	uint8_t			er_gsm;
 	uint8_t			dcs;
 	uint8_t			gsm_850;
 	uint8_t			pcs;
