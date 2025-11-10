@@ -59,7 +59,7 @@ enum {
 };
 
 /* ranges of bands */
-static uint16_t basic_band_range[][2] = {{0, 124}, {512, 885}, {955, 1023}, {0, 0}};
+static uint16_t basic_band_range[][2] = {{0, 124}, {512, 885}, {940, 1023}, {0, 0}};
 uint16_t (*band_range)[][2] = &basic_band_range;
 
 #define INFO_FLG_PM	1

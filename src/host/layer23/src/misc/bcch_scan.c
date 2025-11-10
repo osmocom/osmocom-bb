@@ -264,7 +264,7 @@ static int bscan_sig_cb(unsigned int subsys, unsigned int signal,
 		switch (fps.fps_state) {
 		case FPS_S_PM_GSM900:
 			fps.fps_state = FPS_S_PM_EGSM900;
-			return l1ctl_tx_pm_req_range(ms, 955, 1023);
+			return l1ctl_tx_pm_req_range(ms, 940, 1023);
 		case FPS_S_PM_EGSM900:
 			fps.fps_state = FPS_S_PM_GSM1800;
 			return l1ctl_tx_pm_req_range(ms, 512, 885);

@@ -399,7 +399,7 @@ static int decode_freq_list(struct gsm_sysinfo_freq *f,
 #if 0
 	/* only Bit map 0 format for P-GSM */
 	if ((cd[0] & 0xc0 & mask) != 0x00 &&
-	    (set->p_gsm && !set->e_gsm && !set->r_gsm && !set->dcs))
+	    (set->p_gsm && !set->e_gsm && !set->er_gsm && !set->r_gsm && !set->dcs))
 		return 0;
 #endif
 
