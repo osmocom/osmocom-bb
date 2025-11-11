@@ -141,7 +141,9 @@ ANY_APP_LIBS+=	calypso/libcalypso.a \
 		comm/libcomm.a \
 		tiffs/libtiffs.a \
 		/tmp/arm/install/lib/libosmocore.a \
-		/tmp/arm/install/lib/libosmogsm.a
+		/tmp/arm/install/lib/libosmogsm.a \
+		/tmp/arm/install/lib/libpseudotalloc.a \
+		$(NULL)
 
 
 #
