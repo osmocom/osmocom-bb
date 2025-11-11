@@ -16,7 +16,7 @@ BOARD_mt62xx_OBJS=$(mtk_COMMON_OBJS) board/mt62xx/init.o
 BOARD_mt62xx_ENVIRONMENTS=mtkram
 
 # Global include path
-INCLUDES=-Iinclude/ -I../../../include -I../../shared/libosmocore/include
+INCLUDES=-Iinclude/ -I/tmp/arm/install/include
 
 FLASH_OBJS=flash/cfi_flash.o
 
@@ -24,7 +24,7 @@ FLASH_OBJS=flash/cfi_flash.o
 ANY_APP_OBJS+=$(FLASH_OBJS)
 
 # Various objects that are currently linked into all applications
-ANY_APP_LIBS+=lib/libmini.a comm/libcomm.a ../../shared/libosmocore/build-target/src/.libs/libosmocore.a
+ANY_APP_LIBS+=lib/libmini.a comm/libcomm.a /tmp/arm/install/lib/libosmocore.a
 
 # Libraries are defined in subdirectories
 -include comm/Makefile

@@ -96,7 +96,7 @@ host/gprsdecode/gprsdecode: host/gprsdecode/Makefile
 	make -C host/gprsdecode
 
 .PHONY: firmware
-firmware: libosmocore-target
+firmware:
 	make -C target/firmware CROSS_COMPILE=$(CROSS_TOOL_PREFIX)
 
 .PHONY: mtk-firmware
