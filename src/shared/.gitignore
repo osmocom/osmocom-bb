@@ -1,5 +1,0 @@
-libosmocore/build-host/tests/msgfile/msgfile_test
-libosmocore/build-host/tests/smscb/smscb_test
-libosmocore/build-host/tests/sms/sms_test
-libosmocore/build-host/tests/timer/timer_test
-libosmocore/build-host/tests/ussd/ussd_test
