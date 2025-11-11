@@ -29,7 +29,7 @@
 #define NO_TALLOC
 
 #ifdef NO_TALLOC
-/* This is a poor mans static allocator for msgb objects */
+/* This is a poor mans static allocator for libosmocore's pseudotalloc */
 #define MSGB_DATA_SIZE	256+4
 #define MSGB_NUM	32
 struct supermsg {
@@ -38,7 +38,7 @@ struct supermsg {
 	uint8_t buf[MSGB_DATA_SIZE];
 };
 static struct supermsg msgs[MSGB_NUM];
-void *_talloc_zero(void *ctx, unsigned int size, const char *name)
+void *pseudotalloc_malloc(unsigned int size)
 {
 	unsigned long flags;
 	unsigned int i;
@@ -64,7 +64,7 @@ panic:
 
 	return NULL; /* not reached */
 }
-void talloc_free(void *msg)
+void pseudotalloc_free(void *msg)
 {
 	struct supermsg *smsg = container_of(msg, struct supermsg, msg);
 	/* no locking required, since this is atomic */
