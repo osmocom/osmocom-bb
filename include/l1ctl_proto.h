@@ -62,6 +62,8 @@ enum {
 	L1CTL_GPRS_RTS_IND		= 0x25,
 	L1CTL_GPRS_UL_BLOCK_CNF		= 0x26,
 	L1CTL_RINGER_REQ		= 0x27,
+	L1CTL_KEYPAD_IND		= 0x28,
+	L1CTL_DISPLAY_REQ		= 0x29,
 };
 
 enum ccch_mode {
@@ -413,6 +415,15 @@ struct l1ctl_gprs_ul_block_cnf {
 /* payload of L1CTL_RINGER_REQ */
 struct l1ctl_ringer_req {
 	uint8_t volume;
+} __attribute__((packed));
+
+struct l1ctl_keypad_ind {
+	uint8_t key;
+} __attribute__((packed));
+
+struct l1ctl_display_req {
+	uint8_t x, y;
+	char text[32];
 } __attribute__((packed));
 
 #endif /* __L1CTL_PROTO_H__ */

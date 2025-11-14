@@ -134,6 +134,7 @@ static int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 			    void *handler_data, void *signal_data)
 {
 	struct osmocom_ms *ms;
+	struct osmobb_keypad *kp;
 	struct msgb *nmsg;
 
 	if (subsys != SS_L1CTL)
@@ -169,6 +170,12 @@ static int mobile_signal_cb(unsigned int subsys, unsigned int signal,
 		}
 
 		mobile_set_started(ms, true);
+		break;
+	case S_L1CTL_KEYPAD:
+		kp = signal_data;
+		ms = kp->ms;
+		ui_inst_keypad(&ms->gui.ui, kp->key);
+		break;
 	}
 	return 0;
 }

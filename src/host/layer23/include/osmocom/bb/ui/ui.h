@@ -5,7 +5,7 @@
 
 #define UI_ROWS		8
 #define UI_COLS		12
-#define UI_TARGET	0
+#define UI_TARGET	1
 
 enum ui_key {
 	UI_KEY_0 = '0',
@@ -22,6 +22,7 @@ enum ui_key {
 	UI_KEY_HASH = '#',
 	UI_KEY_F1 = 1,
 	UI_KEY_F2 = 2,
+	UI_KEY_MENU = 25,
 	UI_KEY_PICKUP = 26,
 	UI_KEY_HANGUP = 27,
 	UI_KEY_UP = 28,
