@@ -90,4 +90,6 @@ int l1ctl_tx_gprs_dl_tbf_cfg_req(struct osmocom_ms *ms, uint8_t tbf_ref,
 /* Transmit L1CTL_RINGER_REQ */
 int l1ctl_tx_ringer_req(struct osmocom_ms *ms, uint8_t volume);
 
+int l1ctl_tx_display_req(struct osmocom_ms *ms, int x, int y, char *text);
+
 #endif
