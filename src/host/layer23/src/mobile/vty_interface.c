@@ -32,7 +32,6 @@
 #include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/common/gps.h>
-#include <osmocom/bb/mobile/mnccms.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/mncc_ms.h>
 #include <osmocom/bb/mobile/transaction.h>
@@ -602,7 +601,7 @@ DEFUN(call_answer, call_answer_cmd,
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -619,7 +618,7 @@ DEFUN(call_hangup, call_hangup_cmd,
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -636,7 +635,7 @@ DEFUN(call_hold, call_hold_cmd,
 {
 	struct osmocom_ms *ms;
 
-	ms = get_ms(argv[0], vty);
+	ms = l23_vty_get_ms(argv[0], vty);
 	if (!ms)
 		return CMD_WARNING;
 
@@ -1630,10 +1629,10 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	if (set->ui_port)
 		vty_out(vty, "  telnet-port %d%s", set->ui_port, VTY_NEWLINE);
 	else
-		if (!hide_default)
+		if (!l23_vty_hide_default)
 			vty_out(vty, "  no telnet-port%s", VTY_NEWLINE);
 	for (i = 0; i < GUI_NUM_STATUS; i++) {
-		if (hide_default && ((set->status_enable >> i) & 1)
+		if (l23_vty_hide_default && ((set->status_enable >> i) & 1)
 						== status_screen[i].default_en)
 			continue;
 		if (((set->status_enable >> i) & 1))
@@ -1643,7 +1642,6 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 			vty_out(vty, "  %s hide%s",
 				status_screen[i].feature, VTY_NEWLINE);
 	}
-	vty_out(vty, " exit%s", VTY_NEWLINE);
 	vty_out(vty, " support%s", VTY_NEWLINE);
 	SUP_WRITE(sms_ptp, "sms");
 	SUP_WRITE(a5_1, "a5/1");
@@ -2456,6 +2454,30 @@ DEFUN(cfg_ms_no_asci_allow_any, cfg_ms_no_asci_allow_any_cmd, "no asci-allow-any
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_ms_ringtone, cfg_ms_ringtone_cmd,
+	"ringtone <0-255>",
+	"Enable ring tone\nVolume of ring tone")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->ringtone = atoi(argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_no_ringtone, cfg_ms_no_ringtone_cmd,
+	"no ringtone",
+	NO_STR "Disable Ring tone")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	set->ringtone = 0;
+
+	return CMD_SUCCESS;
+}
+
 static int config_write_dummy(struct vty *vty)
 {
 	return CMD_SUCCESS;
@@ -3261,8 +3283,6 @@ int ms_vty_init(void *tall_ctx)
 	install_element(MS_NODE, &cfg_ms_ui_cmd);
 	install_node(&ui_node, config_write_dummy);
 	install_default(UI_NODE);
-	install_element(UI_NODE, &ournode_exit_cmd);
-	install_element(UI_NODE, &ournode_end_cmd);
 	install_element(UI_NODE, &cfg_ms_ui_telnet_port_cmd);
 	install_element(UI_NODE, &cfg_ms_ui_no_telnet_port_cmd);
 	cfg_ms_ui_status_cmd =

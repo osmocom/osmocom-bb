@@ -22,7 +22,7 @@
 #include <osmocom/bb/common/l23_app.h>
 #include <osmocom/bb/common/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
-#include <osmocom/bb/mobile/mnccms.h>
+#include <osmocom/bb/mobile/gui.h>
 
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/linuxlist.h>

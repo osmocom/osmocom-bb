@@ -23,9 +23,10 @@
 
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/bb/common/osmocom_data.h>
+#include <osmocom/bb/common/ms.h>
 #include <osmocom/bb/common/networks.h>
 #include <osmocom/bb/ui/telnet_interface.h>
-#include <osmocom/bb/mobile/mnccms.h>
+#include <osmocom/bb/mobile/mncc_ms.h>
 #include <osmocom/bb/mobile/gsm480_ss.h>
 
 /*
@@ -65,12 +66,13 @@ static int status_netname(struct osmocom_ms *ms, char *text)
 	} else
 	/* HPLM is the currently selected network, and we have a SPN */
 	if (cs->selected && subscr->sim_valid && subscr->sim_spn[0] 
-	 && gsm_match_mnc(cs->sel_mcc, cs->sel_mnc, subscr->imsi)) {
+	 && gsm_match_mnc(cs->sel_cgi.lai.plmn.mcc, cs->sel_cgi.lai.plmn.mnc,
+	    cs->sel_cgi.lai.plmn.mnc_3_digits, subscr->imsi)) {
 		strncpy(text, subscr->sim_spn, UI_COLS);
 	} else
 	/* network name set for currently selected network */
 	if (cs->selected && (mm->name_short[0] || mm->name_long[0])
-	 && cs->sel_mcc == mm->name_mcc && cs->sel_mnc == mm->name_mnc) {
+	 && !memcmp(&cs->sel_cgi.lai.plmn, &mm->name_plmn, sizeof(struct osmo_plmn_id))) {
 		const char *name;
 
 	 	/* only short name */ 
@@ -93,8 +95,8 @@ static int status_netname(struct osmocom_ms *ms, char *text)
 		const char *mcc_name, *mnc_name;
 		int mcc_len, mnc_len;
 
-		mcc_name = gsm_get_mcc(cs->sel_mcc);
-		mnc_name = gsm_get_mnc(cs->sel_mcc, cs->sel_mnc);
+		mcc_name = gsm_get_mcc(cs->sel_cgi.lai.plmn.mcc);
+		mnc_name = gsm_get_mnc(&cs->sel_cgi.lai.plmn);
 		mcc_len = strlen(mcc_name);
 		mnc_len = strlen(mnc_name);
 
@@ -125,8 +127,8 @@ static int status_lai(struct osmocom_ms *ms, char *text)
 {
 	struct gsm322_cellsel *cs = &ms->cellsel;
 
-	sprintf(text, "%s %s %04x", gsm_print_mcc(cs->sel_mcc),
-		gsm_print_mnc(cs->sel_mnc), cs->sel_lac);
+	sprintf(text, "%s %s %04x", gsm_get_mcc(cs->sel_cgi.lai.plmn.mcc),
+		gsm_get_mnc(&cs->sel_cgi.lai.plmn), cs->sel_cgi.lai.lac);
 	text[UI_COLS] = '\0';
 	return 1;
 }
@@ -439,7 +441,8 @@ static struct gui_choose_set activated_deactivated_set[] = {
 
 static struct gui_choose_set sim_type_set[] = {
 	{ "None", GSM_SIM_TYPE_NONE },
-	{ "Reader", GSM_SIM_TYPE_READER },
+	{ "Reader", GSM_SIM_TYPE_L1PHY },
+	{ "SAP", GSM_SIM_TYPE_SAP },
 	{ "Test SIM", GSM_SIM_TYPE_TEST },
 	{ NULL, 0 }
 };
@@ -646,7 +649,7 @@ static void *config_emerg_imsi_query(struct osmocom_ms *ms)
 }
 static int config_emerg_imsi_cmd(struct osmocom_ms *ms, void *value)
 {
-	if (strlen(value) && gsm_check_imsi(value))
+	if (strlen(value) && osmo_imsi_str_valid(value))
 		return -EINVAL;
 
 	strcpy(ms->settings.emergency_imsi, value);
@@ -1461,7 +1464,7 @@ static int key_dialing_cb(struct ui_inst *ui, enum ui_key kp)
 				return 1; /* handled */
 			}
 		}
-		mncc_call(ms, ui->ud.stringview.number);
+		mncc_call(ms, ui->ud.stringview.number, GSM_CALL_T_VOICE);
 
 		/* go to call screen */
 		gui->menu = MENU_STATUS;

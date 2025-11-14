@@ -303,6 +303,13 @@ struct gsm_settings {
 	struct {
 		struct data_call_params data;
 	} call_params;
+
+	/* Ring tone */
+	uint8_t			ringtone; /* 0 = off */
+
+	/* UI */
+	uint16_t		ui_port; /* telnet port: 0, if disabled */
+	uint32_t		status_enable; /* status display flags */
 };
 
 struct gsm_settings_abbrev {

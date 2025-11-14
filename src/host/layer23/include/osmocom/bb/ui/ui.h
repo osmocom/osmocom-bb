@@ -1,6 +1,8 @@
 #ifndef _libui_h
 #define _libui_h
 
+#include <osmocom/core/select.h>
+
 #define UI_ROWS		8
 #define UI_COLS		12
 #define UI_TARGET	0
