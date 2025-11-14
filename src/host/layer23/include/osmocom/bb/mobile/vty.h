@@ -17,6 +17,7 @@ enum ms_vty_node {
 	UI_NODE,
 };
 
-int ms_vty_init(void);
+int ms_vty_init(void *tall_ctx);
+void ms_vty_exit(void);
 #endif
 

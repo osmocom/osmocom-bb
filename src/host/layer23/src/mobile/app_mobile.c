@@ -41,6 +41,7 @@
 #include <osmocom/bb/mobile/vty.h>
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/mncc.h>
+#include <osmocom/bb/mobile/mncc_ms.h>
 #include <osmocom/bb/mobile/tch.h>
 #include <osmocom/bb/mobile/primitives.h>
 

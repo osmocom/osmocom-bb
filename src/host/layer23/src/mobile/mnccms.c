@@ -692,9 +692,6 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 		llist_add_tail(&call->entry, &ms->mncc_entity.call_list);
 	}
 
-	/* not in initiated state anymore */
-	call->init = false;
-
 	switch (msg_type) {
 	case MNCC_DISC_IND:
 		l23_vty_ms_notify(ms, NULL);
@@ -807,7 +804,7 @@ int mncc_recv_internal(struct osmocom_ms *ms, int msg_type, void *arg)
 			goto release;
 		}
 		/* presentation allowed if present == 0 */
-		if (data->calling.present || !data->calling.number[0])
+		if (data->calling.present || !data->calling.number[0]) {
 			l23_vty_ms_notify(ms, "Incoming call (anonymous)\n");
 		} else if (data->calling.type == 1) {
 			l23_vty_ms_notify(ms, "Incoming call (from +%s)\n",

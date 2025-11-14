@@ -2272,16 +2272,14 @@ static int gsm48_mm_rx_info(struct osmocom_ms *ms, struct msgb *msg)
 	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_LONG)) {
 		decode_network_name(mm->name_long, sizeof(mm->name_long),
 				TLVP_VAL(&tp, GSM48_IE_NAME_LONG)-1);
-		mm->name_mcc = cs->sel_mcc;
-		mm->name_mnc = cs->sel_mnc;
+		memcpy(&mm->name_plmn, &cs->sel_cgi.lai.plmn, sizeof(struct osmo_plmn_id));
 	} else
 		mm->name_long[0] = '\0';
 	/* short name */
 	if (TLVP_PRESENT(&tp, GSM48_IE_NAME_SHORT)) {
 		decode_network_name(mm->name_short, sizeof(mm->name_short),
 				TLVP_VAL(&tp, GSM48_IE_NAME_SHORT)-1);
-		mm->name_mcc = cs->sel_mcc;
-		mm->name_mnc = cs->sel_mnc;
+		memcpy(&mm->name_plmn, &cs->sel_cgi.lai.plmn, sizeof(struct osmo_plmn_id));
 	} else
 		mm->name_short[0] = '\0';
 

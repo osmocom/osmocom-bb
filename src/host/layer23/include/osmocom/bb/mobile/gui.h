@@ -2,6 +2,7 @@
 #define _gui_h
 
 #include <osmocom/bb/ui/ui.h>
+#include <osmocom/core/timer.h>
 
 struct status_screen {
 	const char		*feature;

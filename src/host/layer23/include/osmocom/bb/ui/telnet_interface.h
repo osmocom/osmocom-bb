@@ -1,6 +1,8 @@
 #ifndef _LIBUI_TELNET_IF_H
 #define _LIBUI_TELNET_IF_H
 
+#include <osmocom/core/select.h>
+
 struct ui_telnet_connection {
 	struct llist_head entry;
 	void *priv;

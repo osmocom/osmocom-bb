@@ -241,7 +241,7 @@ struct gsm48_mmlayer {
 	/* network name */
 	char			name_short[32];
 	char			name_long[32];
-	uint16_t		name_mcc, name_mnc; /* PLMN of the name */
+	struct osmo_plmn_id	name_plmn;	/* PLMN of the name */
 
 	/* location update */
 	uint8_t			lupd_pending;	/* current pending loc. upd. */

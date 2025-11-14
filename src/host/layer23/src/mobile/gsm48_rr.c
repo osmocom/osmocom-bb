@@ -807,7 +807,6 @@ static void timeout_rr_meas(void *arg)
 		OSMO_STRBUF_PRINTF(sb, "MON: not camping on serving cell");
 		goto restart;
 	} else if (!meas->frames) {
-<<<<<<< HEAD
 		OSMO_STRBUF_PRINTF(sb, "MON: no cell info");
 		rr->rxlev = 255; /* no value */
 		rr->berr = 0;
