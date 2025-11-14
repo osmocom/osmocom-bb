@@ -61,7 +61,7 @@ enum {
 	L1CTL_EXT_RACH_REQ		= 0x24,
 	L1CTL_GPRS_RTS_IND		= 0x25,
 	L1CTL_GPRS_UL_BLOCK_CNF		= 0x26,
-	L1CTL_RINGER_REQ,		= 0x27,
+	L1CTL_RINGER_REQ		= 0x27,
 };
 
 enum ccch_mode {
