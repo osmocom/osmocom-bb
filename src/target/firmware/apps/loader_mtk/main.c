@@ -247,7 +247,7 @@ static void cmd_handler(uint8_t dlci, struct msgb *msg)
 		msgb_put_u8(reply, 1);	// nchips
 
 		// chip 1
-		msgb_put_u32(reply, the_flash.f_base);
+		msgb_put_u32(reply, (uint32_t) the_flash.f_base);
 		msgb_put_u32(reply, the_flash.f_size);
 		msgb_put_u8(reply, the_flash.f_nregions);
 
