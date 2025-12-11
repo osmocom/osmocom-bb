@@ -39,7 +39,7 @@ class ApplicationBase:
 			"There is NO WARRANTY, to the extent permitted by law.\n")
 
 	def add_log_handler(self, lh, log_level, log_fmt, time_fmt, log_time = False):
-		log_fmt = "%(asctime)s " + log_fmt if log_time else log_fmt
+		log_fmt = "%(asctime)s.%(msecs)03d " + log_fmt if log_time else log_fmt
 		lf = log.Formatter(log_fmt, time_fmt)
 		ll = log.getLevelName(log_level)
 
