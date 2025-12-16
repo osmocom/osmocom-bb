@@ -40,10 +40,7 @@ class UDPLink:
 			% (bind_addr, bind_port, self.remote_addr, self.remote_port)
 
 	def send(self, data):
-		if type(data) not in [bytearray, bytes]:
-			data = data.encode()
-
-		self.sock.sendto(data, (self.remote_addr, self.remote_port))
+		self.sendto(data, (self.remote_addr, self.remote_port))
 
 	def sendto(self, data, remote):
 		if type(data) not in [bytearray, bytes]:
