@@ -153,7 +153,8 @@ struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg, vo
 		.priv = priv,
 	};
 
-	memcpy(&sched->sacch_cache[0], &meas_rep_dummy[0], sizeof(meas_rep_dummy));
+	/* Populate UL SACCH cache */
+	l1sched_sacch_cache_update(sched, meas_rep_dummy);
 
 	if (cfg->log_prefix == NULL)
 		sched->log_prefix = talloc_asprintf(sched, "l1sched[0x%p]: ", sched);
@@ -193,7 +194,18 @@ void l1sched_reset(struct l1sched_state *sched, bool reset_clock)
 	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)
 		l1sched_del_ts(sched, tn);
 
-	memcpy(&sched->sacch_cache[0], &meas_rep_dummy[0], sizeof(meas_rep_dummy));
+	/* Reset UL SACCH cache */
+	l1sched_sacch_cache_update(sched, meas_rep_dummy);
+}
+
+void l1sched_sacch_cache_read(struct l1sched_state *sched, uint8_t *out)
+{
+	memcpy(out, sched->sacch_cache, sizeof(sched->sacch_cache));
+}
+
+void l1sched_sacch_cache_update(struct l1sched_state *sched, const uint8_t *in)
+{
+	memcpy(sched->sacch_cache, in, sizeof(sched->sacch_cache));
 }
 
 struct l1sched_ts *l1sched_add_ts(struct l1sched_state *sched, int tn)
