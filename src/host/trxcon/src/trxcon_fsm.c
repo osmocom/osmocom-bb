@@ -108,7 +108,7 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 			break;
 		}
 
-		memcpy(&trxcon->sched->sacch_cache[0], req->data, req->data_len);
+		l1sched_sacch_cache_update(trxcon->sched, req->data);
 		break;
 	}
 	default:

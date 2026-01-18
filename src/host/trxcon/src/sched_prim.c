@@ -102,11 +102,8 @@ static struct msgb *prim_compose_mr(struct l1sched_lchan_state *lchan)
 	cached = (lchan->sacch.mr_cache[2] != 0x00
 		&& lchan->sacch.mr_cache[3] != 0x00
 		&& lchan->sacch.mr_cache[4] != 0x00);
-	if (!cached) {
-		memcpy(&lchan->sacch.mr_cache[0],
-		       &lchan->ts->sched->sacch_cache[0],
-		       sizeof(lchan->sacch.mr_cache));
-	}
+	if (!cached) /* populate from the global UL SACCH cache (if needed) */
+		l1sched_sacch_cache_read(lchan->ts->sched, lchan->sacch.mr_cache);
 
 	/* Compose a new Measurement Report primitive */
 	memcpy(msgb_put(msg, GSM_MACBLOCK_LEN),
