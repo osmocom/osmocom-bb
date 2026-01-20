@@ -166,33 +166,26 @@ struct l1sched_state *l1sched_alloc(void *ctx, const struct l1sched_cfg *cfg, vo
 
 void l1sched_free(struct l1sched_state *sched)
 {
-	unsigned int tn;
-
 	if (sched == NULL)
 		return;
 
 	LOGP_SCHEDC(sched, LOGL_NOTICE, "Shutdown scheduler\n");
 
 	/* Free all potentially allocated timeslots */
-	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)
-		l1sched_del_ts(sched, tn);
+	l1sched_del_all_ts(sched);
 
 	talloc_free(sched);
 }
 
 void l1sched_reset(struct l1sched_state *sched)
 {
-	unsigned int tn;
-
 	if (sched == NULL)
 		return;
 
 	LOGP_SCHEDC(sched, LOGL_NOTICE, "Reset scheduler\n");
 
 	/* Free all potentially allocated timeslots */
-	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)
-		l1sched_del_ts(sched, tn);
-
+	l1sched_del_all_ts(sched);
 	/* Reset UL SACCH cache */
 	l1sched_sacch_cache_update(sched, meas_rep_dummy);
 
@@ -253,6 +246,15 @@ void l1sched_del_ts(struct l1sched_state *sched, int tn)
 
 	/* Notify transceiver about that */
 	l1sched_cfg_pchan_comb_ind(sched, tn, GSM_PCHAN_NONE);
+}
+
+void l1sched_del_all_ts(struct l1sched_state *sched)
+{
+	for (unsigned int tn = 0; tn < ARRAY_SIZE(sched->ts); tn++) {
+		if (sched->ts[tn] == NULL)
+			continue;
+		l1sched_del_ts(sched, tn);
+	}
 }
 
 static struct l1sched_lchan_state *
