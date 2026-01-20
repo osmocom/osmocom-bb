@@ -343,6 +343,7 @@ void l1sched_sacch_cache_update(struct l1sched_state *sched, const uint8_t *in);
 /* Timeslot management functions */
 struct l1sched_ts *l1sched_add_ts(struct l1sched_state *sched, int tn);
 void l1sched_del_ts(struct l1sched_state *sched, int tn);
+void l1sched_del_all_ts(struct l1sched_state *sched);
 int l1sched_reset_ts(struct l1sched_state *sched, int tn);
 int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 	enum gsm_phys_chan_config config);
