@@ -352,7 +352,7 @@ static void handle_dch_est_req(struct osmo_fsm_inst *fi,
 	}
 
 	/* Remove all active timeslots */
-	l1sched_reset(trxcon->sched);
+	l1sched_del_all_ts(trxcon->sched);
 
 	rc = l1sched_configure_ts(trxcon->sched, req->chan_nr & 0x07, config);
 	if (rc)
