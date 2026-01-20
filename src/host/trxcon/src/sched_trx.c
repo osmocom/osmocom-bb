@@ -195,6 +195,8 @@ void l1sched_reset(struct l1sched_state *sched)
 
 	/* Reset UL SACCH cache */
 	l1sched_sacch_cache_update(sched, meas_rep_dummy);
+
+	sched->bsic = 0;
 }
 
 void l1sched_sacch_cache_read(struct l1sched_state *sched, uint8_t *out)
