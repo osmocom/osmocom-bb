@@ -86,7 +86,6 @@ static struct msgb *prim_compose_mr(struct l1sched_lchan_state *lchan)
 {
 	struct l1sched_prim *prim;
 	struct msgb *msg;
-	bool cached;
 
 	/* Allocate a new primitive */
 	msg = l1sched_prim_alloc(L1SCHED_PRIM_T_DATA, PRIM_OP_REQUEST);
@@ -97,13 +96,6 @@ static struct msgb *prim_compose_mr(struct l1sched_lchan_state *lchan)
 		.chan_nr = l1sched_lchan_desc[lchan->type].chan_nr | lchan->ts->index,
 		.link_id = L1SCHED_CH_LID_SACCH,
 	};
-
-	/* Check if the MR cache is populated (verify LAPDm header) */
-	cached = (lchan->sacch.mr_cache[2] != 0x00
-		&& lchan->sacch.mr_cache[3] != 0x00
-		&& lchan->sacch.mr_cache[4] != 0x00);
-	if (!cached) /* populate from the global UL SACCH cache (if needed) */
-		l1sched_sacch_cache_read(lchan->ts->sched, lchan->sacch.mr_cache);
 
 	/* Compose a new Measurement Report primitive */
 	memcpy(msgb_put(msg, GSM_MACBLOCK_LEN),
