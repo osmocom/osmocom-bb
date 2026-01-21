@@ -254,13 +254,39 @@ void l1sched_del_ts(struct l1sched_state *sched, int tn)
 	l1sched_cfg_pchan_comb_ind(sched, tn, GSM_PCHAN_NONE);
 }
 
+static struct l1sched_lchan_state *
+l1sched_ts_add_lchan(struct l1sched_ts *ts,
+		     enum l1sched_lchan_type type)
+{
+	struct l1sched_lchan_state *lchan;
+
+	lchan = talloc_zero(ts, struct l1sched_lchan_state);
+	if (!lchan)
+		return NULL;
+
+	lchan->type = type;
+	lchan->ts = ts;
+
+	/* Init the Tx queue */
+	INIT_LLIST_HEAD(&lchan->tx_prims);
+	/* Pre-populate UL SACCH cache */
+	l1sched_sacch_cache_read(ts->sched, lchan->sacch.mr_cache);
+	/* Add to the list of channel states */
+	llist_add_tail(&lchan->list, &ts->lchans);
+
+	/* Enable channel automatically if required */
+	if (l1sched_lchan_desc[type].flags & L1SCHED_CH_FLAG_AUTO)
+		l1sched_activate_lchan(ts, type);
+
+	return lchan;
+}
+
 #define LAYOUT_HAS_LCHAN(layout, lchan) \
 	(layout->lchan_mask & ((uint64_t) 0x01 << lchan))
 
 int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 			 enum gsm_phys_chan_config config)
 {
-	struct l1sched_lchan_state *lchan;
 	enum l1sched_lchan_type type;
 	struct l1sched_ts *ts;
 
@@ -294,27 +320,7 @@ int l1sched_configure_ts(struct l1sched_state *sched, int tn,
 	for (type = 0; type < _L1SCHED_CHAN_MAX; type++) {
 		if (!LAYOUT_HAS_LCHAN(ts->mf_layout, type))
 			continue;
-
-		/* Allocate a channel state */
-		lchan = talloc_zero(ts, struct l1sched_lchan_state);
-		if (!lchan)
-			return -ENOMEM;
-
-		/* set backpointer */
-		lchan->ts = ts;
-
-		/* Set channel type */
-		lchan->type = type;
-
-		/* Init the Tx queue */
-		INIT_LLIST_HEAD(&lchan->tx_prims);
-
-		/* Add to the list of channel states */
-		llist_add_tail(&lchan->list, &ts->lchans);
-
-		/* Enable channel automatically if required */
-		if (l1sched_lchan_desc[type].flags & L1SCHED_CH_FLAG_AUTO)
-			l1sched_activate_lchan(ts, type);
+		l1sched_ts_add_lchan(ts, type);
 	}
 
 	/* Notify transceiver about TS activation */
