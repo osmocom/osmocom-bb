@@ -180,15 +180,14 @@ void l1sched_free(struct l1sched_state *sched)
 	talloc_free(sched);
 }
 
-void l1sched_reset(struct l1sched_state *sched, bool reset_clock)
+void l1sched_reset(struct l1sched_state *sched)
 {
 	unsigned int tn;
 
 	if (sched == NULL)
 		return;
 
-	LOGP_SCHEDC(sched, LOGL_NOTICE, "Reset scheduler %s\n",
-		    reset_clock ? "and clock counter" : "");
+	LOGP_SCHEDC(sched, LOGL_NOTICE, "Reset scheduler\n");
 
 	/* Free all potentially allocated timeslots */
 	for (tn = 0; tn < ARRAY_SIZE(sched->ts); tn++)

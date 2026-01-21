@@ -59,7 +59,7 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 		TALLOC_FREE(trxcon->fi_data);
 		if (fi->state != TRXCON_ST_RESET)
 			osmo_fsm_inst_state_chg(fi, TRXCON_ST_RESET, 0, 0);
-		l1sched_reset(trxcon->sched, true);
+		l1sched_reset(trxcon->sched);
 
 		/* Reset the L1 parameters */
 		trxcon->l1p.band_arfcn = 0xffff;
@@ -70,7 +70,7 @@ static void trxcon_allstate_action(struct osmo_fsm_inst *fi,
 		trxcon_phyif_handle_cmd(trxcon->phyif, &phycmd);
 		break;
 	case TRXCON_EV_RESET_SCHED_REQ:
-		l1sched_reset(trxcon->sched, false);
+		l1sched_reset(trxcon->sched);
 		break;
 	case TRXCON_EV_SET_PHY_CONFIG_REQ:
 	{
@@ -352,7 +352,7 @@ static void handle_dch_est_req(struct osmo_fsm_inst *fi,
 	}
 
 	/* Remove all active timeslots */
-	l1sched_reset(trxcon->sched, false);
+	l1sched_reset(trxcon->sched);
 
 	rc = l1sched_configure_ts(trxcon->sched, req->chan_nr & 0x07, config);
 	if (rc)
@@ -435,7 +435,7 @@ static void trxcon_st_dedicated_action(struct osmo_fsm_inst *fi,
 		handle_dch_est_req(fi, (const struct trxcon_param_dch_est_req *)data);
 		break;
 	case TRXCON_EV_DCH_REL_REQ:
-		l1sched_reset(trxcon->sched, false);
+		l1sched_reset(trxcon->sched);
 		/* TODO: switch to (not implemented) TRXCON_ST_DCH_TUNING? */
 		break;
 	case TRXCON_EV_SET_TCH_MODE_REQ:
@@ -664,7 +664,7 @@ static void trxcon_st_packet_data_action(struct osmo_fsm_inst *fi,
 		handle_dch_est_req(fi, (const struct trxcon_param_dch_est_req *)data);
 		break;
 	case TRXCON_EV_DCH_REL_REQ:
-		l1sched_reset(trxcon->sched, false);
+		l1sched_reset(trxcon->sched);
 		/* TODO: switch to (not implemented) TRXCON_ST_DCH_TUNING? */
 		break;
 	default:
