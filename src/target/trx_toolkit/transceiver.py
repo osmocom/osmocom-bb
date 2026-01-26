@@ -205,6 +205,13 @@ class Transceiver:
 			log.info("(%s) Frequency hopping disabled" % self)
 			self.fh = None
 
+	def reset_params(self):
+		""" Reset/initialize all parameters """
+		self.running = False
+		self._rx_freq = None
+		self._tx_freq = None
+		self.disable_fh()
+
 	# To be overwritten if required,
 	# no custom command handlers by default
 	def ctrl_cmd_handler(self, request):
@@ -220,7 +227,7 @@ class Transceiver:
 		for trx in trx_list:
 			trx.running = poweron
 			if not poweron:
-				trx.disable_fh()
+				trx.reset_params()
 
 		# Trigger clock generator if required
 		if self.clck_gen is not None:
