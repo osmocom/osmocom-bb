@@ -116,7 +116,12 @@ class FakeTRX(Transceiver):
 	CI_NOISE_DEFAULT = -30
 
 	def __init__(self, *trx_args, **trx_kwargs):
-		Transceiver.__init__(self, *trx_args, **trx_kwargs)
+		super().__init__(*trx_args, **trx_kwargs)
+		self.reset_params()
+
+	def reset_params(self):
+		""" Reset/initialize all parameters """
+		super().reset_params()
 
 		# fake RSSI is disabled by default, only enabled through TRXC FAKE_RSSI.
 		# When disabled, RSSI is calculated based on Tx power and Rx path loss
