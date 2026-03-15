@@ -106,7 +106,7 @@ const struct tdma_sched_item rach_sched_set_ul[] = {
 	SCHED_END_SET()
 };
 
-/* Asynchronous completion handler for FB detection */
+/* Asynchronous completion handler for RACH detection */
 static void l1a_rach_compl(__unused enum l1_compl c)
 {
 	struct msgb *msg;
