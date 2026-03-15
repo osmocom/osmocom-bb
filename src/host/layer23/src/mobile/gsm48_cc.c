@@ -1710,6 +1710,8 @@ static int gsm48_cc_tx_release_compl(struct gsm_trans *trans, void *arg)
 	if (rel->fields & MNCC_F_SSVERSION)
 		gsm48_encode_ssversion(nmsg, &rel->ssversion);
 
+	gsm48_cc_to_mm(nmsg, trans, GSM48_MMCC_DATA_REQ);
+
 	/* release without sending MMCC_REL_REQ */
 	new_cc_state(trans, GSM_CSTATE_NULL);
 	trans->callref = 0;
