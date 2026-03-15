@@ -54,7 +54,7 @@ void toa_input(int32_t offset, uint32_t snr)
 {
 	int valid = 1;
 
-	if (snr < TOA_SNR_THRESHOLD || offset < 0 || offset >31)
+	if (snr < TOA_SNR_THRESHOLD || offset < 0 || offset > 31)
 		valid = 0;
 	runavg_input(&toa_state.ravg, offset, valid);
 	runavg_check_output(&toa_state.ravg);
