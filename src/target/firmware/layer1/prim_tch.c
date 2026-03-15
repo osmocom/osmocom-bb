@@ -236,7 +236,7 @@ static int l1s_tch_resp(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		/* FACCH/F: B0(0...7),B1(4...11),B2(8...11,0...3) (mod 13) */
 		facch_rx_now = ((rx_time.fn % 13) % 4) == 3;
 	} else {
-		/* FAACH/H: See GSM 05.02 Clause 7 Table 1of9 */
+		/* FACCH/H: See GSM 05.02 Clause 7 Table 1of9 */
 		uint8_t t2_norm = rx_time.t2 - tch_sub;
 		facch_rx_now = (t2_norm == 15) ||
 		               (t2_norm == 23) ||
@@ -411,7 +411,7 @@ static int l1s_tch_cmd(__unused uint8_t p1, __unused uint8_t p2, uint16_t p3)
 		/* FACCH/F: B0(0...7),B1(4...11),B2(8...11,0...3) */
 		facch_tx_now = ((l1s.next_time.fn % 13) % 4) == 3;
 	} else {
-		/* FAACH/H: See GSM 05.02 Clause 7 Table 1of9 */
+		/* FACCH/H: See GSM 05.02 Clause 7 Table 1of9 */
 		uint8_t t2_norm = l1s.next_time.t2 - tch_sub;
 		facch_tx_now = (t2_norm == 23) ||
 		               (t2_norm ==  6) ||
