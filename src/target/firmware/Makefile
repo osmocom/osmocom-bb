@@ -112,7 +112,8 @@ BOARD_se_j100_ENVIRONMENTS=$(compal_COMMON_ENVIRONMENTS)
 # Sony Ericsson K200i/K220i
 BOARD_se_k2xx_OBJS=$(calypso_COMMON_OBJS) board/se_k2xx/init.o \
 	board/se_k2xx/rffe_k2xx.o \
-	board/gta0x/rf_tables.o board/gta0x/afcparams.o \
+	board/se_k2xx/rf_tables.o \
+	board/gta0x/afcparams.o \
 	board/common/readcal_tiffs.o battery/dummy.o $(FB_k2xx_OBJS)
 BOARD_se_k2xx_ENVIRONMENTS=highram
 
