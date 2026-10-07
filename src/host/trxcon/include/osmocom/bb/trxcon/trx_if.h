@@ -10,13 +10,6 @@
 #define TRXC_BUF_SIZE	1024
 #define TRXD_BUF_SIZE	512
 
-enum trx_fsm_states {
-	TRX_STATE_OFFLINE = 0,
-	TRX_STATE_IDLE,
-	TRX_STATE_ACTIVE,
-	TRX_STATE_RSP_WAIT,
-};
-
 struct trx_instance {
 	struct osmo_fd trx_ofd_ctrl;
 	struct osmo_fd trx_ofd_data;
@@ -25,10 +18,6 @@ struct trx_instance {
 	struct llist_head trx_ctrl_list;
 	struct osmo_fsm_inst *fi;
 	uint32_t fn_advance;
-
-	/* HACK: we need proper state machines */
-	uint32_t prev_state;
-	bool powered_up;
 
 	/* Some private data */
 	void *priv;

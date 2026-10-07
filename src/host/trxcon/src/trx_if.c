@@ -48,47 +48,12 @@
 
 #define S(x)	(1 << (x))
 
-static void trx_fsm_cleanup_cb(struct osmo_fsm_inst *fi,
-			       enum osmo_fsm_term_cause cause);
-
-static struct value_string trx_evt_names[] = {
-	{ 0, NULL } /* no events? */
+enum trx_fsm_states {
+	TRX_ST_POWEROFF = 0, /* initial state; transceiver powered off */
+	TRX_ST_POWERON,      /* transceiver powered on */
 };
 
-static struct osmo_fsm_state trx_fsm_states[] = {
-	[TRX_STATE_OFFLINE] = {
-		.out_state_mask = (
-			S(TRX_STATE_IDLE) |
-			S(TRX_STATE_RSP_WAIT)),
-		.name = "OFFLINE",
-	},
-	[TRX_STATE_IDLE] = {
-		.out_state_mask = UINT32_MAX,
-		.name = "IDLE",
-	},
-	[TRX_STATE_ACTIVE] = {
-		.out_state_mask = (
-			S(TRX_STATE_IDLE) |
-			S(TRX_STATE_RSP_WAIT)),
-		.name = "ACTIVE",
-	},
-	[TRX_STATE_RSP_WAIT] = {
-		.out_state_mask = (
-			S(TRX_STATE_IDLE) |
-			S(TRX_STATE_ACTIVE) |
-			S(TRX_STATE_OFFLINE)),
-		.name = "RSP_WAIT",
-	},
-};
-
-static struct osmo_fsm trx_fsm = {
-	.name = "trx_interface",
-	.states = trx_fsm_states,
-	.num_states = ARRAY_SIZE(trx_fsm_states),
-	.log_subsys = DTRXC,
-	.event_names = trx_evt_names,
-	.cleanup = &trx_fsm_cleanup_cb,
-};
+static struct osmo_fsm trx_fsm;
 
 static int trx_udp_open(void *priv, struct osmo_fd *ofd, const char *host_local,
 	uint16_t port_local, const char *host_remote, uint16_t port_remote,
@@ -153,12 +118,6 @@ static void trx_ctrl_send(struct trx_instance *trx)
 	LOGPFSML(trx->fi, LOGL_DEBUG, "Sending control '%s'\n", tcm->cmd);
 	send(trx->trx_ofd_ctrl.fd, tcm->cmd, strlen(tcm->cmd) + 1, 0);
 
-	/* Trigger state machine */
-	if (trx->fi->state != TRX_STATE_RSP_WAIT) {
-		trx->prev_state = trx->fi->state;
-		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_RSP_WAIT, 0, 0);
-	}
-
 	/* Start expire timer */
 	trx->trx_ctrl_timer.data = trx;
 	trx->trx_ctrl_timer.cb = trx_ctrl_timer_cb;
@@ -179,7 +138,6 @@ static void trx_ctrl_timer_cb(void *data)
 	tcm = llist_entry(trx->trx_ctrl_list.next, struct trx_ctrl_msg, list);
 	if (++tcm->retry_cnt > 3) {
 		LOGPFSML(trx->fi, LOGL_NOTICE, "Transceiver offline\n");
-		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_OFFLINE, 0, 0);
 		osmo_fsm_inst_term(trx->fi, OSMO_FSM_TERM_TIMEOUT, NULL);
 		return;
 	}
@@ -231,10 +189,6 @@ static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
 /*
  * Power Control
  *
- * ECHO is used to check transceiver availability.
- * CMD ECHO
- * RSP ECHO <status>
- *
  * POWEROFF shuts off transmitter power and stops the demodulator.
  * CMD POWEROFF
  * RSP POWEROFF <status>
@@ -249,11 +203,6 @@ static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
  * RSP POWERON <status>
  */
 
-static int trx_if_cmd_echo(struct trx_instance *trx)
-{
-	return trx_ctrl_cmd(trx, 1, "ECHO", "");
-}
-
 static int trx_if_cmd_poweroff(struct trx_instance *trx)
 {
 	return trx_ctrl_cmd(trx, 1, "POWEROFF", "");
@@ -261,10 +210,6 @@ static int trx_if_cmd_poweroff(struct trx_instance *trx)
 
 static int trx_if_cmd_poweron(struct trx_instance *trx)
 {
-#if 0
-	if (trx->powered_up)
-		return -EAGAIN;
-#endif
 	return trx_ctrl_cmd(trx, 1, "POWERON", "");
 }
 
@@ -477,6 +422,75 @@ static int trx_if_cmd_setfh(struct trx_instance *trx,
 	return trx_ctrl_cmd(trx, 1, "SETFH", "%u %u %s", cmdp->hsn, cmdp->maio, ma_buf);
 }
 
+static void trx_fsm_allstate_action(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+	struct trx_instance *trx = fi->priv;
+	const struct trxcon_phyif_cmd *cmd = data;
+
+	switch (event) {
+	case TRXCON_PHYIF_CMDT_RESET:
+	case TRXCON_PHYIF_CMDT_POWEROFF:
+		trx_if_cmd_poweroff(trx);
+		break;
+	case TRXCON_PHYIF_CMDT_MEASURE:
+		trx_if_cmd_measure(trx, &cmd->param.measure);
+		break;
+	default:
+		OSMO_ASSERT(0);
+	}
+}
+
+static void trx_fsm_poweroff_action(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+	struct trx_instance *trx = fi->priv;
+	const struct trxcon_phyif_cmd *cmd = data;
+
+	switch (event) {
+	case TRXCON_PHYIF_CMDT_POWERON:
+		trx_if_cmd_poweron(trx);
+		break;
+	case TRXCON_PHYIF_CMDT_SETFREQ_H0:
+		trx_if_cmd_rxtune(trx, &cmd->param.setfreq_h0);
+		trx_if_cmd_txtune(trx, &cmd->param.setfreq_h0);
+		break;
+	case TRXCON_PHYIF_CMDT_SETFREQ_H1:
+		trx_if_cmd_setfh(trx, &cmd->param.setfreq_h1);
+		break;
+	case TRXCON_PHYIF_CMDT_SETSLOT:
+		trx_if_cmd_setslot(trx, &cmd->param.setslot);
+		break;
+	case TRXCON_PHYIF_CMDT_SETTA:
+		trx_if_cmd_setta(trx, &cmd->param.setta);
+		break;
+	default:
+		OSMO_ASSERT(0);
+	}
+}
+
+static void trx_fsm_poweron_action(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+	struct trx_instance *trx = fi->priv;
+	const struct trxcon_phyif_cmd *cmd = data;
+
+	switch (event) {
+	case TRXCON_PHYIF_CMDT_SETFREQ_H0:
+		trx_if_cmd_rxtune(trx, &cmd->param.setfreq_h0);
+		trx_if_cmd_txtune(trx, &cmd->param.setfreq_h0);
+		break;
+	case TRXCON_PHYIF_CMDT_SETFREQ_H1:
+		trx_if_cmd_setfh(trx, &cmd->param.setfreq_h1);
+		break;
+	case TRXCON_PHYIF_CMDT_SETSLOT:
+		trx_if_cmd_setslot(trx, &cmd->param.setslot);
+		break;
+	case TRXCON_PHYIF_CMDT_SETTA:
+		trx_if_cmd_setta(trx, &cmd->param.setta);
+		break;
+	default:
+		OSMO_ASSERT(0);
+	}
+}
+
 /* Get response from CTRL socket */
 static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 {
@@ -535,21 +549,14 @@ static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
 			goto rsp_error;
 	}
 
-	/* Trigger state machine */
-	if (!strncmp(tcm->cmd + 4, "POWERON", 7)) {
-		trx->powered_up = true;
-		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_ACTIVE, 0, 0);
-	}
-	else if (!strncmp(tcm->cmd + 4, "POWEROFF", 8)) {
-		trx->powered_up = false;
-		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_IDLE, 0, 0);
-	}
+	/* Trigger state machine: only POWERON/POWEROFF responses drive a
+	 * state transition; everything else is state-transparent. */
+	if (!strncmp(tcm->cmd + 4, "POWERON", 7))
+		osmo_fsm_inst_state_chg(trx->fi, TRX_ST_POWERON, 0, 0);
+	else if (!strncmp(tcm->cmd + 4, "POWEROFF", 8))
+		osmo_fsm_inst_state_chg(trx->fi, TRX_ST_POWEROFF, 0, 0);
 	else if (!strncmp(tcm->cmd + 4, "MEASURE", 7))
 		trx_if_measure_rsp_cb(trx, buf + 14);
-	else if (!strncmp(tcm->cmd + 4, "ECHO", 4))
-		osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_IDLE, 0, 0);
-	else
-		osmo_fsm_inst_state_chg(trx->fi, trx->prev_state, 0, 0);
 
 	/* Remove command from list */
 	llist_del(&tcm->list);
@@ -565,47 +572,10 @@ rsp_error:
 	return -EIO;
 }
 
+/* Dispatch a PHYIF command as an event of the trx_fsm */
 int trx_if_handle_phyif_cmd(struct trx_instance *trx, const struct trxcon_phyif_cmd *cmd)
 {
-	int rc;
-
-	switch (cmd->type) {
-	case TRXCON_PHYIF_CMDT_RESET:
-		if ((rc = trx_if_cmd_poweroff(trx)) != 0)
-			return rc;
-		rc = trx_if_cmd_echo(trx);
-		break;
-	case TRXCON_PHYIF_CMDT_POWERON:
-		rc = trx_if_cmd_poweron(trx);
-		break;
-	case TRXCON_PHYIF_CMDT_POWEROFF:
-		rc = trx_if_cmd_poweroff(trx);
-		break;
-	case TRXCON_PHYIF_CMDT_MEASURE:
-		rc = trx_if_cmd_measure(trx, &cmd->param.measure);
-		break;
-	case TRXCON_PHYIF_CMDT_SETFREQ_H0:
-		if ((rc = trx_if_cmd_rxtune(trx, &cmd->param.setfreq_h0)) != 0)
-			return rc;
-		if ((rc = trx_if_cmd_txtune(trx, &cmd->param.setfreq_h0)) != 0)
-			return rc;
-		break;
-	case TRXCON_PHYIF_CMDT_SETFREQ_H1:
-		rc = trx_if_cmd_setfh(trx, &cmd->param.setfreq_h1);
-		break;
-	case TRXCON_PHYIF_CMDT_SETSLOT:
-		rc = trx_if_cmd_setslot(trx, &cmd->param.setslot);
-		break;
-	case TRXCON_PHYIF_CMDT_SETTA:
-		rc = trx_if_cmd_setta(trx, &cmd->param.setta);
-		break;
-	default:
-		LOGPFSML(trx->fi, LOGL_ERROR,
-			 "Unhandled PHYIF command type=0x%02x\n", cmd->type);
-		rc = -ENODEV;
-	}
-
-	return rc;
+	return osmo_fsm_inst_dispatch(trx->fi, cmd->type, (void *)cmd);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -721,20 +691,13 @@ int trx_if_handle_phyif_burst_req(struct trx_instance *trx,
 	uint8_t buf[TRXD_BUF_SIZE];
 	size_t length;
 
-	/**
-	 * We must be sure that we have clock,
-	 * and we have sent all control data
-	 *
-	 * TODO: introduce proper state machines for both
-	 *       transceiver and its TRXC interface.
-	 */
-#if 0
-	if (trx->fi->state != TRX_STATE_ACTIVE) {
+	/* We must be sure that POWERON has been acknowledged by the
+	 * transceiver before attempting to transmit any bursts. */
+	if (trx->fi->state != TRX_ST_POWERON) {
 		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
 			  "Ignoring TX data, transceiver isn't ready\n");
 		return -EAGAIN;
 	}
-#endif
 
 	LOGPFSMSL(trx->fi, DTRXD, LOGL_DEBUG,
 		  "TX burst tn=%u fn=%u pwr=%u\n",
@@ -823,9 +786,6 @@ static void trx_if_flush_ctrl(struct trx_instance *trx)
 {
 	struct trx_ctrl_msg *tcm;
 
-	/* Reset state machine */
-	osmo_fsm_inst_state_chg(trx->fi, TRX_STATE_IDLE, 0, 0);
-
 	/* Clear command queue */
 	while (!llist_empty(&trx->trx_ctrl_list)) {
 		tcm = llist_entry(trx->trx_ctrl_list.next,
@@ -861,7 +821,7 @@ static void trx_fsm_cleanup_cb(struct osmo_fsm_inst *fi,
 	trx_if_flush_ctrl(trx);
 
 	/* Power off if the transceiver is up */
-	if (trx->powered_up && trx->trx_ofd_ctrl.fd >= 0)
+	if (fi->state == TRX_ST_POWERON && trx->trx_ofd_ctrl.fd >= 0)
 		send(trx->trx_ofd_ctrl.fd, &cmd_poweroff[0], sizeof(cmd_poweroff), 0);
 
 	/* Close sockets */
@@ -872,6 +832,55 @@ static void trx_fsm_cleanup_cb(struct osmo_fsm_inst *fi,
 	trx->fi->priv = NULL;
 	talloc_free(trx);
 }
+
+/* We re-use TRXCON_PHYIF_CMDT_* as the FSM events */
+static const struct value_string trx_event_names[] = {
+	OSMO_VALUE_STRING(TRXCON_PHYIF_CMDT_RESET),
+	OSMO_VALUE_STRING(TRXCON_PHYIF_CMDT_POWERON),
+	OSMO_VALUE_STRING(TRXCON_PHYIF_CMDT_POWEROFF),
+	OSMO_VALUE_STRING(TRXCON_PHYIF_CMDT_MEASURE),
+	OSMO_VALUE_STRING(TRXCON_PHYIF_CMDT_SETFREQ_H0),
+	OSMO_VALUE_STRING(TRXCON_PHYIF_CMDT_SETFREQ_H1),
+	OSMO_VALUE_STRING(TRXCON_PHYIF_CMDT_SETSLOT),
+	OSMO_VALUE_STRING(TRXCON_PHYIF_CMDT_SETTA),
+	{ 0, NULL }
+};
+
+static struct osmo_fsm_state trx_fsm_states[] = {
+	[TRX_ST_POWEROFF] = {
+		.name = "POWEROFF",
+		.in_event_mask  = S(TRXCON_PHYIF_CMDT_POWERON)
+				| S(TRXCON_PHYIF_CMDT_SETFREQ_H0)
+				| S(TRXCON_PHYIF_CMDT_SETFREQ_H1)
+				| S(TRXCON_PHYIF_CMDT_SETSLOT)
+				| S(TRXCON_PHYIF_CMDT_SETTA),
+		.out_state_mask = S(TRX_ST_POWERON)
+				| S(TRX_ST_POWEROFF),
+		.action = trx_fsm_poweroff_action,
+	},
+	[TRX_ST_POWERON] = {
+		.name = "POWERON",
+		.in_event_mask  = S(TRXCON_PHYIF_CMDT_SETFREQ_H0)
+				| S(TRXCON_PHYIF_CMDT_SETFREQ_H1)
+				| S(TRXCON_PHYIF_CMDT_SETSLOT)
+				| S(TRXCON_PHYIF_CMDT_SETTA),
+		.out_state_mask = S(TRX_ST_POWEROFF),
+		.action = trx_fsm_poweron_action,
+	},
+};
+
+static struct osmo_fsm trx_fsm = {
+	.name = "trx_interface",
+	.states = trx_fsm_states,
+	.num_states = ARRAY_SIZE(trx_fsm_states),
+	.log_subsys = DTRXC,
+	.event_names = trx_event_names,
+	.allstate_event_mask = S(TRXCON_PHYIF_CMDT_RESET)
+			     | S(TRXCON_PHYIF_CMDT_POWEROFF)
+			     | S(TRXCON_PHYIF_CMDT_MEASURE),
+	.allstate_action = trx_fsm_allstate_action,
+	.cleanup = trx_fsm_cleanup_cb,
+};
 
 static __attribute__((constructor)) void on_dso_load(void)
 {
