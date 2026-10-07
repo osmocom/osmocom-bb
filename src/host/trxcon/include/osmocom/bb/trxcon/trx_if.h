@@ -19,6 +19,11 @@ struct trx_instance {
 	struct osmo_fsm_inst *fi;
 	uint32_t fn_advance;
 
+	/* Rx/Tx frequencies (in kHz) tuned via RXTUNE/TXTUNE */
+	uint32_t rx_freq_khz;
+	uint32_t tx_freq_khz;
+	bool hopping;
+
 	/* Some private data */
 	void *priv;
 };

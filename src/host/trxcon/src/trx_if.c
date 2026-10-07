@@ -205,6 +205,11 @@ static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
 
 static int trx_if_cmd_poweroff(struct trx_instance *trx)
 {
+	/* The transceiver forgets the tuned Rx/Tx frequencies on POWEROFF */
+	trx->rx_freq_khz = 0;
+	trx->tx_freq_khz = 0;
+	trx->hopping = false;
+
 	return trx_ctrl_cmd(trx, 1, "POWEROFF", "");
 }
 
@@ -261,6 +266,7 @@ static int trx_if_cmd_rxtune(struct trx_instance *trx,
 			     const struct trxcon_phyif_cmdp_setfreq_h0 *cmdp)
 {
 	uint16_t freq10;
+	int rc;
 
 	/* RX is downlink on MS side */
 	freq10 = gsm_arfcn2freq10(cmdp->band_arfcn, 0);
@@ -269,13 +275,19 @@ static int trx_if_cmd_rxtune(struct trx_instance *trx,
 		return -ENOTSUP;
 	}
 
-	return trx_ctrl_cmd(trx, 1, "RXTUNE", "%u", freq10 * 100);
+	rc = trx_ctrl_cmd(trx, 1, "RXTUNE", "%u", freq10 * 100);
+	if (rc == 0) {
+		trx->rx_freq_khz = freq10 * 100;
+		trx->hopping = false;
+	}
+	return rc;
 }
 
 static int trx_if_cmd_txtune(struct trx_instance *trx,
 			     const struct trxcon_phyif_cmdp_setfreq_h0 *cmdp)
 {
 	uint16_t freq10;
+	int rc;
 
 	/* TX is uplink on MS side */
 	freq10 = gsm_arfcn2freq10(cmdp->band_arfcn, 1);
@@ -284,7 +296,12 @@ static int trx_if_cmd_txtune(struct trx_instance *trx,
 		return -ENOTSUP;
 	}
 
-	return trx_ctrl_cmd(trx, 1, "TXTUNE", "%u", freq10 * 100);
+	rc = trx_ctrl_cmd(trx, 1, "TXTUNE", "%u", freq10 * 100);
+	if (rc == 0) {
+		trx->tx_freq_khz = freq10 * 100;
+		trx->hopping = false;
+	}
+	return rc;
 }
 
 /*
@@ -419,7 +436,13 @@ static int trx_if_cmd_setfh(struct trx_instance *trx,
 	/* Overwrite the last space */
 	*(ptr - 1) = '\0';
 
-	return trx_ctrl_cmd(trx, 1, "SETFH", "%u %u %s", cmdp->hsn, cmdp->maio, ma_buf);
+	rc = trx_ctrl_cmd(trx, 1, "SETFH", "%u %u %s", cmdp->hsn, cmdp->maio, ma_buf);
+	if (rc == 0) {
+		trx->rx_freq_khz = 0;
+		trx->tx_freq_khz = 0;
+		trx->hopping = true;
+	}
+	return rc;
 }
 
 static void trx_fsm_allstate_action(struct osmo_fsm_inst *fi, uint32_t event, void *data)
@@ -440,6 +463,20 @@ static void trx_fsm_allstate_action(struct osmo_fsm_inst *fi, uint32_t event, vo
 	}
 }
 
+/* No state change here: the POWERON response (see trx_ctrl_read_cb())
+ * is what moves us to TRX_ST_POWERON. */
+static void trx_fsm_handle_poweron_req(struct osmo_fsm_inst *fi)
+{
+	struct trx_instance *trx = fi->priv;
+
+	if (!trx->hopping && (trx->rx_freq_khz == 0 || trx->tx_freq_khz == 0)) {
+		LOGPFSML(fi, LOGL_ERROR, "Refusing POWERON: Rx/Tx frequency not set\n");
+		return;
+	}
+
+	trx_if_cmd_poweron(trx);
+}
+
 static void trx_fsm_poweroff_action(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 	struct trx_instance *trx = fi->priv;
@@ -447,7 +484,7 @@ static void trx_fsm_poweroff_action(struct osmo_fsm_inst *fi, uint32_t event, vo
 
 	switch (event) {
 	case TRXCON_PHYIF_CMDT_POWERON:
-		trx_if_cmd_poweron(trx);
+		trx_fsm_handle_poweron_req(fi);
 		break;
 	case TRXCON_PHYIF_CMDT_SETFREQ_H0:
 		trx_if_cmd_rxtune(trx, &cmd->param.setfreq_h0);
