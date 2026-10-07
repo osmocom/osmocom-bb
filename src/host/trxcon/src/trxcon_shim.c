@@ -232,8 +232,16 @@ int trxcon_phyif_handle_burst_ind(void *priv, const struct trxcon_phyif_burst_in
 		.burst_len = phybi->burst_len,
 	};
 
-	OSMO_ASSERT(phybi->burst_len <= sizeof(bi.burst));
-	memcpy(&bi.burst[0], phybi->burst, phybi->burst_len);
+	if (phybi->burst_len > 0) {
+		OSMO_ASSERT(phybi->burst_len <= sizeof(bi.burst));
+		memcpy(bi.burst, phybi->burst, phybi->burst_len);
+	} else {
+		/* NOPE.ind: the transceiver did not detect a burst for this fn/tn,
+		 * but still reports timing/level measurements.  Feed the scheduler
+		 * with a burst all soft-bits of which are uncertain (50% 0, 50% 1). */
+		bi.burst_len = GSM_NBITS_NB_GMSK_BURST;
+		memset(bi.burst, 0, bi.burst_len);
+	}
 
 	/* Poke scheduler */
 	return l1sched_handle_rx_burst(trxcon->sched, &bi);

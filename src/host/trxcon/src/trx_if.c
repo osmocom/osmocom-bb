@@ -45,6 +45,13 @@
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
 
+/* Highest TRXD PDU version supported by trxcon (TRXDv1).
+ *
+ * TRXDv2 requires Tx PDUs to contain modulation and training sequence info.
+ * struct trxcon_phyif_burst_req currently does not contain this information,
+ * so we cannot populate the necessary fields in trx_if_handle_phyif_burst_req(). */
+#define TRXD_PDU_VER_MAX	1
+
 /* Give up after 3 retransmissions of a TRXC command */
 #define TRX_MAX_RETRANS		3
 
@@ -146,6 +153,15 @@ static int trx_poweron_rsp_cb(struct osmo_trxc_client *client,
 static int trx_if_cmd_poweron(struct trx_instance *trx)
 {
 	return osmo_trxc_client_poweron(trx->trxc_client, &trx_poweron_rsp_cb, trx);
+}
+
+static void trx_setformat_cb(struct osmo_trxc_client *client,
+			     uint8_t ver_use, void *cb_data)
+{
+	struct trx_instance *trx = cb_data;
+
+	LOGPFSML(trx->fi, LOGL_INFO, "Using TRXD PDU version %u\n", ver_use);
+	osmo_trx_ep_set_pdu_ver(trx->ep, 0, ver_use);
 }
 
 static int trx_if_cmd_setslot(struct trx_instance *trx,
@@ -400,8 +416,11 @@ static void trx_fsm_allstate_action(struct osmo_fsm_inst *fi, uint32_t event, vo
 	}
 }
 
-/* No state change here: the POWERON response (see trx_poweron_rsp_cb())
- * is what moves us to TRX_ST_POWERON. */
+/* (Re-)negotiate the TRXD PDU format and send POWERON right behind it,
+ * since the transceiver may have reset its active format back to legacy
+ * on the preceding POWEROFF (or never negotiated it at all, if this is the
+ * very first POWERON). No state change here: the POWERON response (see
+ * trx_poweron_rsp_cb()) is what moves us to TRX_ST_POWERON. */
 static void trx_fsm_handle_poweron_req(struct osmo_fsm_inst *fi)
 {
 	struct trx_instance *trx = fi->priv;
@@ -411,6 +430,9 @@ static void trx_fsm_handle_poweron_req(struct osmo_fsm_inst *fi)
 		return;
 	}
 
+	osmo_trxc_client_negotiate_format(trx->trxc_client,
+					  TRXD_PDU_VER_MAX,
+					  &trx_setformat_cb, trx);
 	trx_if_cmd_poweron(trx);
 }
 
@@ -488,8 +510,8 @@ void osmo_trx_ep_rx_burst_ind(struct osmo_trx_ep *ep, unsigned int chan,
 		.tn = bi->tn,
 		.toa256 = bi->toa256,
 		.rssi = bi->rssi,
-		.burst = &bi->burst[0],
-		.burst_len = bi->burst_len,
+		.burst = (bi->flags & OSMO_TRXD_F_NOPE_IND) ? NULL : &bi->burst[0],
+		.burst_len = (bi->flags & OSMO_TRXD_F_NOPE_IND) ? 0 : bi->burst_len,
 	};
 
 	trxcon_phyif_handle_burst_ind(trx->priv, &phybi);
