@@ -1,40 +1,10 @@
 #pragma once
 
-#include <osmocom/core/linuxlist.h>
-#include <osmocom/core/select.h>
-#include <osmocom/core/timer.h>
 #include <osmocom/core/fsm.h>
 
 #include <osmocom/bb/trxcon/phyif.h>
 
-#define TRXC_BUF_SIZE	1024
-#define TRXD_BUF_SIZE	512
-
-struct trx_instance {
-	struct osmo_fd trx_ofd_ctrl;
-	struct osmo_fd trx_ofd_data;
-
-	struct osmo_timer_list trx_ctrl_timer;
-	struct llist_head trx_ctrl_list;
-	struct osmo_fsm_inst *fi;
-	uint32_t fn_advance;
-
-	/* Rx/Tx frequencies (in kHz) tuned via RXTUNE/TXTUNE */
-	uint32_t rx_freq_khz;
-	uint32_t tx_freq_khz;
-	bool hopping;
-
-	/* Some private data */
-	void *priv;
-};
-
-struct trx_ctrl_msg {
-	struct llist_head list;
-	char cmd[TRXC_BUF_SIZE];
-	int retry_cnt;
-	int critical;
-	int cmd_len;
-};
+struct trx_instance;
 
 struct trx_if_params {
 	const char *local_host;
