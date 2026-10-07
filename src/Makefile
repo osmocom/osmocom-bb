@@ -13,7 +13,9 @@ TOPDIR=$(shell pwd)
 
 all: libosmocore-target nofirmware firmware mtk-firmware
 
-nofirmware: layer23 osmocon trxcon gprsdecode virtphy
+# trxcon is excluded on purpose because it requires libosmo-trx
+# and we don't want to make the rest of osmocom-bb depend on it.
+nofirmware: layer23 osmocon gprsdecode virtphy
 
 libosmocore-target: shared/libosmocore/build-target/src/.libs/libosmocore.a
 
@@ -110,7 +112,6 @@ clean:
 	make -C host/osmocon $@
 	make -C host/gprsdecode $@
 	make -C host/virt_phy $@
-	make -C host/trxcon $@
 	make -C target/firmware $@
 	make -C target/firmware -f Makefile.mtk $@
 
@@ -120,6 +121,5 @@ distclean:
 	make -C host/osmocon $@
 	make -C host/gprsdecode $@
 	make -C host/virt_phy $@
-	make -C host/trxcon $@
 # 'firmware' also handles 'mtk-firmware'
 	make -C target/firmware $@

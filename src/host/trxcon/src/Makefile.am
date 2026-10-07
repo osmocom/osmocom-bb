@@ -8,6 +8,7 @@ AM_CFLAGS = \
 	$(LIBOSMOCORE_CFLAGS) \
 	$(LIBOSMOCODING_CFLAGS) \
 	$(LIBOSMOGSM_CFLAGS) \
+	$(LIBOSMOTRX_CFLAGS) \
 	$(NULL)
 
 
@@ -45,7 +46,10 @@ libtrxcon_la_SOURCES = \
 	$(NULL)
 
 
-bin_PROGRAMS = trxcon
+bin_PROGRAMS =
+
+if BUILD_TRXCON
+bin_PROGRAMS += trxcon
 
 trxcon_SOURCES = \
 	l1ctl_server.c \
@@ -61,4 +65,6 @@ trxcon_LDADD = \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOCODING_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
+	$(LIBOSMOTRX_LIBS) \
 	$(NULL)
+endif

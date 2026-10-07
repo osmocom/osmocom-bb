@@ -16,6 +16,7 @@ Build-Depends: debhelper (>= 10),
                libosmo-gprs-rlcmac-dev,
                libosmo-gprs-sm-dev,
                libosmo-gprs-sndcp-dev,
+               libosmo-trx-dev (>= 1.8.0),
                libosmogapk-dev,
                osmo-gsm-manuals-dev (>= 1.6.0)
 Standards-Version: 4.1.4

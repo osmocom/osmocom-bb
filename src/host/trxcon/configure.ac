@@ -53,6 +53,23 @@ then
 	CPPFLAGS="$CPPFLAGS $WERROR_FLAGS"
 fi
 
+dnl trxcon requires libosmo-trx (osmo-trx.git) for its TRXC/TRXD backend;
+dnl allow disabling the trxcon binary itself (--without-trxcon) so that
+dnl building libtrxcon, libl1sched, libl1gprs, and the rest of osmocom-bb
+dnl doesn't require libosmo-trx.
+AC_ARG_WITH([trxcon],
+	[AS_HELP_STRING([--with-trxcon],
+		[Build the trxcon binary @<:@default=yes@:>@])],
+	[], [with_trxcon=yes])
+AS_IF([test "x$with_trxcon" = "xyes"], [
+	PKG_CHECK_MODULES(LIBOSMOTRX, libosmo-trx)
+])
+
+AM_CONDITIONAL([BUILD_TRXCON], [test "x$with_trxcon" = "xyes"])
+
+AC_MSG_CHECKING([whether to build the trxcon binary])
+AC_MSG_RESULT([$with_trxcon])
+
 AC_MSG_RESULT([CFLAGS="$CFLAGS"])
 AC_MSG_RESULT([CPPFLAGS="$CPPFLAGS"])
 

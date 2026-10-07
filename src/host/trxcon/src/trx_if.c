@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2013 by Andreas Eversberg <jolly@eversberg.eu>
  * Copyright (C) 2016-2017 by Vadim Yanitskiy <axilirator@gmail.com>
- * Copyright (C) 2022 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
+ * Copyright (C) 2022-2026 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * All Rights Reserved
  *
@@ -26,16 +26,10 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <netinet/in.h>
-
-#include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
-#include <osmocom/core/select.h>
-#include <osmocom/core/socket.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/bits.h>
 #include <osmocom/core/fsm.h>
@@ -43,13 +37,16 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/gsm0502.h>
 
+#include <osmocom/trx/trxc.h>
+#include <osmocom/trx/trxc_client.h>
+#include <osmocom/trx/trxd.h>
+#include <osmocom/trx/ep.h>
+
 #include <osmocom/bb/trxcon/trx_if.h>
 #include <osmocom/bb/trxcon/logging.h>
 
-#define TRXDv0_HDR_LEN		8
-
-#define TRXC_BUF_SIZE		1024
-#define TRXD_BUF_SIZE		512
+/* Give up after 3 retransmissions of a TRXC command */
+#define TRX_MAX_RETRANS		3
 
 #define S(x)	(1 << (x))
 
@@ -59,11 +56,9 @@ enum trx_fsm_states {
 };
 
 struct trx_instance {
-	struct osmo_fd trx_ofd_ctrl;
-	struct osmo_fd trx_ofd_data;
+	struct osmo_trx_ep *ep;
+	struct osmo_trxc_client *trxc_client;
 
-	struct osmo_timer_list trx_ctrl_timer;
-	struct llist_head trx_ctrl_list;
 	struct osmo_fsm_inst *fi;
 	uint32_t fn_advance;
 
@@ -76,161 +71,55 @@ struct trx_instance {
 	void *priv;
 };
 
-struct trx_ctrl_msg {
-	struct llist_head list;
-	char cmd[TRXC_BUF_SIZE];
-	int retry_cnt;
-	int critical;
-	int cmd_len;
-};
-
 static struct osmo_fsm trx_fsm;
 
-static int trx_udp_open(void *priv, struct osmo_fd *ofd, const char *host_local,
-	uint16_t port_local, const char *host_remote, uint16_t port_remote,
-	int (*cb)(struct osmo_fd *fd, unsigned int what))
-{
-	int rc;
-
-	ofd->data = priv;
-	ofd->fd = -1;
-	ofd->cb = cb;
-
-	/* Init UDP Connection */
-	rc = osmo_sock_init2_ofd(ofd, AF_UNSPEC, SOCK_DGRAM, 0, host_local, port_local,
-				 host_remote, port_remote,
-				 OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT);
-	return rc;
-}
-
-static void trx_udp_close(struct osmo_fd *ofd)
-{
-	if (ofd->fd > 0) {
-		osmo_fd_unregister(ofd);
-		close(ofd->fd);
-		ofd->fd = -1;
-	}
-}
-
 /* ------------------------------------------------------------------------ */
-/* Control (CTRL) interface handlers                                        */
-/* ------------------------------------------------------------------------ */
-/* Commands on the Per-ARFCN Control Interface                              */
-/*                                                                          */
-/* The per-ARFCN control interface uses a command-response protocol.        */
-/* Commands are NULL-terminated ASCII strings, one per UDP socket.          */
-/* Each command has a corresponding response.                               */
-/* Every command is of the form:                                            */
-/*                                                                          */
-/* CMD <cmdtype> [params]                                                   */
-/*                                                                          */
-/* The <cmdtype> is the actual command.                                     */
-/* Parameters are optional depending on the commands type.                  */
-/* Every response is of the form:                                           */
-/*                                                                          */
-/* RSP <cmdtype> <status> [result]                                          */
-/*                                                                          */
-/* The <status> is 0 for success and a non-zero error code for failure.     */
-/* Successful responses may include results, depending on the command type. */
+/* Control (TRXC) interface handlers                                        */
 /* ------------------------------------------------------------------------ */
 
-static void trx_ctrl_timer_cb(void *data);
-
-/* Send first CTRL message and start timer */
-static void trx_ctrl_send(struct trx_instance *trx)
+/* Transmit a TRXC message enqueued by the command queue engine */
+static int trxc_client_tx_msg_cb(struct osmo_trxc_client *client,
+				 const struct osmo_trxc_msg *msg)
 {
-	struct trx_ctrl_msg *tcm;
+	struct trx_instance *trx = osmo_trxc_client_get_priv(client);
 
-	if (llist_empty(&trx->trx_ctrl_list))
-		return;
-	tcm = llist_entry(trx->trx_ctrl_list.next, struct trx_ctrl_msg, list);
-
-	/* Send command */
-	LOGPFSML(trx->fi, LOGL_DEBUG, "Sending control '%s'\n", tcm->cmd);
-	send(trx->trx_ofd_ctrl.fd, tcm->cmd, strlen(tcm->cmd) + 1, 0);
-
-	/* Start expire timer */
-	trx->trx_ctrl_timer.data = trx;
-	trx->trx_ctrl_timer.cb = trx_ctrl_timer_cb;
-	osmo_timer_schedule(&trx->trx_ctrl_timer, 2, 0);
+	return osmo_trx_ep_send_ctrl_msg(trx->ep, 0, msg);
 }
 
-static void trx_ctrl_timer_cb(void *data)
+/* A critical TRXC command failed (NACKed, mismatched, or timed out) */
+static void trxc_client_fatal_error_cb(struct osmo_trxc_client *client,
+				       const struct osmo_trxc_msg *rsp)
 {
-	struct trx_instance *trx = (struct trx_instance *) data;
-	struct trx_ctrl_msg *tcm;
+	struct trx_instance *trx = osmo_trxc_client_get_priv(client);
 
-	/* Queue may be cleaned at this moment */
-	if (llist_empty(&trx->trx_ctrl_list))
-		return;
-
-	LOGPFSML(trx->fi, LOGL_NOTICE, "No response from transceiver...\n");
-
-	tcm = llist_entry(trx->trx_ctrl_list.next, struct trx_ctrl_msg, list);
-	if (++tcm->retry_cnt > 3) {
+	if (rsp == NULL) { /* no response, retransmissions exhausted */
 		LOGPFSML(trx->fi, LOGL_NOTICE, "Transceiver offline\n");
 		osmo_fsm_inst_term(trx->fi, OSMO_FSM_TERM_TIMEOUT, NULL);
-		return;
+	} else {
+		osmo_fsm_inst_term(trx->fi, OSMO_FSM_TERM_ERROR, NULL);
 	}
-
-	/* Attempt to send a command again */
-	trx_ctrl_send(trx);
 }
 
-/* Add a new CTRL command to the trx_ctrl_list */
-static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
-	const char *cmd, const char *fmt, ...)
+/* Feed responses received on the ctrl socket into the command queue engine */
+void osmo_trx_ep_rx_ctrl_msg(struct osmo_trx_ep *ep, unsigned int chan,
+			     const struct osmo_trxc_msg *msg)
 {
-	struct trx_ctrl_msg *tcm;
-	int len, pending = 0;
-	va_list ap;
+	struct trx_instance *trx = osmo_trx_ep_get_priv(ep);
 
-	/* TODO: make sure that transceiver online */
+	osmo_trxc_client_rx_msg(trx->trxc_client, msg);
+}
 
-	if (!llist_empty(&trx->trx_ctrl_list))
-		pending = 1;
+static int trx_poweroff_rsp_cb(struct osmo_trxc_client *client,
+			       const struct osmo_trxc_msg *rsp, void *cb_data)
+{
+	struct trx_instance *trx = cb_data;
 
-	/* Allocate a message */
-	tcm = talloc_zero(trx, struct trx_ctrl_msg);
-	if (!tcm)
-		return -ENOMEM;
+	if (rsp->status != 0)
+		return -EINVAL; /* critical, escalate to fatal_error */
 
-	/* Fill in command arguments */
-	if (fmt && fmt[0]) {
-		len = snprintf(tcm->cmd, sizeof(tcm->cmd) - 1, "CMD %s ", cmd);
-		va_start(ap, fmt);
-		vsnprintf(tcm->cmd + len, sizeof(tcm->cmd) - len - 1, fmt, ap);
-		va_end(ap);
-	} else {
-		snprintf(tcm->cmd, sizeof(tcm->cmd) - 1, "CMD %s", cmd);
-	}
-
-	tcm->cmd_len = strlen(cmd);
-	tcm->critical = critical;
-	llist_add_tail(&tcm->list, &trx->trx_ctrl_list);
-	LOGPFSML(trx->fi, LOGL_INFO, "Adding new control '%s'\n", tcm->cmd);
-
-	/* Send message, if no pending messages */
-	if (!pending)
-		trx_ctrl_send(trx);
-
+	osmo_fsm_inst_state_chg(trx->fi, TRX_ST_POWEROFF, 0, 0);
 	return 0;
 }
-
-/*
- * Power Control
- *
- * POWEROFF shuts off transmitter power and stops the demodulator.
- * CMD POWEROFF
- * RSP POWEROFF <status>
- *
- * POWERON starts the transmitter and starts the demodulator.
- * Initial power level is very low.
- * This command fails if the transmitter and receiver are not yet tuned.
- * This command fails if the transceiver is already on.
- * CMD POWERON
- * RSP POWERON <status>
- */
 
 static int trx_if_cmd_poweroff(struct trx_instance *trx)
 {
@@ -239,44 +128,48 @@ static int trx_if_cmd_poweroff(struct trx_instance *trx)
 	trx->tx_freq_khz = 0;
 	trx->hopping = false;
 
-	return trx_ctrl_cmd(trx, 1, "POWEROFF", "");
+	return osmo_trxc_client_poweroff(trx->trxc_client, &trx_poweroff_rsp_cb, trx);
+}
+
+static int trx_poweron_rsp_cb(struct osmo_trxc_client *client,
+			      const struct osmo_trxc_msg *rsp, void *cb_data)
+{
+	struct trx_instance *trx = cb_data;
+
+	if (rsp->status != 0)
+		return -EINVAL; /* critical, escalate to fatal_error */
+
+	osmo_fsm_inst_state_chg(trx->fi, TRX_ST_POWERON, 0, 0);
+	return 0;
 }
 
 static int trx_if_cmd_poweron(struct trx_instance *trx)
 {
-	return trx_ctrl_cmd(trx, 1, "POWERON", "");
+	return osmo_trxc_client_poweron(trx->trxc_client, &trx_poweron_rsp_cb, trx);
 }
-
-/*
- * Timeslot Control
- *
- * SETSLOT sets the format of the uplink timeslots in the ARFCN.
- * The <timeslot> indicates the timeslot of interest.
- * The <chantype> indicates the type of channel that occupies the timeslot.
- * A chantype of zero indicates the timeslot is off.
- * CMD SETSLOT <timeslot> <chantype>
- * RSP SETSLOT <status> <timeslot> <chantype>
- */
 
 static int trx_if_cmd_setslot(struct trx_instance *trx,
 			      const struct trxcon_phyif_cmdp_setslot *cmdp)
 {
-	/* Values correspond to 'enum ChannelCombination' in osmo-trx.git */
 	static const uint8_t chan_types[_GSM_PCHAN_MAX] = {
-		[GSM_PCHAN_UNKNOWN]             = 0,
-		[GSM_PCHAN_NONE]                = 0,
-		[GSM_PCHAN_CCCH]                = 4,
-		[GSM_PCHAN_CCCH_SDCCH4]         = 5,
-		[GSM_PCHAN_CCCH_SDCCH4_CBCH]    = 5,
-		[GSM_PCHAN_TCH_F]               = 1,
-		[GSM_PCHAN_TCH_H]               = 3,
-		[GSM_PCHAN_SDCCH8_SACCH8C]      = 7,
-		[GSM_PCHAN_SDCCH8_SACCH8C_CBCH] = 7,
-		[GSM_PCHAN_PDCH]                = 13,
+		[GSM_PCHAN_UNKNOWN]             = OSMO_TRXC_CHAN_COMB_UNUSED,
+		[GSM_PCHAN_NONE]                = OSMO_TRXC_CHAN_COMB_UNUSED,
+		[GSM_PCHAN_CCCH]                = OSMO_TRXC_CHAN_COMB_BCCH,
+		[GSM_PCHAN_CCCH_SDCCH4]         = OSMO_TRXC_CHAN_COMB_BCCH_SDCCH4,
+		[GSM_PCHAN_CCCH_SDCCH4_CBCH]    = OSMO_TRXC_CHAN_COMB_BCCH_SDCCH4,
+		[GSM_PCHAN_TCH_F]               = OSMO_TRXC_CHAN_COMB_TCHF,
+		[GSM_PCHAN_TCH_H]               = OSMO_TRXC_CHAN_COMB_TCHH,
+		[GSM_PCHAN_SDCCH8_SACCH8C]      = OSMO_TRXC_CHAN_COMB_SDCCH8,
+		[GSM_PCHAN_SDCCH8_SACCH8C_CBCH] = OSMO_TRXC_CHAN_COMB_SDCCH8,
+		[GSM_PCHAN_PDCH]                = OSMO_TRXC_CHAN_COMB_PDTCH,
 	};
 
-	return trx_ctrl_cmd(trx, 1, "SETSLOT", "%u %u",
-			    cmdp->tn, chan_types[cmdp->pchan]);
+	/* SETSLOT may be pending for different timeslots at once, so the
+	 * response needs to be matched against the params, too. */
+	return osmo_trxc_client_send_cmd(trx->trxc_client,
+					 OSMO_TRXC_F_CRITICAL | OSMO_TRXC_F_MATCH_PARAMS,
+					 NULL, NULL, OSMO_TRXC_CMD_SETSLOT,
+					 "%u %u", cmdp->tn, chan_types[cmdp->pchan]);
 }
 
 /*
@@ -302,7 +195,7 @@ static int trx_if_cmd_rxtune(struct trx_instance *trx,
 		return -ENOTSUP;
 	}
 
-	rc = trx_ctrl_cmd(trx, 1, "RXTUNE", "%u", freq10 * 100);
+	rc = osmo_trxc_client_rxtune(trx->trxc_client, freq10 * 100, NULL, NULL);
 	if (rc == 0) {
 		trx->rx_freq_khz = freq10 * 100;
 		trx->hopping = false;
@@ -323,7 +216,7 @@ static int trx_if_cmd_txtune(struct trx_instance *trx,
 		return -ENOTSUP;
 	}
 
-	rc = trx_ctrl_cmd(trx, 1, "TXTUNE", "%u", freq10 * 100);
+	rc = osmo_trxc_client_txtune(trx->trxc_client, freq10 * 100, NULL, NULL);
 	if (rc == 0) {
 		trx->tx_freq_khz = freq10 * 100;
 		trx->hopping = false;
@@ -343,6 +236,44 @@ static int trx_if_cmd_txtune(struct trx_instance *trx,
  * RSP MEASURE <status> <kHz> <dB>
  */
 
+static int trx_measure_rsp_cb(struct osmo_trxc_client *client,
+			      const struct osmo_trxc_msg *rsp, void *cb_data)
+{
+	struct trx_instance *trx = cb_data;
+	unsigned int freq10;
+	uint16_t band_arfcn;
+	int dbm;
+
+	if (rsp->status != 0)
+		return 0; /* not critical */
+
+	/* Parse freq. and power level */
+	if (osmo_trxc_msg_params_scan(rsp, "%u %d", &freq10, &dbm) != 2) {
+		LOGPFSML(trx->fi, LOGL_ERROR,
+			 "Failed to parse RSP MEASURE params: '%s'\n", rsp->params);
+		return 0;
+	}
+	freq10 /= 100;
+
+	band_arfcn = gsm_freq102arfcn((uint16_t)freq10, 0);
+	if (band_arfcn == 0xffff) {
+		LOGPFSML(trx->fi, LOGL_ERROR,
+			 "Failed to parse ARFCN from RSP MEASURE: %s\n", rsp->params);
+		return 0;
+	}
+
+	const struct trxcon_phyif_rsp phyrsp = {
+		.type = TRXCON_PHYIF_CMDT_MEASURE,
+		.param.measure = {
+			.band_arfcn = band_arfcn,
+			.dbm = dbm,
+		},
+	};
+
+	trxcon_phyif_handle_rsp(trx->priv, &phyrsp);
+	return 0;
+}
+
 static int trx_if_cmd_measure(struct trx_instance *trx,
 			      const struct trxcon_phyif_cmdp_measure *cmdp)
 {
@@ -356,35 +287,11 @@ static int trx_if_cmd_measure(struct trx_instance *trx,
 		return -ENOTSUP;
 	}
 
-	return trx_ctrl_cmd(trx, 1, "MEASURE", "%u", freq10 * 100);
-}
-
-static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
-{
-	unsigned int freq10;
-	uint16_t band_arfcn;
-	int dbm;
-
-	/* Parse freq. and power level */
-	sscanf(resp, "%u %d", &freq10, &dbm);
-	freq10 /= 100;
-
-	band_arfcn = gsm_freq102arfcn((uint16_t) freq10, 0);
-	if (band_arfcn == 0xffff) {
-		LOGPFSML(trx->fi, LOGL_ERROR,
-			 "Failed to parse ARFCN from RSP MEASURE: %s\n", resp);
-		return;
-	}
-
-	const struct trxcon_phyif_rsp rsp = {
-		.type = TRXCON_PHYIF_CMDT_MEASURE,
-		.param.measure = {
-			.band_arfcn = band_arfcn,
-			.dbm = dbm,
-		},
-	};
-
-	trxcon_phyif_handle_rsp(trx->priv, &rsp);
+	/* MEASURE may be pending for different frequencies at once, so the
+	 * response needs to be matched against the params, too. */
+	return osmo_trxc_client_send_cmd(trx->trxc_client, OSMO_TRXC_F_MATCH_PARAMS,
+					 &trx_measure_rsp_cb, trx,
+					 "MEASURE", "%u", freq10 * 100);
 }
 
 /*
@@ -403,7 +310,8 @@ static void trx_if_measure_rsp_cb(struct trx_instance *trx, char *resp)
 static int trx_if_cmd_setta(struct trx_instance *trx,
 			    const struct trxcon_phyif_cmdp_setta *cmdp)
 {
-	return trx_ctrl_cmd(trx, 0, "SETTA", "%d", cmdp->ta);
+	return osmo_trxc_client_send_cmd(trx->trxc_client, 0, NULL, NULL,
+					 "SETTA", "%d", cmdp->ta);
 }
 
 /*
@@ -422,8 +330,8 @@ static int trx_if_cmd_setta(struct trx_instance *trx,
 static int trx_if_cmd_setfh(struct trx_instance *trx,
 			    const struct trxcon_phyif_cmdp_setfreq_h1 *cmdp)
 {
-	/* Reserve some room for CMD SETFH <HSN> <MAIO> */
-	char ma_buf[TRXC_BUF_SIZE - 24];
+	/* Reserve some room for '<HSN> <MAIO> ' */
+	char ma_buf[OSMO_TRXC_PARAMS_LEN_MAX - 8];
 	size_t ma_buf_len = sizeof(ma_buf) - 1;
 	uint16_t rx_freq, tx_freq;
 	char *ptr;
@@ -463,7 +371,9 @@ static int trx_if_cmd_setfh(struct trx_instance *trx,
 	/* Overwrite the last space */
 	*(ptr - 1) = '\0';
 
-	rc = trx_ctrl_cmd(trx, 1, "SETFH", "%u %u %s", cmdp->hsn, cmdp->maio, ma_buf);
+	rc = osmo_trxc_client_send_cmd(trx->trxc_client, OSMO_TRXC_F_CRITICAL,
+				       NULL, NULL, OSMO_TRXC_CMD_SETFH,
+				       "%u %u %s", cmdp->hsn, cmdp->maio, ma_buf);
 	if (rc == 0) {
 		trx->rx_freq_khz = 0;
 		trx->tx_freq_khz = 0;
@@ -490,7 +400,7 @@ static void trx_fsm_allstate_action(struct osmo_fsm_inst *fi, uint32_t event, vo
 	}
 }
 
-/* No state change here: the POWERON response (see trx_ctrl_read_cb())
+/* No state change here: the POWERON response (see trx_poweron_rsp_cb())
  * is what moves us to TRX_ST_POWERON. */
 static void trx_fsm_handle_poweron_req(struct osmo_fsm_inst *fi)
 {
@@ -555,87 +465,6 @@ static void trx_fsm_poweron_action(struct osmo_fsm_inst *fi, uint32_t event, voi
 	}
 }
 
-/* Get response from CTRL socket */
-static int trx_ctrl_read_cb(struct osmo_fd *ofd, unsigned int what)
-{
-	struct trx_instance *trx = ofd->data;
-	struct trx_ctrl_msg *tcm;
-	int resp, rsp_len;
-	char buf[TRXC_BUF_SIZE], *p;
-	ssize_t read_len;
-
-	read_len = read(ofd->fd, buf, sizeof(buf) - 1);
-	if (read_len <= 0) {
-		LOGPFSML(trx->fi, LOGL_ERROR, "read() failed with rc=%zd\n", read_len);
-		return read_len;
-	}
-	buf[read_len] = '\0';
-
-	if (!!strncmp(buf, "RSP ", 4)) {
-		LOGPFSML(trx->fi, LOGL_NOTICE, "Unknown message on CTRL port: %s\n", buf);
-		return 0;
-	}
-
-	/* Calculate the length of response item */
-	p = strchr(buf + 4, ' ');
-	rsp_len = p ? p - buf - 4 : strlen(buf) - 4;
-
-	LOGPFSML(trx->fi, LOGL_INFO, "Response message: '%s'\n", buf);
-
-	/* Abort expire timer */
-	osmo_timer_del(&trx->trx_ctrl_timer);
-
-	/* Get command for response message */
-	if (llist_empty(&trx->trx_ctrl_list)) {
-		LOGPFSML(trx->fi, LOGL_NOTICE, "Response message without command\n");
-		return -EINVAL;
-	}
-
-	tcm = llist_entry(trx->trx_ctrl_list.next,
-		struct trx_ctrl_msg, list);
-
-	/* Check if response matches command */
-	if (!!strncmp(buf + 4, tcm->cmd + 4, rsp_len)) {
-		LOGPFSML(trx->fi, (tcm->critical) ? LOGL_FATAL : LOGL_ERROR,
-			"Response message '%s' does not match command "
-			"message '%s'\n", buf, tcm->cmd);
-		goto rsp_error;
-	}
-
-	/* Check for response code */
-	sscanf(p + 1, "%d", &resp);
-	if (resp) {
-		LOGPFSML(trx->fi, (tcm->critical) ? LOGL_FATAL : LOGL_ERROR,
-			"Transceiver rejected TRX command with "
-			"response: '%s'\n", buf);
-
-		if (tcm->critical)
-			goto rsp_error;
-	}
-
-	/* Trigger state machine: only POWERON/POWEROFF responses drive a
-	 * state transition; everything else is state-transparent. */
-	if (!strncmp(tcm->cmd + 4, "POWERON", 7))
-		osmo_fsm_inst_state_chg(trx->fi, TRX_ST_POWERON, 0, 0);
-	else if (!strncmp(tcm->cmd + 4, "POWEROFF", 8))
-		osmo_fsm_inst_state_chg(trx->fi, TRX_ST_POWEROFF, 0, 0);
-	else if (!strncmp(tcm->cmd + 4, "MEASURE", 7))
-		trx_if_measure_rsp_cb(trx, buf + 14);
-
-	/* Remove command from list */
-	llist_del(&tcm->list);
-	talloc_free(tcm);
-
-	/* Send next message, if any */
-	trx_ctrl_send(trx);
-
-	return 0;
-
-rsp_error:
-	osmo_fsm_inst_term(trx->fi, OSMO_FSM_TERM_ERROR, NULL);
-	return -EIO;
-}
-
 /* Dispatch a PHYIF command as an event of the trx_fsm */
 int trx_if_handle_phyif_cmd(struct trx_instance *trx, const struct trxcon_phyif_cmd *cmd)
 {
@@ -643,117 +472,46 @@ int trx_if_handle_phyif_cmd(struct trx_instance *trx, const struct trxcon_phyif_
 }
 
 /* ------------------------------------------------------------------------ */
-/* Data interface handlers                                                  */
-/* ------------------------------------------------------------------------ */
-/* DATA interface                                                           */
-/*                                                                          */
-/* Messages on the data interface carry one radio burst per UDP message.    */
-/*                                                                          */
-/* Received Data Burst:                                                     */
-/* 1 byte timeslot index                                                    */
-/* 4 bytes GSM frame number, BE                                             */
-/* 1 byte RSSI in -dBm                                                      */
-/* 2 bytes correlator timing offset in 1/256 symbol steps, 2's-comp, BE     */
-/* 148 bytes soft symbol estimates, 0 -> definite "0", 255 -> definite "1"  */
-/* 2 bytes are not used, but being sent by OsmoTRX                          */
-/*                                                                          */
-/* Transmit Data Burst:                                                     */
-/* 1 byte timeslot index                                                    */
-/* 4 bytes GSM frame number, BE                                             */
-/* 1 byte transmit level wrt ARFCN max, -dB (attenuation)                   */
-/* 148 bytes output symbol values, 0 & 1                                    */
+/* Data (TRXD) interface handlers                                           */
 /* ------------------------------------------------------------------------ */
 
-static int trx_data_rx_cb(struct osmo_fd *ofd, unsigned int what)
+/* Handle a burst indication received on the data socket */
+void osmo_trx_ep_rx_burst_ind(struct osmo_trx_ep *ep, unsigned int chan,
+			      const struct osmo_trxd_burst_ind *bi)
 {
-	struct trx_instance *trx = ofd->data;
-	struct trxcon_phyif_burst_ind bi;
-	uint8_t buf[TRXD_BUF_SIZE];
-	ssize_t read_len;
-	sbit_t *burst;
+	struct trx_instance *trx = osmo_trx_ep_get_priv(ep);
 
-	read_len = read(ofd->fd, buf, sizeof(buf));
-	if (read_len <= 0) {
-		strerror_r(errno, (char *)buf, sizeof(buf));
-		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
-			  "read() failed on TRXD with rc=%zd (%s)\n",
-			  read_len, (const char *)buf);
-		return read_len;
-	}
+	LOGPFSMSL(trx->fi, DTRXD, LOGL_DEBUG, "Rx %s\n", osmo_trxd_burst_ind_name(bi));
 
-	if (read_len < TRXDv0_HDR_LEN) {
-		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
-			  "Got malformed TRXD PDU (short length=%zd)\n", read_len);
-		return -EINVAL;
-	}
-
-	if ((buf[0] >> 4) != 0) {
-		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
-			  "Got TRXD PDU with unexpected version\n");
-		return -ENOTSUP;
-	}
-
-	read_len -= TRXDv0_HDR_LEN;
-	switch (read_len) {
-	/* TRXDv0 PDUs may have 2 dummy bytes at the end */
-	case GSM_NBITS_NB_GMSK_BURST + 2:
-	case GSM_NBITS_NB_8PSK_BURST + 2:
-		read_len -= 2;
-		break;
-	case GSM_NBITS_NB_GMSK_BURST:
-	case GSM_NBITS_NB_8PSK_BURST:
-		break;
-	default:
-		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
-			  "Got TRXD PDU unexpected burst length=%zd\n", read_len);
-		return -EINVAL;
-	}
-
-	burst = (sbit_t *)&buf[8];
-
-	bi = (struct trxcon_phyif_burst_ind) {
-		.tn = buf[0] & 0x07,
-		.fn = osmo_load32be(buf + 1),
-		.rssi = -(int8_t) buf[5],
-		.toa256 = (int16_t) (buf[6] << 8) | buf[7],
-		.burst = burst, /* at least GSM_NBITS_NB_GMSK_BURST */
-		.burst_len = read_len,
+	const struct trxcon_phyif_burst_ind phybi = {
+		.fn = bi->fn,
+		.tn = bi->tn,
+		.toa256 = bi->toa256,
+		.rssi = bi->rssi,
+		.burst = &bi->burst[0],
+		.burst_len = bi->burst_len,
 	};
 
-	/* Convert ubits {254..0} to sbits {-127..127} in-place */
-	for (unsigned int i = 0; i < bi.burst_len; i++) {
-		if (buf[8 + i] == 255)
-			burst[i] = -127;
-		else
-			burst[i] = 127 - buf[8 + i];
-	}
+	trxcon_phyif_handle_burst_ind(trx->priv, &phybi);
 
-	if (bi.fn >= GSM_TDMA_HYPERFRAME) {
-		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR, "Illegal FN %u\n", bi.fn);
-		return -EINVAL;
-	}
-
-	LOGPFSMSL(trx->fi, DTRXD, LOGL_DEBUG,
-		  "RX burst tn=%u fn=%u rssi=%d toa=%d\n",
-		  bi.tn, bi.fn, bi.rssi, bi.toa256);
-
-	trxcon_phyif_handle_burst_ind(trx->priv, &bi);
-
-	struct trxcon_phyif_rts_ind rts = {
-		.fn = GSM_TDMA_FN_SUM(bi.fn, trx->fn_advance),
-		.tn = bi.tn,
+	const struct trxcon_phyif_rts_ind rts = {
+		.fn = GSM_TDMA_FN_SUM(bi->fn, trx->fn_advance),
+		.tn = bi->tn,
 	};
 
 	trxcon_phyif_handle_rts_ind(trx->priv, &rts);
-
-	return 0;
 }
 
 int trx_if_handle_phyif_burst_req(struct trx_instance *trx,
 				  const struct trxcon_phyif_burst_req *br)
 {
-	uint8_t buf[TRXD_BUF_SIZE];
-	size_t length;
+	struct osmo_trxd_burst_req dbr = {
+		.fn = br->fn,
+		.tn = br->tn,
+		.att = br->pwr,
+		.burst_len = br->burst_len,
+	};
+	int rc;
 
 	/* We must be sure that POWERON has been acknowledged by the
 	 * transceiver before attempting to transmit any bursts. */
@@ -763,31 +521,26 @@ int trx_if_handle_phyif_burst_req(struct trx_instance *trx,
 		return -EAGAIN;
 	}
 
-	LOGPFSMSL(trx->fi, DTRXD, LOGL_DEBUG,
-		  "TX burst tn=%u fn=%u pwr=%u\n",
-		  br->tn, br->fn, br->pwr);
+	if (br->burst_len != 0)
+		memcpy(&dbr.burst[0], br->burst, br->burst_len);
+	else /* a burst request without a payload: NOPE.req */
+		dbr.flags |= OSMO_TRXD_F_NOPE_REQ;
 
-	buf[0] = br->tn;
-	osmo_store32be(br->fn, buf + 1);
-	buf[5] = br->pwr;
-	length = 6;
+	LOGPFSMSL(trx->fi, DTRXD, LOGL_DEBUG, "Tx %s\n", osmo_trxd_burst_req_name(&dbr));
 
-	/* Copy ubits {0,1} */
-	if (br->burst_len != 0) {
-		memcpy(buf + 6, br->burst, br->burst_len);
-		length += br->burst_len;
+	rc = osmo_trx_ep_send_burst_req(trx->ep, 0, &dbr);
+	if (rc < 0) {
+		LOGPFSMSL(trx->fi, DTRXD, LOGL_ERROR,
+			  "osmo_trx_ep_send_burst_req(%s) failed: %d\n",
+			  osmo_trxd_burst_req_name(&dbr), rc);
 	}
 
-	/* Send data to transceiver */
-	send(trx->trx_ofd_data.fd, buf, length, 0);
-
-	return 0;
+	return rc;
 }
 
 /* Init TRX interface (TRXC, TRXD sockets and FSM) */
 struct trx_instance *trx_if_open(const struct trx_if_params *params)
 {
-	const unsigned int offset = params->instance * 2;
 	struct trx_instance *trx;
 	struct osmo_fsm_inst *fi;
 	int rc;
@@ -814,49 +567,49 @@ struct trx_instance *trx_if_open(const struct trx_if_params *params)
 		return NULL;
 	}
 
-	/* Initialize CTRL queue */
-	INIT_LLIST_HEAD(&trx->trx_ctrl_list);
-
-	/* Open sockets */
-	rc = trx_udp_open(trx, &trx->trx_ofd_ctrl, /* TRXC */
-			  params->local_host, params->base_port + 101 + offset,
-			  params->remote_host, params->base_port + 1 + offset,
-			  trx_ctrl_read_cb);
-	if (rc < 0)
-		goto udp_error;
-
-	rc = trx_udp_open(trx, &trx->trx_ofd_data, /* TRXD */
-			  params->local_host, params->base_port + 102 + offset,
-			  params->remote_host, params->base_port + 2 + offset,
-			  trx_data_rx_cb);
-	if (rc < 0)
-		goto udp_error;
-
 	trx->fn_advance = params->fn_advance;
 	trx->priv = params->priv;
 	fi->priv = trx;
 	trx->fi = fi;
 
+	/* The TRX protocol endpoint: per-channel ctrl/data UDP sockets.
+	 * Shifting the base port by 2 * instance makes the single channel
+	 * of this endpoint use the ports of the given TRX instance. */
+	trx->ep = osmo_trx_ep_alloc(trx, 1);
+	if (trx->ep == NULL)
+		goto error;
+	osmo_trx_ep_set_name(trx->ep, "trx_ep(%u)", params->instance);
+	osmo_trx_ep_set_log_cat(trx->ep, DTRXD);
+	osmo_trx_ep_set_priv(trx->ep, trx);
+	osmo_trx_ep_set_mode(trx->ep, OSMO_TRX_EP_MODE_L1);
+	osmo_trx_ep_set_laddr(trx->ep, params->local_host);
+	osmo_trx_ep_set_raddr(trx->ep, params->remote_host);
+	osmo_trx_ep_set_base_port(trx->ep, params->base_port + 2 * params->instance);
+	osmo_trx_ep_set_clock_socket(trx->ep, false);
+
+	/* The TRXC command queue engine */
+	trx->trxc_client = osmo_trxc_client_alloc(trx);
+	if (trx->trxc_client == NULL)
+		goto error;
+	osmo_trxc_client_set_name(trx->trxc_client, "trxc_client(%u)", params->instance);
+	osmo_trxc_client_set_log_cat(trx->trxc_client, DTRXC);
+	osmo_trxc_client_set_max_retrans(trx->trxc_client, TRX_MAX_RETRANS);
+	osmo_trxc_client_set_priv(trx->trxc_client, trx);
+	osmo_trxc_client_set_tx_msg_cb(trx->trxc_client, &trxc_client_tx_msg_cb);
+	osmo_trxc_client_set_fatal_error_cb(trx->trxc_client, &trxc_client_fatal_error_cb);
+
+	rc = osmo_trx_ep_open(trx->ep);
+	if (rc != 0) {
+		LOGPFSML(params->parent_fi, LOGL_ERROR,
+			 "osmo_trx_ep_open() failed: %d\n", rc);
+		goto error;
+	}
+
 	return trx;
 
-udp_error:
-	LOGPFSML(params->parent_fi, LOGL_ERROR, "Couldn't establish UDP connection\n");
-	osmo_fsm_inst_free(trx->fi);
+error:
+	osmo_fsm_inst_free(fi);
 	return NULL;
-}
-
-/* Flush pending control messages */
-static void trx_if_flush_ctrl(struct trx_instance *trx)
-{
-	struct trx_ctrl_msg *tcm;
-
-	/* Clear command queue */
-	while (!llist_empty(&trx->trx_ctrl_list)) {
-		tcm = llist_entry(trx->trx_ctrl_list.next,
-			struct trx_ctrl_msg, list);
-		llist_del(&tcm->list);
-		talloc_free(tcm);
-	}
 }
 
 void trx_if_close(struct trx_instance *trx)
@@ -869,7 +622,6 @@ void trx_if_close(struct trx_instance *trx)
 static void trx_fsm_cleanup_cb(struct osmo_fsm_inst *fi,
 			       enum osmo_fsm_term_cause cause)
 {
-	static const char cmd_poweroff[] = "CMD POWEROFF";
 	struct trx_instance *trx = fi->priv;
 
 	/* May be unallocated due to init error */
@@ -878,19 +630,24 @@ static void trx_fsm_cleanup_cb(struct osmo_fsm_inst *fi,
 
 	LOGPFSML(fi, LOGL_NOTICE, "Shutdown transceiver interface\n");
 
-	/* Abort TRXC response timer (if pending) */
-	osmo_timer_del(&trx->trx_ctrl_timer);
+	/* Flush the TRXC command queue */
+	osmo_trxc_client_free(trx->trxc_client);
+	trx->trxc_client = NULL;
 
-	/* Flush CTRL message list */
-	trx_if_flush_ctrl(trx);
+	/* Power off if the transceiver is up (osmo_trx_ep API takes care of
+	 * sending pending TRXC data, even after osmo_trx_ep_{close,free}()). */
+	if (fi->state == TRX_ST_POWERON && trx->ep != NULL) {
+		const struct osmo_trxc_msg cmd_poweroff = {
+			.type = OSMO_TRXC_MT_CMD,
+			.cmd = OSMO_TRXC_CMD_POWEROFF,
+		};
+		osmo_trx_ep_send_ctrl_msg(trx->ep, 0, &cmd_poweroff);
+	}
 
-	/* Power off if the transceiver is up */
-	if (fi->state == TRX_ST_POWERON && trx->trx_ofd_ctrl.fd >= 0)
-		send(trx->trx_ofd_ctrl.fd, &cmd_poweroff[0], sizeof(cmd_poweroff), 0);
-
-	/* Close sockets */
-	trx_udp_close(&trx->trx_ofd_ctrl);
-	trx_udp_close(&trx->trx_ofd_data);
+	/* Shutdown the TRX endpoint */
+	osmo_trx_ep_close(trx->ep);
+	osmo_trx_ep_free(trx->ep);
+	trx->ep = NULL;
 
 	/* Free memory */
 	trx->fi->priv = NULL;

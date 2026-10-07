@@ -26,6 +26,7 @@ export LD_LIBRARY_PATH="$inst/lib"
 
 osmo-build-dep.sh libosmocore "" --disable-doxygen
 osmo-build-dep.sh libosmo-gprs
+osmo-build-dep.sh osmo-trx "" --disable-doxygen --disable-multi-arfcn --without-proxy
 osmo-build-dep.sh gapk
 
 set +x
