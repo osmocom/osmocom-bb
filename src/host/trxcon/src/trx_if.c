@@ -196,9 +196,7 @@ static int trx_ctrl_cmd(struct trx_instance *trx, int critical,
  * POWERON starts the transmitter and starts the demodulator.
  * Initial power level is very low.
  * This command fails if the transmitter and receiver are not yet tuned.
- * This command fails if the transmit or receive frequency creates a conflict
- * with another ARFCN that is already running.
- * If the transceiver is already on, it response with success to this command.
+ * This command fails if the transceiver is already on.
  * CMD POWERON
  * RSP POWERON <status>
  */
@@ -253,11 +251,9 @@ static int trx_if_cmd_setslot(struct trx_instance *trx,
 /*
  * Tuning Control
  *
- * (RX/TX)TUNE tunes the receiver to a given frequency in kHz.
- * This command fails if the receiver is already running.
- * (To re-tune you stop the radio, re-tune, and restart.)
- * This command fails if the transmit or receive frequency
- * creates a conflict with another ARFCN that is already running.
+ * RXTUNE/TXTUNE tune the transceiver to a given Rx/Tx frequency in kHz.
+ * Both osmo-trx-proxy and fake_trx.py permit this command regardless
+ * of the power state (before and after POWERON).
  * CMD (RX/TX)TUNE <kHz>
  * RSP (RX/TX)TUNE <status> <kHz>
  */
