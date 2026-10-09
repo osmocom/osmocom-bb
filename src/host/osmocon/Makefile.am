@@ -8,15 +8,17 @@ $(top_srcdir)/.version:
 dist-hook:
 	echo $(VERSION) > $(distdir)/.tarball-version
 
-INCLUDES = $(all_includes) -I$(top_srcdir)/include
+AM_CPPFLAGS = -I$(srcdir) -DHOST_BUILD
 AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS)
+
+# headers are actually symlinks to the firmware
+noinst_HEADERS = sercomm.h loader_protocol.h
 
 sbin_PROGRAMS = osmocon osmoload
 
 # FIXME: sercomm needs to move into libosmocore or another shared lib
-INCLUDES += -I$(srcdir)/../../target/firmware/include/comm -I$(srcdir)/../../target/firmware/apps -DHOST_BUILD
-osmocon_SOURCES = osmocon.c tpu_debug.c $(srcdir)/../../target/firmware/comm/sercomm.c
+osmocon_SOURCES = osmocon.c tpu_debug.c sercomm.c
 osmocon_LDADD = $(LIBOSMOCORE_LIBS)
 
-osmoload_SOURCE = osmoload.c $(srcdir)/../../target/firmware/comm/sercomm.c
+osmoload_SOURCE = osmoload.c sercomm.c
 osmoload_LDADD = $(LIBOSMOCORE_LIBS)

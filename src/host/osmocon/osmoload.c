@@ -38,7 +38,7 @@
 #include <osmocom/core/crc16.h>
 #include <osmocom/core/socket.h>
 
-#include <loader/protocol.h>
+#include <loader_protocol.h>
 
 #define MSGB_MAX 256
 
