@@ -2,6 +2,7 @@ AUTOMAKE_OPTIONS = foreign dist-bzip2 1.6
 
 # versioning magic
 BUILT_SOURCES = $(top_srcdir)/.version
+EXTRA_DIST = .version
 $(top_srcdir)/.version:
 	echo $(VERSION) > $@-t && mv $@-t $@
 dist-hook:
