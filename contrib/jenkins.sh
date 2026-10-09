@@ -37,22 +37,12 @@ echo
 set -x
 
 
-# building those sub-projects where 'distcheck' is known-working
-for dir in gprsdecode layer23 trxcon virt_phy; do
+for dir in gprsdecode layer23 osmocon trxcon virt_phy; do
 	cd $base/src/host/$dir
 	autoreconf -fi
 	./configure --enable-werror
 	$MAKE $PARALLEL_MAKE
 	DISTCHECK_CONFIGURE_FLAGS="--enable-werror" $MAKE $PARALLEL_MAKE distcheck
-done
-
-# TODO: make sure 'distcheck' passes also for these
-# TODO: make sure '--enable-werror' passes also for these
-for dir in osmocon; do
-	cd $base/src/host/$dir
-	autoreconf -fi
-	./configure
-	$MAKE $PARALLEL_MAKE
 done
 
 # Build and publish manuals
