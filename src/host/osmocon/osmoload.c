@@ -633,7 +633,7 @@ loader_do_memdump(uint16_t crc, void *data, size_t length) {
 }
 
 static void
-loader_do_memload() {
+loader_do_memload(void) {
 	uint32_t rembytes = osmoload.memlen - osmoload.memoff;
 
 	if(!rembytes) {
@@ -673,7 +673,7 @@ loader_do_memload() {
 }
 
 static void
-loader_do_fprogram() {
+loader_do_fprogram(void) {
 	uint32_t rembytes = osmoload.memlen - osmoload.memoff;
 
 	if(!rembytes) {
