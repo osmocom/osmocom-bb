@@ -205,8 +205,8 @@ loader_send_request(struct msgb *msg) {
 }
 
 static void loader_do_memdump(uint16_t crc, void *address, size_t length);
-static void loader_do_memload();
-static void loader_do_fprogram();
+static void loader_do_memload(void);
+static void loader_do_fprogram(void);
 static void loader_do_flashrange(uint8_t cmd, struct msgb *msg, uint8_t chip, uint32_t address, uint32_t status);
 
 static void memop_timeout(void *dummy) {
@@ -633,7 +633,7 @@ loader_do_memdump(uint16_t crc, void *data, size_t length) {
 }
 
 static void
-loader_do_memload() {
+loader_do_memload(void) {
 	uint32_t rembytes = osmoload.memlen - osmoload.memoff;
 
 	if(!rembytes) {
@@ -673,7 +673,7 @@ loader_do_memload() {
 }
 
 static void
-loader_do_fprogram() {
+loader_do_fprogram(void) {
 	uint32_t rembytes = osmoload.memlen - osmoload.memoff;
 
 	if(!rembytes) {
