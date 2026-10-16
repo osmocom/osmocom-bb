@@ -41,3 +41,6 @@ doc/manuals/generated/
 doc/manuals/osmocombb-usermanual.xml
 doc/manuals/common
 doc/manuals/build
+
+osmo-ci
+.copy-done
