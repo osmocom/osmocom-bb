@@ -34,3 +34,7 @@ osmoload
 *.dump
 *.bin
 *.log
+
+# make distcheck
+sercomm.h
+loader/protocol.h
