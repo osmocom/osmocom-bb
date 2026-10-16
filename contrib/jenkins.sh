@@ -69,4 +69,9 @@ make firmware
 cd "$base/src/target/trx_toolkit"
 python3 -m unittest discover -v
 
+# Upload firmware to downloads.osmocom.org
+if [ "$PUBLISH" = "1" ]; then
+	"$base"/contrib/upload_firmware.sh
+fi
+
 osmo-clean-workspace.sh
